@@ -9,6 +9,9 @@
   const vitalsEl = $("#tab-vitals");
   const logEl = $("#tab-log");
   const input = $("#cmd");
+  // Idle hint; the long one doesn't fit the box on phones
+  const idleHint = () => (matchMedia("(max-width: 600px)").matches ? "Say “Hey VEGA” or type…" : "Press both side buttons or say “Hey VEGA” to talk, or type here…");
+  input.placeholder = idleHint();
   const micBtn = $("#mic");
 
   const HISTORY = 48;
@@ -413,7 +416,7 @@
     onResult: (t) => { input.value = ""; execute(t); },
     onState: (on) => {
       micBtn.classList.toggle("listening", on);
-      input.placeholder = on ? "Listening…" : "Say or type “VEGA, run a full scan”…";
+      input.placeholder = on ? "Listening…" : idleHint();
     },
     onError: (err) => {
       const msg = err === "not-allowed" || err === "service-not-allowed"

@@ -217,7 +217,7 @@ const VEGA = (() => {
   }
 
   return {
-    parse, speak, toneFor, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
+    parse, speak, stop: stopAll, toneFor, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
     get muted() { return muted; },
     supported: { recognition: !!SR, synthesis: "speechSynthesis" in window },
     TOOL_ALIASES,

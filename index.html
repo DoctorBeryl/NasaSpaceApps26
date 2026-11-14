@@ -128,6 +128,39 @@
     </div>
   </section>
 
+  <!-- THE FRAME: 3D glasses with control callouts (js/glasses3d.js) -->
+  <section>
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">The frame</span>
+        <h2>Three controls. <span class="grad-text">No screen to tap.</span></h2>
+        <p class="lead">Voice does most of the work, but gloves, noise and comm blackouts happen. Two buttons and a scroll knob on the temples do the same job by touch. Drag the model to turn it.</p>
+      </div>
+      <div class="g3d-stage reveal" id="glasses-stage">
+        <canvas aria-label="3D model of the AstraSight glasses, showing the left button, right button and scroll knob" role="img"></canvas>
+        <svg class="g3d-lines" aria-hidden="true">
+          <defs><marker id="g3d-arrow" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" /></marker></defs>
+        </svg>
+        <div class="g3d-callout pos-tl" data-target="right">
+          <span class="mono">01 · Right button</span>
+          <b>Acknowledge and next step</b>
+          <p>Press to acknowledge an alert, then again to page through its steps.</p>
+        </div>
+        <div class="g3d-callout pos-bl" data-target="knob">
+          <span class="mono">02 · Scroll knob</span>
+          <b>Scroll the side panel</b>
+          <p>Turn to move through readings or alert steps. Press it in to open the selected tool.</p>
+        </div>
+        <div class="g3d-callout pos-tr" data-target="left">
+          <span class="mono">03 · Left button</span>
+          <b>Talk to VEGA</b>
+          <p>Press it together with the right button, or just say “Hey VEGA”. Same as pressing V on the live interface.</p>
+        </div>
+        <p class="g3d-hint mono">Drag to rotate · left and right are the wearer's</p>
+      </div>
+    </div>
+  </section>
+
   <!-- TOOLS -->
   <section>
     <div class="container">
@@ -184,6 +217,8 @@
   <script src="js/vega.js"></script>
   <script src="js/crew.js"></script>
   <script src="js/companion.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" defer></script>
+  <script src="js/glasses3d.js" defer></script>
   <script>
     // Tool grid
     document.getElementById("tool-grid").innerHTML = TOOLS.map((t) => `

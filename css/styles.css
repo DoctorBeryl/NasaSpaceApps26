@@ -798,3 +798,96 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
   .scan-frame[data-tone="busy"] .ring-ticks, .scan-steps li[data-state="active"] .dot { animation: none; }
   .ring-arc { transition: none; }
 }
+
+/* ---------- 3D glasses on the home page (js/glasses3d.js) ---------- */
+.g3d-stage {
+  position: relative; height: clamp(460px, 56vw, 620px); margin-top: 32px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: radial-gradient(ellipse at 50% 45%, rgba(94, 242, 255, 0.08), transparent 60%), var(--surface);
+  overflow: hidden;
+}
+.g3d-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.g3d-stage.dragging canvas { cursor: grabbing; }
+.g3d-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.g3d-line { fill: none; stroke: var(--cyan); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.85; }
+.g3d-dot { fill: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
+#g3d-arrow path { fill: var(--cyan); }
+.g3d-callout {
+  position: absolute; width: min(240px, 38%); padding: 12px 14px;
+  background: var(--surface-solid); border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); pointer-events: none;
+}
+.g3d-callout .mono { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
+.g3d-callout b { display: block; margin: 4px 0 2px; font-weight: 600; }
+.g3d-callout p { margin: 0; font-size: 13px; color: var(--text-dim); }
+.g3d-callout.pos-tl { top: 24px; left: 24px; }
+.g3d-callout.pos-bl { bottom: 48px; left: 24px; }
+.g3d-callout.pos-tr { top: 24px; right: 24px; }
+.g3d-hint { position: absolute; bottom: 14px; left: 0; right: 0; margin: 0; text-align: center; font-size: 11px; color: var(--text-faint); }
+.g3d-fallback canvas, .g3d-fallback .g3d-lines { display: none; }
+.g3d-fallback { height: auto; display: grid; gap: 12px; padding: 16px 16px 40px; }
+.g3d-fallback .g3d-callout { position: static; width: auto; }
+@media (max-width: 640px) {
+  .g3d-stage { height: 560px; }
+  .g3d-callout { width: calc(50% - 22px); padding: 9px 10px; }
+  .g3d-callout p { display: none; }
+  .g3d-callout.pos-tl, .g3d-callout.pos-bl { left: 12px; }
+  .g3d-callout.pos-tr { right: 12px; }
+  .g3d-callout.pos-tl, .g3d-callout.pos-tr { top: 12px; }
+}
+
+/* ---------- First-visit questionnaire (js/onboarding.js) ---------- */
+body.ob-open { overflow: hidden; }
+.ob-overlay {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px;
+  background: rgba(4, 6, 13, 0.78); backdrop-filter: blur(8px); animation: ob-in 0.25s ease;
+}
+.ob-overlay.closing { opacity: 0; transition: opacity 0.25s; }
+@keyframes ob-in { from { opacity: 0; } }
+.ob-card {
+  width: min(640px, 100%); max-height: min(760px, calc(100vh - 32px)); max-height: min(760px, calc(100dvh - 32px)); display: flex; flex-direction: column; gap: 14px;
+  padding: 22px; background: var(--surface-solid); border: 1px solid var(--border-hi); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.ob-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ob-head h2 { font-size: clamp(20px, 3vw, 26px); margin: 4px 0 0; }
+.ob-skip { background: none; border: 0; color: var(--text-faint); font: inherit; font-size: 13px; cursor: pointer; padding: 4px; }
+.ob-skip:hover { color: var(--text); }
+.ob-head, .ob-progress, .ob-answer, .ob-foot { flex-shrink: 0; }
+.ob-progress { height: 3px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.ob-progress i { display: block; height: 100%; width: 0; background: var(--grad); transition: width 0.4s ease; }
+.ob-log { display: grid; align-content: start; gap: 10px; overflow-y: auto; min-height: 120px; flex: 1 1 auto; padding-right: 4px; }
+.ob-log .bubble.ob-error { border-color: var(--crit); background: rgba(255, 93, 115, 0.08); }
+.ob-tour { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+.ob-answer { display: grid; gap: 8px; }
+.ob-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.ob-row-end { justify-content: flex-end; }
+.ob-row textarea {
+  flex: 1 1 220px; min-height: 48px; resize: vertical; padding: 10px 12px; font: inherit; font-size: 15px; color: var(--text);
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.ob-row textarea:focus { outline: none; border-color: var(--border-hi); }
+.ob-row .btn { padding: 10px 18px; font-size: 14px; }
+.ob-mic {
+  display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; font: inherit; font-size: 14px; cursor: pointer;
+  color: var(--cyan); background: rgba(94, 242, 255, 0.06); border: 1px solid var(--border-hi); border-radius: 999px;
+}
+.ob-mic:hover { background: rgba(94, 242, 255, 0.12); }
+.ob-mic.on { color: var(--bg); background: var(--cyan); animation: ob-pulse 1.2s ease-in-out infinite; }
+@keyframes ob-pulse { 50% { box-shadow: 0 0 0 6px rgba(94, 242, 255, 0.18); } }
+.ob-hint { margin: 0; font-size: 12.5px; color: var(--text-faint); }
+.ob-hint.warn { color: var(--warn); }
+.ob-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob-opt {
+  padding: 9px 14px; font: inherit; font-size: 14px; color: var(--text); cursor: pointer; text-align: left;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); border-radius: 999px;
+}
+.ob-opt:hover { border-color: var(--border-hi); }
+.ob-opt.on { border-color: var(--cyan); background: rgba(94, 242, 255, 0.14); color: var(--cyan); }
+.ob-opt:disabled, .ob-row button:disabled, .ob-row textarea:disabled { opacity: 0.5; cursor: default; }
+.ob-dots { display: inline-flex; gap: 4px; }
+.ob-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: ob-dot 1s infinite; }
+.ob-dots i:nth-child(2) { animation-delay: 0.15s; } .ob-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ob-dot { 50% { opacity: 0.25; } }
+.ob-foot { margin: 0; font-size: 10.5px; color: var(--text-faint); text-align: center; letter-spacing: 0.06em; }
+@media (prefers-reduced-motion: reduce) { .ob-overlay, .ob-mic.on, .ob-dots i { animation: none; } }
+@media (max-width: 520px) { .ob-card { padding: 16px; } .ob-mic span { display: none; } }
