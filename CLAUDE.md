@@ -33,6 +33,7 @@ Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome
 | `js/companion.js` + `css/companion.css` | Home-page VEGA pop-up: greets by name and pops up with simulated hazards, but only while `report.html` isn't open in another tab |
 | `js/data.js` | **Single source of truth** for the tools: `TOOLS[]` (id, unit, base, jitter, warn thresholds, sensor, steps, voice cmd, wave type) and `ICONS` |
 | `js/common.js` | Shared nav and footer (`NAV_LINKS`), starfield, `.reveal` scroll-in, `drawSpark()` |
+| `server.js` + `server/` | Node dev server (no deps): static files, `/api/tts` (ElevenLabs), `/api/ai/*` (VEGA on Qwen 2.5 via local Ollama). API contract in [docs/AI-BACKEND.md](docs/AI-BACKEND.md); persona in `server/persona.md` |
 | `css/styles.css` | Design tokens in `:root` (dark space theme: cyan, violet, magenta, plus ok/warn/crit) and all components |
 
 Script load order matters: `data.js` → `common.js` → `vega.js` → page script.

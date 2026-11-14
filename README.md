@@ -20,6 +20,8 @@ cp .env.example .env     # then put your ELEVENLABS_API_KEY in .env
 node server.js           # http://localhost:8000
 ```
 
+VEGA's AI (onboarding questionnaire, chat, critical-stats brief) runs on **Qwen 2.5 through a local [Ollama](https://ollama.com)**. Install Ollama and run `ollama pull qwen2.5:3b` before starting the server. See [docs/AI-BACKEND.md](docs/AI-BACKEND.md) for the API.
+
 The API key is only read by `server.js` and is never sent to the browser. `.env` is git-ignored. Without a key, or with a plain static server (`npx serve .`), VEGA falls back to the browser's built-in voice. Voice input needs a secure origin, so use localhost instead of opening the files directly.
 
 Voice recognition uses the Web Speech API, which works in Chrome and Edge. In any browser you can type commands or click the suggestion chips instead. Press **V** on the interface page to start talking.
@@ -49,6 +51,7 @@ js/alerts.js     reading sliders, VEGA warning popups, cross-tab sync
 js/hud.js        interface page controller
 js/tools.js      diagnostics demo stage
 media/           put tool demo videos here (see media/README.md)
+server/          VEGA AI backend: Ollama client, onboarding, chat and brief routes, persona.md
 backups/         earlier versions of the site, runnable as-is
 ```
 

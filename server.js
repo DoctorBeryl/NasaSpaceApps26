@@ -3,6 +3,8 @@
    - Serves the static site
    - POST /api/tts  { text }  -> audio/mpeg from ElevenLabs
      The API key stays here (read from .env), never in the browser.
+   - /api/ai/*  VEGA on Qwen 2.5 via local Ollama (server/ai.js,
+     contract in docs/AI-BACKEND.md)
    Run: node server.js
    ========================================================== */
 const http = require("http");
@@ -18,6 +20,8 @@ try {
     if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
   }
 } catch { /* no .env: TTS falls back to the browser voice */ }
+
+const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
 
 const KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
@@ -69,7 +73,7 @@ function serveStatic(req, res) {
   if (p.endsWith("/")) p += "index.html";
   const file = path.normalize(path.join(ROOT, p));
   const base = path.basename(file);
-  if (!file.startsWith(ROOT + path.sep) || base.startsWith(".") || base === "server.js") return send(res, 404, "Not found");
+  if (!file.startsWith(ROOT + path.sep) || base.startsWith(".") || base === "server.js" || file.startsWith(path.join(ROOT, "server") + path.sep)) return send(res, 404, "Not found");
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, "Not found");
     res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream" });
@@ -79,11 +83,13 @@ function serveStatic(req, res) {
 
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+  if (ai.handle(req, res)) return;
   if (url === "/api/tts" && req.method === "POST") return tts(req, res);
   if (url === "/api/tts" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method not allowed");
   serveStatic(req, res);
 }).listen(PORT, () => {
   console.log(`AstraSight running at http://localhost:${PORT}`);
+  console.log(`VEGA AI: ${process.env.OLLAMA_MODEL || "qwen2.5:3b"} via Ollama (GET /api/ai/status to check)`);
   console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL})` : "ELEVENLABS_API_KEY not set: using browser voice");
 });
