@@ -79,10 +79,27 @@ function serveStatic(req, res) {
 
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+  if (url === "/api/tts") {
+    // Let pages served by another local static server (npx serve, Live Server) use this proxy.
+    // Localhost origins only, so other websites can't spend the ElevenLabs key.
+    const origin = req.headers.origin || "";
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.setHeader("Vary", "Origin");
+    }
+    if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
+  }
   if (url === "/api/tts" && req.method === "POST") return tts(req, res);
   if (url === "/api/tts" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method not allowed");
   serveStatic(req, res);
+}).on("error", (e) => {
+  if (e.code !== "EADDRINUSE") throw e;
+  console.error(`Port ${PORT} is already in use, probably by another copy of this server.`);
+  console.error(`Open http://localhost:${PORT} if that one is AstraSight, stop it first, or run with another port (PowerShell: $env:PORT=8001; node server.js).`);
+  process.exit(1);
 }).listen(PORT, () => {
   console.log(`AstraSight running at http://localhost:${PORT}`);
   console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL})` : "ELEVENLABS_API_KEY not set: using browser voice");

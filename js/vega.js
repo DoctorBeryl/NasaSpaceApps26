@@ -106,10 +106,17 @@ const VEGA = (() => {
   }
 
   /* ElevenLabs voice via the local server's /api/tts proxy (key lives in .env on the server).
-     Falls back to the browser voice when the server isn't running or TTS fails. */
-  const ttsReady = location.protocol.startsWith("http")
-    ? fetch("/api/tts").then((r) => r.ok).catch(() => false)
-    : Promise.resolve(false);
+     Tries this page's own origin first, then node server.js on localhost:8000, so the voice
+     still works when the page comes from another static server (npx serve, Live Server, ...).
+     Falls back to the browser voice when no proxy answers or TTS fails. */
+  const TTS_FALLBACK = "http://localhost:8000/api/tts";
+  const probe = (u) => fetch(u).then((r) => (r.ok ? u : null)).catch(() => null);
+  const ttsUrl = (location.protocol.startsWith("http") ? probe("/api/tts") : Promise.resolve(null))
+    .then((u) => u || (location.origin === "http://localhost:8000" ? null : probe(TTS_FALLBACK)))
+    .then((u) => {
+      if (!u) console.warn("VEGA: no ElevenLabs proxy found, using the browser voice. Run `node server.js` and open http://localhost:8000");
+      return u;
+    });
   let audio = null, seq = 0;
 
   function stopAll() {
@@ -122,9 +129,10 @@ const VEGA = (() => {
     if (muted || !text) return;
     stopAll();
     const id = seq;
-    if (await ttsReady) {
+    const url = await ttsUrl;
+    if (url) {
       try {
-        const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
         if (!r.ok) throw new Error(r.status);
         const blob = await r.blob();
         if (id !== seq || muted) return;          // something newer was said meanwhile
