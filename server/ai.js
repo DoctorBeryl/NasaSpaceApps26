@@ -115,7 +115,9 @@ function systemPrompt(profile, rows, context = []) {
   if (context.length) parts.push("", "Other telemetry from the current screen (already labelled by the app):", ...context);
 
   if (rows.some((r) => r.zone === "crit")) {
-    parts.push("", "IMPORTANT: at least one reading is in the DANGER zone. Start your reply with it, give the first protocol step, and tell them to contact the flight surgeon and the crew medical officer now.");
+    parts.push("", "IMPORTANT: at least one reading is in the DANGER zone. Start your reply with it, give the first protocol step, and tell them to contact the flight surgeon and the crew medical officer now. Be short, firm and composed: no exclamation marks, no panic words, and end with one steadying line.");
+  } else if (rows.some((r) => r.zone === "warn")) {
+    parts.push("", "Situation: CAUTION. At least one reading is in the caution zone. Be friendly but focused: name it, say what it means in a few words, give one next step. No jokes.");
   }
   return parts.join("\n");
 }

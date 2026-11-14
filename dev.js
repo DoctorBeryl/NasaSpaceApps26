@@ -3,7 +3,10 @@
    Runs the backend pieces side by side with prefixed output:
    - [ollama]  `ollama serve`, only if Ollama isn't already running
                (the Windows/macOS desktop app usually runs it already)
-   - [server]  node server.js (static site + /api/tts + /api/chat)
+   - [server]  node server.js: static site, face/email sign-in (/api/auth/*),
+               VEGA AI (/api/ai/*, /api/chat), voice (/api/tts, /api/stt).
+               Face recognition itself runs in the browser (face-api.js);
+               the server only matches descriptors, so there's no extra process.
    Ctrl+C stops everything this script started.
    Run: node dev.js   (or: npm run dev)
    ========================================================== */

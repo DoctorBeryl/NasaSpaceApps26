@@ -42,6 +42,8 @@
   }
 
   function nextUrl(isNew) {
+    // New crew always go through the onboarding questionnaire first, even if a page sent them here
+    if (isNew) return "interface.html?welcome=1";
     const n = params.get("next");
     if (n && /^[\w-]+\.html(\?[^#<>"']*)?$/.test(n) && !/^login\.html/.test(n)) return n;
     return isNew ? "interface.html?welcome=1" : "interface.html";
@@ -231,7 +233,7 @@
 
   /* ---------------- face: server ---------------- */
   async function post(url, body) {
-    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch(AstraAuth.api(url), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     let data = {};
     try { data = await r.json(); } catch { /* empty */ }
     return { ok: r.ok, status: r.status, data };
@@ -243,7 +245,7 @@
   async function prepare(flow) {
     const cfg = AstraAuth.config;
     if (!cfg || cfg.mode === "unavailable") {
-      throw Object.assign(new Error("Face sign-in needs the AstraSight server. Start it with  node server.js  and open http://localhost:8000/login.html."), { code: "noserver" });
+      throw Object.assign(new Error("Face sign-in needs the AstraSight server, and it isn't running. Start it with  npm run dev  (or node server.js), then try again."), { code: "noserver" });
     }
     say("Starting the lens camera…", "", "busy");
     await startCamera();
@@ -334,10 +336,13 @@
     stopCamera();
     progress(0);
     say(e.code === "nocam" || e.code === "noserver" ? "Face sign-in isn't available." : "That didn't work.", e.message, "fail");
-    controls({ retry: e.code !== "noserver", newCrew: e.code === "stall" });
+    noServer = e.code === "noserver";
+    controls({ retry: true, newCrew: e.code === "stall" });
   }
 
-  btnRetry.onclick = () => signIn();
+  // After "server not running", Try again reloads so auth.js looks for the server again.
+  let noServer = false;
+  btnRetry.onclick = () => (noServer ? location.reload() : signIn());
   btnBack.onclick = () => signIn();
   btnNew.onclick = () => askName("New crew member? Tell me your name or call sign.");
   form.onsubmit = (ev) => {
@@ -426,6 +431,9 @@
   $("pick-password").onclick = startPassword;
   $("to-password").onclick = startPassword;
   $("to-face").onclick = startFace;
+  const toChoose = () => { remember.set(""); showView("choose"); };
+  $("face-to-choose").onclick = toChoose;
+  $("pw-to-choose").onclick = toChoose;
 
   AstraAuth.ready.then((u) => {
     const passwordOk = AstraAuth.config?.mode === "firebase";

@@ -9,7 +9,11 @@
    ========================================================== */
 (function () {
   const params = new URLSearchParams(location.search);
-  if (!params.has("welcome") && !params.has("onboard")) return;
+  // ?welcome=1 / ?onboard=1 force it; otherwise it still opens for a signed-in crew member
+  // whose profile isn't onboarded yet (unless they chose "Skip for now" this browser session).
+  const forced = params.has("welcome") || params.has("onboard");
+  const SKIP_KEY = "astrasight.onboarding.skipped";
+  if (!forced && !window.AstraAuth) return;
 
   // vega.js declares VEGA with const, so it is a global but not a window property
   const V = typeof VEGA !== "undefined" ? VEGA : null;
@@ -68,7 +72,9 @@
   /* ---------- API ---------- */
   async function api(path, body) {
     const token = window.AstraAuth ? await AstraAuth.getIdToken().catch(() => null) : null;
-    const r = await fetch(`/api/ai/${path}`, {
+    if (window.AstraAuth) await AstraAuth.ready.catch(() => null);
+    const url = window.AstraAuth ? AstraAuth.api(`/api/ai/${path}`) : `/api/ai/${path}`;
+    const r = await fetch(url, {
       method: body ? "POST" : "GET",
       headers: { "Content-Type": "application/json", ...(token && { Authorization: `Bearer ${token}` }) },
       body: body ? JSON.stringify(body) : undefined,
@@ -105,6 +111,7 @@
       onError(err) {
         const msg = err === "not-allowed" || err === "service-not-allowed" ? "Microphone blocked. Allow it in the address bar, or type instead."
                   : err === "no-speech" ? "I didn't hear anything. Tap Speak to try again."
+                  : err === "network" ? "Speech service unreachable, and server transcription is off. You can type instead."
                   : `Voice input stopped (${err}). You can type instead.`;
         setHint(msg, true);
       },
@@ -261,7 +268,7 @@
     if (done && window.AstraAuth && AstraAuth.user) {
       try { await AstraAuth.saveProfile({ profile, onboarded: true }); } catch (e) { console.warn("[onboarding] save failed:", e.message); }
     }
-    try { if (done) localStorage.removeItem(LOCAL_KEY); } catch {}
+    try { if (done) localStorage.removeItem(LOCAL_KEY); else sessionStorage.setItem(SKIP_KEY, "1"); } catch {}
     root.classList.add("closing");
     setTimeout(() => root.remove(), 250);
     document.body.classList.remove("ob-open");
@@ -271,10 +278,17 @@
 
   /* ---------- start ---------- */
   async function start() {
+    const user = window.AstraAuth ? await AstraAuth.ready.catch(() => null) : null;
+    if (!forced) {
+      let skipped = false; try { skipped = !!sessionStorage.getItem(SKIP_KEY); } catch {}
+      if (!user || skipped || !(await AstraAuth.needsOnboarding().catch(() => false))) return;
+    }
+    if (params.has("welcome") && user && !(await AstraAuth.needsOnboarding())) {
+      params.delete("welcome");
+      return history.replaceState(null, "", location.pathname + (params.toString() ? `?${params}` : "") + location.hash);
+    }
     document.body.appendChild(root);
     document.body.classList.add("ob-open");
-    const user = window.AstraAuth ? await AstraAuth.ready.catch(() => null) : null;
-    if (params.has("welcome") && user && !(await AstraAuth.needsOnboarding())) return close(false);
     const name = user && user.name ? user.name.split(" ")[0] : "";
     try { profile = JSON.parse(localStorage.getItem(LOCAL_KEY)) || {}; } catch { profile = {}; }
     if (name && !profile.callsign) profile.name = name;

@@ -52,11 +52,19 @@
     document.dispatchEvent(new CustomEvent("astra:auth", { detail: u }));
   }
 
+  /* API base: this page's own origin when it's served by server.js, otherwise node server.js on
+     localhost:8000 (so pages from npx serve / Live Server still get sign-in and VEGA's AI). */
+  const API_FALLBACK = "http://localhost:8000";
+  let apiBase = "";
   async function loadConfig() {
-    try {
-      const r = await fetch("/api/auth/config", { cache: "no-store" });
-      if (r.ok) return await r.json();
-    } catch { /* static server: no API */ }
+    const bases = location.protocol.startsWith("http") ? [""] : [];
+    if (location.origin !== API_FALLBACK) bases.push(API_FALLBACK);
+    for (const base of bases) {
+      try {
+        const r = await fetch(base + "/api/auth/config", { cache: "no-store" });
+        if (r.ok) { apiBase = base; return await r.json(); }
+      } catch { /* static server: no API here */ }
+    }
     return { mode: "unavailable", firebase: null };
   }
 
@@ -214,6 +222,8 @@
     ready,
     get user() { return user; },
     get config() { return cfg; },
+    /** Absolute or same-origin URL for an API path, e.g. AstraAuth.api("/api/ai/chat"). Valid after `ready`. */
+    api(path) { return apiBase + path; },
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     getProfile,
     saveProfile,

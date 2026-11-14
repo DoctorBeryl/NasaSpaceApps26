@@ -191,16 +191,108 @@ const VEGA = (() => {
 
   function setMuted(m) { muted = m; if (m) stopAll(); }
 
-  function createListener({ onResult, onInterim, onState, onError }) {
-    if (!SR) return null;
+  /* Server-side speech-to-text fallback (/api/stt, ElevenLabs Scribe). Chrome's Web Speech API
+     streams audio to Google; when that fails with "network" (offline, VPN/firewall, Brave,
+     Chromium builds) we record the clip ourselves and let server.js transcribe it. */
+  const STT_FALLBACK = "http://localhost:8000/api/stt";
+  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  let sttUrlP = null;
+  let preferRecorder = !SR;              // flips to true for the session after a "network" error
+  function sttUrl() {
+    if (!sttUrlP) {
+      sttUrlP = (location.protocol.startsWith("http") ? probe("/api/stt") : Promise.resolve(null))
+        .then((u) => u || (location.origin === "http://localhost:8000" ? null : probe(STT_FALLBACK)))
+        .then((u) => { if (!u) sttUrlP = null; return u; });
+    }
+    return sttUrlP;
+  }
+
+  /* Record one utterance: stops after ~1.2 s of silence once speech is heard, after 4 s with no
+     speech ("no-speech"), or at 12 s. Then posts the clip to /api/stt. */
+  function createRecorder({ onResult, onInterim, onState, onError }) {
+    let active = false, stopFn = null;
+    async function start() {
+      const url = await sttUrl();
+      if (!url) return onError && onError("network");
+      let stream;
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch (e) { return onError && onError(e.name === "NotAllowedError" ? "not-allowed" : "audio-capture"); }
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/mp4"].find((m) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      let heard = false, cancelled = false, raf = 0;
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const an = ac.createAnalyser(); an.fftSize = 1024;
+      ac.createMediaStreamSource(stream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      const t0 = performance.now(); let lastLoud = t0;
+      const tick = () => {
+        an.getFloatTimeDomainData(buf);
+        let s = 0; for (const v of buf) s += v * v;
+        const now = performance.now();
+        if (Math.sqrt(s / buf.length) > 0.02) { heard = true; lastLoud = now; }
+        if ((heard && now - lastLoud > 1200) || (!heard && now - t0 > 4000) || now - t0 > 12000) return finish(false);
+        raf = requestAnimationFrame(tick);
+      };
+      function finish(cancel) {
+        cancelled = cancel;
+        cancelAnimationFrame(raf);
+        if (mr.state !== "inactive") mr.stop();
+      }
+      mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        ac.close().catch(() => {});
+        active = false; stopFn = null; onState && onState(false);
+        if (cancelled) return;
+        if (!heard) return onError && onError("no-speech");
+        onInterim && onInterim("Transcribing…");
+        try {
+          const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+          const r = await fetch(url, { method: "POST", headers: { "Content-Type": blob.type }, body: blob });
+          if (!r.ok) throw new Error(r.status);
+          const text = String((await r.json()).text || "").trim();
+          text ? onResult(text) : onError && onError("no-speech");
+        } catch (e) {
+          console.warn("VEGA: server transcription failed:", e.message || e);
+          onError && onError("network");
+        }
+      };
+      mr.start(250);
+      active = true; stopFn = () => finish(false);
+      onState && onState(true);
+      raf = requestAnimationFrame(tick);
+    }
+    return {
+      toggle() { active ? stopFn && stopFn() : start(); },
+      stop() { if (active && stopFn) stopFn(); },
+    };
+  }
+
+  function createListener(handlers) {
+    if (!SR && !canRecord) return null;
+    const recorder = canRecord ? createRecorder(handlers) : null;
+    if (!SR || (preferRecorder && recorder)) return recorder;
+    const { onResult, onInterim, onState, onError } = handlers;
     const rec = new SR();
     rec.lang = "en-US";
     rec.interimResults = true;
     rec.continuous = false;
-    let active = false;
+    let active = false, switched = false;
     rec.onstart = () => { active = true; onState && onState(true); };
     rec.onend = () => { active = false; onState && onState(false); };
-    rec.onerror = (e) => onError && onError(e.error);
+    rec.onerror = (e) => {
+      // Browser speech service unreachable: switch to recording + server transcription and retry now.
+      if (e.error === "network" && recorder) {
+        return sttUrl().then((u) => {
+          if (!u) return onError && onError("network");
+          console.warn("VEGA: browser speech service unreachable, using server transcription (/api/stt)");
+          preferRecorder = switched = true;
+          recorder.toggle();
+        });
+      }
+      onError && onError(e.error);
+    };
     rec.onresult = (e) => {
       let finalText = "", interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -211,15 +303,15 @@ const VEGA = (() => {
       if (finalText) onResult(finalText.trim());
     };
     return {
-      toggle() { active ? rec.stop() : rec.start(); },
-      stop() { if (active) rec.stop(); },
+      toggle() { if (switched) return recorder.toggle(); active ? rec.stop() : rec.start(); },
+      stop() { if (switched) return recorder.stop(); if (active) rec.stop(); },
     };
   }
 
   return {
     parse, speak, stop: stopAll, toneFor, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
     get muted() { return muted; },
-    supported: { recognition: !!SR, synthesis: "speechSynthesis" in window },
+    supported: { recognition: !!SR || canRecord, synthesis: "speechSynthesis" in window },
     TOOL_ALIASES,
   };
 })();
