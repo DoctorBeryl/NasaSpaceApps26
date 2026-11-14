@@ -51,7 +51,17 @@
       <div class="demo-controls">
         <button class="btn btn-ghost" id="btn-play">❚❚ Pause</button>
         <button class="btn btn-ghost" id="btn-anomaly">⚠ Simulate anomaly</button>
+        <button class="btn btn-ghost" id="btn-reset">↺ Return to baseline</button>
         <button class="btn btn-ghost" id="btn-speak">🔊 Hear VEGA</button>
+      </div>
+
+      <div class="card slider-card">
+        <div class="slider-head">
+          <h3>Set the reading</h3>
+          <span class="zone-readout" id="sl-readout">NORMAL</span>
+        </div>
+        <p class="dim">Drag from dangerously low to dangerously high. Once the reading leaves the green band, VEGA tells you what to do. If the <a href="interface.html" target="_blank" style="color:var(--cyan)">lens interface</a> is open in another tab, it gets the same reading and the same warning.</p>
+        <div id="sl-mount"></div>
       </div>
 
       <div class="spec-grid">
@@ -86,6 +96,7 @@
   <script src="js/data.js"></script>
   <script src="js/common.js"></script>
   <script src="js/vega.js"></script>
+  <script src="js/alerts.js"></script>
   <script src="js/tools.js"></script>
 </body>
 </html>

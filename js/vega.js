@@ -29,6 +29,8 @@ const VEGA = (() => {
     ["simulate_alert", /\b(simulate|test|trigger)\b.*\b(alert|emergency|alarm)\b|\bemergency\b/, 0.9],
     ["show_log", /\b(show|open)\b.*\b(log|history|transcript)\b/, 0.9],
     ["show_vitals", /\b(show|open|back to)\b.*\b(vitals|dashboard)\b/, 0.9],
+    ["next_step", /^(vega,? )?(next|forward|continue|go on)( step| one| please)?$|\bnext (step|instruction)\b/, 0.9],
+    ["prev_step", /^(vega,? )?(back|previous|prev|go back)( step| one| please)?$|\b(previous|last) (step|instruction)\b|\bstep back\b/, 0.9],
     ["full_scan", /\b(full|complete|whole|entire|all)\b.*\b(scan|diagnostic|diagnostics|check|systems)\b|\brun diagnostics\b|\bscan me\b/, 0.93],
     ["scan_tool", /\b(run|start|begin|do)\b.*\b(scan|test|check|reading)\b/, 0.86],
     ["status_report", /\b(status|report|summary|overview|how am i|am i ok|vitals report)\b/, 0.9],
@@ -95,16 +97,49 @@ const VEGA = (() => {
   }
   if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 
-  function speak(text) {
-    if (muted || !("speechSynthesis" in window)) return;
-    speechSynthesis.cancel();
+  function speakBrowser(text) {
+    if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
     if (voice) u.voice = voice;
     u.rate = 1.02; u.pitch = 1.05;
     speechSynthesis.speak(u);
   }
 
-  function setMuted(m) { muted = m; if (m && "speechSynthesis" in window) speechSynthesis.cancel(); }
+  /* ElevenLabs voice via the local server's /api/tts proxy (key lives in .env on the server).
+     Falls back to the browser voice when the server isn't running or TTS fails. */
+  const ttsReady = location.protocol.startsWith("http")
+    ? fetch("/api/tts").then((r) => r.ok).catch(() => false)
+    : Promise.resolve(false);
+  let audio = null, seq = 0;
+
+  function stopAll() {
+    seq++;
+    if (audio) { audio.pause(); URL.revokeObjectURL(audio.src); audio = null; }
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+
+  async function speak(text) {
+    if (muted || !text) return;
+    stopAll();
+    const id = seq;
+    if (await ttsReady) {
+      try {
+        const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+        if (!r.ok) throw new Error(r.status);
+        const blob = await r.blob();
+        if (id !== seq || muted) return;          // something newer was said meanwhile
+        audio = new Audio(URL.createObjectURL(blob));
+        await audio.play();
+        return;
+      } catch (e) {
+        if (id !== seq || muted) return;
+        console.warn("ElevenLabs TTS unavailable, using browser voice:", e.message || e);
+      }
+    }
+    if (id === seq) speakBrowser(text);
+  }
+
+  function setMuted(m) { muted = m; if (m) stopAll(); }
 
   function createListener({ onResult, onInterim, onState, onError }) {
     if (!SR) return null;

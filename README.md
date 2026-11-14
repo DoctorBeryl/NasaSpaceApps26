@@ -13,13 +13,14 @@ Concept website for a space health challenge. AstraSight is a pair of smart glas
 
 ## Running it
 
-The site is static, with no build step. Voice input needs a secure origin, so serve it from localhost instead of opening the files directly:
+There's no build step and no dependencies. Run the bundled server (Node 18+), which serves the site and proxies VEGA's voice to ElevenLabs:
 
 ```sh
-npx serve .              # or: python -m http.server 8000
+cp .env.example .env     # then put your ELEVENLABS_API_KEY in .env
+node server.js           # http://localhost:8000
 ```
 
-Then open the localhost URL it prints.
+The API key is only read by `server.js` and is never sent to the browser. `.env` is git-ignored. Without a key, or with a plain static server (`npx serve .`), VEGA falls back to the browser's built-in voice. Voice input needs a secure origin, so use localhost instead of opening the files directly.
 
 Voice recognition uses the Web Speech API, which works in Chrome and Edge. In any browser you can type commands or click the suggestion chips instead. Press **V** on the interface page to start talking.
 
@@ -30,6 +31,11 @@ Voice recognition uses the Web Speech API, which works in Chrome and Edge. In an
 - "Move panel left" / "Hide panel" / "Show panel"
 - "Breathing exercise"
 - "Simulate emergency", then "Acknowledge"
+- "Reset readings" (returns every slider to baseline)
+
+## Reading sliders
+
+Every diagnostic has a slider that runs from dangerously low to dangerously high: red is danger, amber is caution, green is normal. When a reading leaves the green band, VEGA shows a popup that names the problem and lists what to do, and speaks the first step. In the red band, the escalation step comes first. On the lens interface the popup is drawn as see-through light; on the Diagnostics page it's a solid card. With both pages open in tabs of the same browser, moving a slider on one page also moves it on the other.
 - "Help"
 
 ## Structure
@@ -39,9 +45,11 @@ css/styles.css   shared design system
 js/data.js       diagnostic tool registry (ranges, sensors, copy)
 js/common.js     nav and footer, starfield, scroll reveal, sparklines
 js/vega.js       VEGA intent parser and speech in/out
+js/alerts.js     reading sliders, VEGA warning popups, cross-tab sync
 js/hud.js        interface page controller
 js/tools.js      diagnostics demo stage
 media/           put tool demo videos here (see media/README.md)
+backups/         earlier versions of the site, runnable as-is
 ```
 
 All health data is simulated. This is a concept prototype, not a medical device.

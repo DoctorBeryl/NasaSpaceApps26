@@ -11,7 +11,7 @@
 
   let current = null;
   let playing = true;
-  let anomaly = 0;          // seconds remaining of anomaly
+  const overrides = {};     // tool id -> slider-set reading
   let t = 0;
   let value = 0;
   let buffer = [];
@@ -32,7 +32,7 @@
   function select(id) {
     const tool = toolById(id) || TOOLS[0];
     current = tool;
-    anomaly = 0; buffer = []; hits = []; value = tool.base;
+    buffer = []; hits = []; value = tgt(tool);
     document.querySelectorAll(".tool-item").forEach((b) => b.classList.toggle("active", b.dataset.id === tool.id));
     $("#st-sensor").textContent = tool.sensor;
     $("#st-name").textContent = tool.name;
@@ -45,8 +45,54 @@
     $("#st-cmd").textContent = tool.cmd;
     $("#ph-file").textContent = `media/${tool.id}.mp4`;
     $("#st-steps").innerHTML = tool.steps.map(([h, p]) => `<li><span><b>${h}</b>${p}</span></li>`).join("");
+    $("#sl-mount").innerHTML = VegaAlerts.sliderHTML(tool, tgt(tool), "lg");
+    $("#sl-mount input").addEventListener("input", (e) => setReading(tool.id, parseFloat(e.target.value)));
+    updateReadout();
     loadVideo(tool.id);
   }
+
+  /* ---------------- reading slider + VEGA popup ---------------- */
+  const tgt = (tool = current) => overrides[tool.id] ?? tool.base;
+  const zone = () => zoneOf(current, tgt()).zone;
+
+  function updateReadout() {
+    const z = zoneOf(current, tgt());
+    const el = $("#sl-readout");
+    el.textContent = `${VegaAlerts.ZONE_LABEL[z.zone]}${z.side ? " " + z.side.toUpperCase() : ""} · ${VegaAlerts.fmt(current, tgt())} ${current.unit}`;
+    el.dataset.zone = z.zone;
+    const wrap = $("#sl-mount .vslider");
+    if (wrap) {
+      VegaAlerts.setSliderZone(wrap, current, tgt());
+      if (document.activeElement !== wrap.firstElementChild) wrap.firstElementChild.value = tgt();
+    }
+  }
+
+  function setReading(id, v, { broadcast = true } = {}) {
+    overrides[id] = v;
+    if (broadcast) VegaAlerts.bus.send({ type: "set", id, value: v });
+    popup.check(toolById(id), v);
+    if (current && current.id === id) updateReadout();
+  }
+
+  function resetReading(id, { broadcast = true } = {}) {
+    (id ? [id] : TOOLS.map((t) => t.id)).forEach((k) => {
+      delete overrides[k];
+      popup.check(toolById(k), toolById(k).base);
+    });
+    if (broadcast) VegaAlerts.bus.send({ type: "reset", id: id || null });
+    if (current) updateReadout();
+  }
+
+  const popup = VegaAlerts.createPopup({
+    variant: "web",
+    onShow: (t, v, z, g) => VEGA.speak(VegaAlerts.speech(t, v, z, g)),
+    onReset: (id) => resetReading(id),
+  });
+
+  VegaAlerts.bus.on((m) => {
+    if (m.type === "set") setReading(m.id, m.value, { broadcast: false });
+    if (m.type === "reset") resetReading(m.id, { broadcast: false });
+  });
 
   /* ---------------- optional real footage ---------------- */
   function loadVideo(id) {
@@ -71,12 +117,14 @@
   }
   function pleth(p) { return Math.max(0, Math.sin(p * Math.PI * 2)) ** 1.6 * 0.9 + Math.sin(p * Math.PI * 4 + 1) * 0.08; }
 
+  let beatPhase = 0;
   function sample(tool, dt) {
-    const a = anomaly > 0;
+    const a = zone() !== "ok";
     switch (tool.wave) {
       case "ecg": {
-        const rate = (a ? 128 : 72) / 60;
-        return ecg((t * rate) % 1);
+        const bpm = tool.id === "cardio" ? Math.max(20, value) : 72;
+        beatPhase = (beatPhase + dt * (bpm / 60)) % 1;
+        return ecg(beatPhase);
       }
       case "pleth": {
         const amp = a ? 0.45 : 1;
@@ -99,11 +147,7 @@
     }
   }
 
-  function targetValue(tool) {
-    if (anomaly <= 0) return tool.base;
-    const map = { cardio: 128, spo2: 89, resp: 28, neuro: 7.6, cog: 82, thermal: 38.4, rad: 6.8, hrv: 18 };
-    return map[tool.id];
-  }
+  const ANOMALY = { cardio: 128, spo2: 89, resp: 28, neuro: 7.6, cog: 82, thermal: 38.4, rad: 6.8, hrv: 18 };
 
   /* ---------------- drawing ---------------- */
   function resize() {
@@ -120,7 +164,7 @@
     for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
   }
 
-  function color() { return anomaly > 0 ? "#ff5d73" : "#5ef2ff"; }
+  function color() { const z = zone(); return z === "crit" ? "#ff5d73" : z === "warn" ? "#ffc65c" : "#5ef2ff"; }
 
   function drawTrace(w, h) {
     const mid = h * 0.6, amp = h * 0.26;
@@ -149,8 +193,9 @@
     const flash = cycle < 0.15;
     // constriction curve after flash
     const k = cycle < 0.3 ? 0 : Math.exp(-(cycle - 0.3) * 1.4);
-    const sluggish = anomaly > 0 ? 0.35 : 1;
-    const pupil = R * (0.42 - 0.22 * (1 - Math.exp(-Math.max(0, cycle - 0.3) * 6)) * k * sluggish * 1.6);
+    const sluggish = zone() !== "ok" ? 0.35 : 1;
+    const scale = tgt() / current.base;
+    const pupil = Math.min(R * 0.95, R * scale * (0.42 - 0.22 * (1 - Math.exp(-Math.max(0, cycle - 0.3) * 6)) * k * sluggish * 1.6));
     // sclera
     ctx.save();
     ctx.beginPath(); ctx.ellipse(cx, cy, R * 1.9, R * 1.05, 0, 0, 6.283);
@@ -170,7 +215,7 @@
     ctx.restore();
     if (flash) { ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(0, 0, w, h); }
     // mm readout from pupil size
-    value = 2 + (pupil / R) * 10 * (current.base / 4.2) * 0.9;
+    value = (pupil / (R * 0.42)) * current.base;
     // reflex graph on the left
     ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "11px JetBrains Mono, monospace";
     ctx.fillText(flash ? "STIMULUS ●" : "REFLEX TRACKING", 20, h - 22);
@@ -193,13 +238,12 @@
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (playing && current) {
       t += dt;
-      if (anomaly > 0) anomaly -= dt;
       const steps = 2;
       for (let i = 0; i < steps; i++) buffer.push(sample(current, dt / steps));
       const max = Math.ceil(w / 2) + 2;
       if (buffer.length > max) buffer.splice(0, buffer.length - max);
       if (current.wave !== "pupil") {
-        value += (targetValue(current) - value) * 0.04 + (Math.random() - 0.5) * current.jitter * 0.15;
+        value += (tgt() - value) * 0.06 + (Math.random() - 0.5) * current.jitter * 0.15;
       }
     }
     ctx.clearRect(0, 0, w, h);
@@ -208,7 +252,8 @@
       if (current.wave === "pupil") drawPupil(w, h);
       else { if (current.wave === "spikes") drawHits(w, h); drawTrace(w, h); }
       $("#st-value").textContent = value.toFixed(current.decimals);
-      $("#st-value").style.color = anomaly > 0 ? "var(--crit)" : "";
+      const z = zone();
+      $("#st-value").style.color = z === "crit" ? "var(--crit)" : z === "warn" ? "var(--warn)" : "";
     }
     requestAnimationFrame(frame);
   }
@@ -219,9 +264,10 @@
     e.currentTarget.textContent = playing ? "❚❚ Pause" : "▶ Play";
     if (!video.hidden) playing ? video.play() : video.pause();
   };
-  $("#btn-anomaly").onclick = () => { anomaly = 8; };
+  $("#btn-anomaly").onclick = () => setReading(current.id, ANOMALY[current.id]);
+  $("#btn-reset").onclick = () => resetReading(current.id);
   $("#btn-speak").onclick = () => {
-    const ok = anomaly <= 0;
+    const ok = zone() === "ok";
     const v = `${value.toFixed(current.decimals)} ${current.unit}`;
     VEGA.setMuted(false);
     VEGA.speak(ok

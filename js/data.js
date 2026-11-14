@@ -139,7 +139,86 @@ const TOOLS = [
 
 const toolById = (id) => TOOLS.find((t) => t.id === id);
 
-function toolStatus(tool, v) {
-  if (v < tool.warnLo || v > tool.warnHi) return "warn";
-  return "ok";
+/* ----------------------------------------------------------
+   Danger thresholds + VEGA guidance
+   critLo/critHi mark "dangerous"; warnLo/warnHi mark "outside normal".
+   Slider ranges run from min (dangerously low) to max (dangerously high).
+   ---------------------------------------------------------- */
+const LIMITS = {
+  cardio:  { min: 30,  max: 180, critLo: 40,  critHi: 140 },
+  spo2:    { min: 70,  max: 100, critLo: 90,  critHi: Infinity },
+  resp:    { min: 3,   max: 40,  critLo: 6,   critHi: 30 },
+  neuro:   { min: 1,   max: 9,   critLo: 1.8, critHi: 8 },
+  cog:     { min: 0,   max: 100, critLo: -Infinity, critHi: 85 },
+  thermal: { min: 33,  max: 42,  critLo: 35,  critHi: 39 },
+  rad:     { min: 0,   max: 10,  critLo: -Infinity, critHi: 5 },
+  hrv:     { min: 5,   max: 150, critLo: 15,  critHi: Infinity },
+};
+
+const GUIDANCE = {
+  cardio: {
+    low: { title: "Heart rate too low", why: "A slow heart rate can reduce blood flow to the brain, especially after a change in gravity.",
+      steps: ["Stop what you're doing and hold onto a handrail or seat.", "Check yourself for dizziness, confusion or shortness of breath.", "Tell a crewmate and stay where they can see you."],
+      danger: "Below 40 bpm: the crew medical officer starts the cardiac protocol and calls the flight surgeon." },
+    high: { title: "Heart rate too high", why: "A racing heart at rest can mean dehydration, low oxygen, heat stress or an irregular rhythm.",
+      steps: ["Stop exercise or heavy work and rest for five minutes.", "Drink water, and check that cabin O₂ and CO₂ read normal.", "Say “breathing exercise” and follow the paced breathing."],
+      danger: "Above 140 bpm at rest: notify the flight surgeon and get the medical kit and defibrillator ready." },
+  },
+  spo2: {
+    low: { title: "Blood oxygen low", why: "Low oxygen impairs judgement within minutes, often before you notice any symptoms.",
+      steps: ["Check the suit or cabin O₂ pressure readout now.", "Put on the emergency oxygen mask.", "Move to a module with a known-good atmosphere and tell the crew."],
+      danger: "Below 90%: declare a medical emergency and check for a cabin leak or life-support failure." },
+  },
+  resp: {
+    low: { title: "Breathing too slow", why: "Slow breathing lets CO₂ build up. It can follow sedating medication or extreme fatigue.",
+      steps: ["Take five slow, deep, deliberate breaths.", "Check whether you've taken any sleep or pain medication.", "Ask a crewmate to stay with you and watch for drowsiness."],
+      danger: "Below 6 breaths/min: a crewmate checks your airway and gives oxygen, then calls the flight surgeon." },
+    high: { title: "Breathing too fast", why: "Rapid breathing often signals high cabin CO₂, anxiety or a developing breathing problem.",
+      steps: ["Slow down: breathe in for 4, out for 6.", "Check the cabin CO₂ reading and the scrubber status.", "If it hasn't settled in two minutes, use the oxygen mask."],
+      danger: "Above 30 breaths/min: move to a module with fresh air and notify the flight surgeon." },
+  },
+  neuro: {
+    low: { title: "Pupils very constricted", why: "Very small pupils can come from medication, a toxic exposure or bright glare.",
+      steps: ["Move out of bright light and repeat the scan in one minute.", "Review any medication you've taken in the last six hours.", "Check the cabin air-quality alarms for contaminants."],
+      danger: "Below 1.8 mm: possible toxic exposure. Put on the mask and alert the crew." },
+    high: { title: "Pupils very dilated", why: "Large or slow-reacting pupils can be a sign of raised pressure around the brain or a head injury.",
+      steps: ["Stop your current task and stay still.", "Say “run a neuro scan” to compare both eyes.", "Report any headache, blurred vision or nausea."],
+      danger: "Above 8 mm: treat it as a possible head injury and contact the flight surgeon now." },
+  },
+  cog: {
+    high: { title: "Fatigue load high", why: "Fatigue slows reaction time and raises error rates during critical operations.",
+      steps: ["Pause critical tasks such as EVA, robotics or docking.", "Hand the task to a rested crewmate.", "Take a 20-minute rest and drink some water."],
+      danger: "Above 85: you aren't cleared for critical operations until your score drops below 60." },
+  },
+  thermal: {
+    low: { title: "Core temperature low", why: "A falling core temperature reduces dexterity and judgement.",
+      steps: ["Raise the suit or cabin temperature.", "Add an insulating layer and drink something warm.", "Stop any cold-soak work, such as EVA in shadow."],
+      danger: "Below 35 °C: start the rewarming protocol and call the flight surgeon." },
+    high: { title: "Core temperature high", why: "Heat stress or fever. In microgravity sweat doesn't drip away, so the body cools less well.",
+      steps: ["Stop exercising and increase suit cooling or cabin airflow.", "Drink fluids with electrolytes.", "Check for signs of fever: chills, aches, sore throat."],
+      danger: "Above 39 °C: begin active cooling and notify the flight surgeon." },
+  },
+  rad: {
+    high: { title: "Radiation dose rate high", why: "A spike in dose rate usually means a solar particle event is underway.",
+      steps: ["Go to the storm shelter now. Follow the route in your view.", "Stay behind the water-wall shielding until VEGA clears you.", "Log your location and the time for your dose record."],
+      danger: "Above 5 mSv/day: shelter-in-place is mandatory and all EVAs are cancelled." },
+  },
+  hrv: {
+    low: { title: "Stress high, HRV low", why: "Low heart-rate variability means your nervous system is under strain or hasn't recovered.",
+      steps: ["Say “breathing exercise” and follow the paced breathing.", "Reduce your workload for the next hour if the schedule allows.", "Prioritise sleep tonight and consider a private psych-support call."],
+      danger: "Below 15 ms: tell the crew medical officer and repeat the reading after rest." },
+  },
+};
+
+TOOLS.forEach((t) => Object.assign(t, LIMITS[t.id], { guidance: GUIDANCE[t.id] }));
+
+/* zone: "ok" | "warn" (outside normal) | "crit" (dangerous); side: "low" | "high" */
+function zoneOf(tool, v) {
+  if (v < tool.critLo) return { zone: "crit", side: "low" };
+  if (v > tool.critHi) return { zone: "crit", side: "high" };
+  if (v < tool.warnLo) return { zone: "warn", side: "low" };
+  if (v > tool.warnHi) return { zone: "warn", side: "high" };
+  return { zone: "ok", side: null };
 }
+
+function toolStatus(tool, v) { return zoneOf(tool, v).zone; }

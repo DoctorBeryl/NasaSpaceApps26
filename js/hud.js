@@ -42,6 +42,7 @@
       <div class="vital-name">${ICONS[t.icon]}<span>${t.name}</span><span class="dot"></span></div>
       <div class="vital-value"><span class="v">${fmt(t)}</span><small>${t.unit}</small></div>
       <canvas></canvas>
+      ${VegaAlerts.sliderHTML(t, t.base)}
       <div class="vital-detail">
         <div class="row"><span>Normal range</span><span>${t.range}</span></div>
         <div class="row"><span>Sensor</span><span>${t.sensor}</span></div>
@@ -58,7 +59,52 @@
       if (e.target.closest("a")) return;
       setFocus(state.focus === el.dataset.id ? null : el.dataset.id);
     });
-    el.addEventListener("keydown", (e) => { if (e.key === "Enter") el.click(); });
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === el) el.click(); });
+    const wrap = el.querySelector(".vslider");
+    wrap.addEventListener("click", (e) => e.stopPropagation());
+    wrap.querySelector("input").addEventListener("input", (e) => {
+      setReading(el.dataset.id, parseFloat(e.target.value));
+    });
+  });
+
+  /* ---------------- reading sliders + VEGA popup ---------------- */
+  const target = (t) => state.override[t.id] ?? t.base;
+
+  function setReading(id, value, { broadcast = true } = {}) {
+    const t = toolById(id);
+    state.override[id] = value;
+    if (broadcast) VegaAlerts.bus.send({ type: "set", id, value });
+    popup.check(t, value);
+  }
+
+  function resetReading(id, { broadcast = true } = {}) {
+    const ids = id ? [id] : TOOLS.map((t) => t.id);
+    ids.forEach((k) => {
+      delete state.override[k];
+      if (state.alert === k) { cards[k].classList.remove("alert"); state.alert = null; hideToast(); }
+      popup.check(toolById(k), toolById(k).base);
+    });
+    if (broadcast) VegaAlerts.bus.send({ type: "reset", id: id || null });
+  }
+
+  const popup = VegaAlerts.createPopup({
+    variant: "hud",
+    mount: shell,
+    onShow: (t, v, z, g) => {
+      log("sys", `${VegaAlerts.ZONE_LABEL[z.zone]}: ${t.name} ${VegaAlerts.fmt(t, v)} ${t.unit}. ${g.title}`);
+      cards[t.id].scrollIntoView({ behavior: "smooth", block: "nearest" });
+      VEGA.speak(VegaAlerts.speech(t, v, z, g));
+    },
+    onPage: (pg) => VEGA.speak(pg.text.replace(/[“”]/g, "")),
+    onReset: (id) => {
+      resetReading(id);
+      respond(`${toolById(id).name} returned to baseline.`, { speak: false });
+    },
+  });
+
+  VegaAlerts.bus.on((m) => {
+    if (m.type === "set") setReading(m.id, m.value, { broadcast: false });
+    if (m.type === "reset") resetReading(m.id, { broadcast: false });
   });
 
   function renderVitals() {
@@ -70,11 +116,15 @@
       if (st !== "ok") warn++;
       el.querySelector(".v").textContent = fmt(t);
       const dot = el.querySelector(".vital-name .dot");
-      dot.className = "dot" + (st === "warn" ? (state.alert === t.id ? " crit pulse" : " warn") : "");
+      const hot = st === "crit" || state.alert === t.id;
+      dot.className = "dot" + (st === "ok" ? "" : hot ? " crit pulse" : " warn");
+      const wrap = el.querySelector(".vslider"), range = wrap.firstElementChild;
+      if (document.activeElement !== range) range.value = target(t);
+      VegaAlerts.setSliderZone(wrap, t, target(t));
       const h = state.history[t.id];
       const delta = h[h.length - 1] - h[0];
       el.querySelector(".trend").textContent = (delta >= 0 ? "▲ +" : "▼ ") + delta.toFixed(t.decimals || 1);
-      const color = state.alert === t.id ? "#ff5d73" : st === "warn" ? "#ffc65c" : "#5ef2ff";
+      const color = st === "ok" ? "#5ef2ff" : hot ? "#ff5d73" : "#ffc65c";
       drawSpark(el.querySelector("canvas"), h, color);
     });
 
@@ -112,6 +162,7 @@
     logEl.hidden = name !== "log";
   }
 
+  $("#reset-btn").onclick = () => { resetReading(null); respond("All readings returned to baseline.", { speak: false }); };
   $("#hide-btn").onclick = () => setVisible(false);
   $("#reopen").onclick = () => setVisible(true);
   $("#dock-btn").onclick = () => setDock(state.dock === "right" ? "left" : "right");
@@ -218,6 +269,11 @@
   }
 
   function execute(raw) {
+    if (/(reset|baseline)/i.test(raw)) {
+      log("user", raw);
+      resetReading(null);
+      return respond("All readings returned to baseline.");
+    }
     const p = VEGA.parse(raw);
     log("user", raw);
     const tool = p.slots.tool && toolById(p.slots.tool);
@@ -246,11 +302,21 @@
         log("sys", "Simulated hypoxia event injected");
         return respond("Warning. Your blood oxygen is dropping. Check your oxygen supply and move to a safe area. Say acknowledge to dismiss.");
       case "clear_alert":
+        if (!state.alert && popup.current) { popup.hide(); return respond("Warning acknowledged. I'll keep watching that reading."); }
         if (!state.alert) return respond("There are no active alerts.");
+        popup.hide();
         cards[state.alert].classList.remove("alert");
         state.alert = null; delete state.override.spo2; delete state.override.cardio;
         hideToast();
         return respond("Alert acknowledged. I'll keep monitoring your oxygen closely.");
+      case "next_step":
+      case "prev_step": {
+        if (!popup.current) return respond("There's no warning on screen right now.");
+        const r = p.intent === "next_step" ? popup.next() : popup.prev();
+        if (r === "ack") return respond("Warning acknowledged. I'll keep watching that reading.");
+        if (!r) return respond(p.intent === "next_step" ? "That's the last step." : "That's the first step.");
+        return;
+      }
       case "breathing":
         respond("Let's do a paced breathing exercise. Follow the prompts in your view.");
         return breathing();
@@ -269,7 +335,7 @@
   const CHIPS = [
     "Run a full scan", "Show my heart rate", "Status report", "Check oxygen",
     "Run a neuro scan", "Move panel left", "Move panel right", "Hide panel",
-    "Show panel", "Breathing exercise", "Simulate emergency", "Acknowledge", "Help",
+    "Show panel", "Breathing exercise", "Simulate emergency", "Next step", "Acknowledge", "Reset readings", "Help",
   ];
   $("#chips").innerHTML = CHIPS.map((c) => `<button type="button">${c}</button>`).join("");
   $("#chips").addEventListener("click", (e) => {
@@ -315,6 +381,12 @@
       e.preventDefault(); micBtn.click();
     }
     if (e.key === "Escape") listener && listener.stop();
+    // Lens side buttons: left / right arrow keys scroll through warning steps
+    if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && popup.current && (document.activeElement !== input || !input.value)) {
+      e.preventDefault();
+      const r = e.key === "ArrowRight" ? popup.next() : popup.prev();
+      if (r === "ack") respond("Warning acknowledged. I'll keep watching that reading.", { speak: false });
+    }
   });
 
   /* ---------------- field-of-view canvas ---------------- */
@@ -340,6 +412,7 @@
   /* ---------------- clocks ---------------- */
   function tick() {
     TOOLS.forEach(step);
+    TOOLS.forEach((t) => popup.check(t, target(t)));
     renderVitals();
     const s = Math.floor((Date.now() - state.start) / 1000) + 3 * 86400 + 14 * 3600 + 22 * 60;
     const d = String(Math.floor(s / 86400)).padStart(3, "0");

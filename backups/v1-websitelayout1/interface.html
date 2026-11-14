@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — Lens Interface</title>
+  <meta name="description" content="Interactive simulation of the AstraSight in-lens HUD, with the side panel and VEGA voice commands." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="hud-page">
+  <nav id="site-nav"></nav>
+
+  <main class="hud-shell" id="shell">
+    <!-- Simulated field of view through the lens -->
+    <div class="viewport">
+      <canvas id="fov"></canvas>
+      <div class="atmo"></div>
+      <div class="scanlines"></div>
+      <div class="lens-vignette"></div>
+    </div>
+
+    <div class="hud-bracket a"></div>
+
+    <div class="hud-corner tl">
+      <span>MISSION <b>ARTEMIS-HAB 04</b></span>
+      <span>CREW <b>CMDR. A. REYES</b></span>
+      <span id="clock">MET 000:00:00</span>
+    </div>
+    <div class="hud-corner bl">
+      <span>LENS <b>ONLINE</b> · SENSORS <b id="sensor-count">8/8</b></span>
+      <span>CABIN O₂ <b>20.9%</b> · CO₂ <b>0.31%</b></span>
+    </div>
+
+    <div class="hud-reticle">
+      <svg viewBox="0 0 120 120" fill="none">
+        <g class="ring"><circle cx="60" cy="60" r="44" stroke="#5ef2ff" stroke-opacity=".45" stroke-dasharray="6 10" /></g>
+        <circle cx="60" cy="60" r="30" stroke="#5ef2ff" stroke-opacity=".25" />
+        <path d="M60 8v16M60 96v16M8 60h16M96 60h16" stroke="#5ef2ff" stroke-opacity=".7" stroke-width="1.5" />
+        <circle cx="60" cy="60" r="2.5" fill="#5ef2ff" />
+      </svg>
+    </div>
+
+    <div class="scan-sweep" id="sweep"></div>
+    <div class="hud-alert" id="alert" role="alert"><span class="dot crit pulse"></span><span id="alert-text"></span></div>
+
+    <button class="btn btn-ghost panel-reopen" id="reopen">Show panel</button>
+
+    <!-- SIDE PANEL -->
+    <aside class="side-panel" id="panel" aria-label="Health diagnostics panel">
+      <div class="sp-head">
+        <div class="sp-title">
+          <span class="dot pulse"></span>
+          <div>VEGA Vitals<small>LIVE · SIMULATED FEED</small></div>
+        </div>
+        <div class="sp-actions">
+          <button class="icon-btn" id="dock-btn" title="Dock to other side">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7l-4 5 4 5M17 7l4 5-4 5M3 12h18"/></svg>
+          </button>
+          <button class="icon-btn" id="hide-btn" title="Hide panel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="sp-summary">
+        <div class="score-ring">
+          <svg width="76" height="76" viewBox="0 0 76 76">
+            <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5ef2ff"/><stop offset="1" stop-color="#8f7cff"/></linearGradient></defs>
+            <circle cx="38" cy="38" r="32" stroke="rgba(255,255,255,0.08)" stroke-width="6" fill="none" />
+            <circle id="score-arc" cx="38" cy="38" r="32" stroke="url(#sg)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="20" style="transition: stroke-dashoffset .8s" />
+          </svg>
+          <div class="val"><div><span id="score">92</span><small>READY</small></div></div>
+        </div>
+        <div>
+          <strong id="summary-title">All systems nominal</strong>
+          <p id="summary-text">8 of 8 diagnostics within your baseline.</p>
+        </div>
+      </div>
+
+      <div class="sp-tabs">
+        <button class="sp-tab active" data-tab="vitals">VITALS</button>
+        <button class="sp-tab" data-tab="log">COMMAND LOG</button>
+      </div>
+
+      <div class="sp-body" id="tab-vitals"></div>
+      <div class="sp-body" id="tab-log" hidden></div>
+
+      <div class="sp-foot">
+        <span>BAT 84% · 31°C</span>
+        <span id="voice-support">PRESS V TO TALK</span>
+      </div>
+    </aside>
+
+    <!-- VOICE BAR -->
+    <div class="voice-bar">
+      <div class="vb-response" id="response"><span class="tag">VEGA</span><span id="response-text"></span></div>
+      <div class="vb-chips" id="chips"></div>
+      <form class="vb-main" id="cmd-form" autocomplete="off">
+        <button type="button" class="mic-btn" id="mic" aria-label="Start voice command">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+        </button>
+        <input id="cmd" placeholder="Say or type “VEGA, run a full scan”…" aria-label="Command" />
+        <button class="vb-send" type="submit">Send</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/vega.js"></script>
+  <script src="js/hud.js"></script>
+</body>
+</html>

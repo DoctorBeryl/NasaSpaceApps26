@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VEGA — AstraSight Voice AI</title>
+  <meta name="description" content="VEGA, the Vital Evaluation & Guidance Assistant: the on-device language model that runs AstraSight's voice control." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <header class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">The language model</span>
+        <h1 style="font-size:clamp(40px,5.6vw,72px)">VEGA<br /><span class="grad-text">Vital Evaluation &amp; Guidance Assistant</span></h1>
+        <p class="lead">VEGA is a small, specialised language model built for one job: understanding what a crew member says about their health and acting on it right away. It runs on the glasses, works with no link to Earth, and was tuned on space-medicine protocols.</p>
+        <div class="hero-stats">
+          <div><strong>On-device</strong><span>No ground link needed</span></div>
+          <div><strong>16</strong><span>Intents</span></div>
+          <div><strong>~380 ms</strong><span>Target round trip</span></div>
+        </div>
+      </div>
+      <div><div class="ai-orb" style="width:300px;height:300px"></div></div>
+    </div>
+  </header>
+
+  <!-- PIPELINE -->
+  <section style="padding-top:40px">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Pipeline</span>
+        <h2>From voice to vitals in six steps.</h2>
+        <p class="lead">Every command goes through the same local pipeline. Send a command in the console below to watch each stage run.</p>
+      </div>
+      <div class="pipeline reveal" id="pipeline">
+        <div class="pipe-step"><span class="n">01</span><h4>Wake word</h4><p>Always-on detector listens for “VEGA” using very little power.</p><div class="ms">~20 ms</div></div>
+        <div class="pipe-step"><span class="n">02</span><h4>Speech → text</h4><p>A streaming recogniser picks up speech through the bone-conduction mic, even with cabin noise.</p><div class="ms">~120 ms</div></div>
+        <div class="pipe-step"><span class="n">03</span><h4>Intent model</h4><p>Works out what the crew member wants and fills in details such as which tool they mean.</p><div class="ms">~40 ms</div></div>
+        <div class="pipe-step"><span class="n">04</span><h4>Tool router</h4><p>Sends the request to the right diagnostic tool or HUD action.</p><div class="ms">~10 ms</div></div>
+        <div class="pipe-step"><span class="n">05</span><h4>Clinical reasoning</h4><p>Compares the reading with the wearer's baseline, the habitat's telemetry and space-medicine protocols.</p><div class="ms">~90 ms</div></div>
+        <div class="pipe-step"><span class="n">06</span><h4>Response</h4><p>Updates the side panel and speaks a short answer through bone conduction.</p><div class="ms">~100 ms</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSOLE -->
+  <section>
+    <div class="container split" style="align-items:start">
+      <div class="reveal">
+        <span class="eyebrow">Try the intent model</span>
+        <h2>Talk to VEGA.</h2>
+        <p class="lead">Type any command, the way a crew member would say it. VEGA shows how it read the request: the intent, any details it picked out, and how confident it is. This is the same parser that runs the <a href="interface.html" style="color:var(--cyan)">live interface</a>.</p>
+        <div class="vb-chips" id="examples" style="flex-wrap:wrap;margin-top:24px"></div>
+      </div>
+      <div class="console reveal">
+        <div class="console-head"><i></i><i></i><i></i><span style="margin-left:8px">vega-intent · v0.4-proto</span></div>
+        <div class="console-body" id="console-out">
+          <div class="bubble ai"><span class="who">VEGA</span>Ready. Type a command below.</div>
+        </div>
+        <form class="console-input" id="console-form" autocomplete="off">
+          <input id="console-in" placeholder="e.g. VEGA, I feel tired, how's my fatigue?" />
+          <button class="btn btn-primary" style="padding:10px 18px" type="submit">Parse</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESIGN PRINCIPLES -->
+  <section>
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">Design principles</span>
+        <h2>Built for <span class="grad-text">life at 400 km.</span></h2>
+      </div>
+      <div class="grid grid-3">
+        <div class="card reveal"><div class="tool-icon" data-icon="rad"></div><h3 style="margin:18px 0 8px">Works offline</h3><p class="dim">Mars missions can face communication delays of more than 20 minutes. VEGA never relies on a ground link to understand a command or answer it.</p></div>
+        <div class="card reveal"><div class="tool-icon" data-icon="heart"></div><h3 style="margin:18px 0 8px">Personal baselines</h3><p class="dim">VEGA judges each reading against the wearer's own history, not population averages, so it catches changes earlier.</p></div>
+        <div class="card reveal"><div class="tool-icon" data-icon="eye"></div><h3 style="margin:18px 0 8px">Clear view first</h3><p class="dim">Answers are short and spoken. Visuals stay on the side panel, and only critical alerts are allowed into the center of view.</p></div>
+        <div class="card reveal"><div class="tool-icon" data-icon="brain"></div><h3 style="margin:18px 0 8px">Knows its limits</h3><p class="dim">VEGA flags readings and makes suggestions but never diagnoses. Anything serious goes to the flight surgeon along with the data behind it.</p></div>
+        <div class="card reveal"><div class="tool-icon" data-icon="mic"></div><h3 style="margin:18px 0 8px">Hands-free</h3><p class="dim">The glasses can be fully operated in gloves or during EVA. Every action is available by voice.</p></div>
+        <div class="card reveal"><div class="tool-icon" data-icon="wave"></div><h3 style="margin:18px 0 8px">Calm tone</h3><p class="dim">Even warnings are delivered in a steady voice, with one clear action to take first.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTENT TABLE -->
+  <section>
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Command reference</span>
+        <h2>What VEGA understands.</h2>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="intent-table">
+          <thead><tr><th>Intent</th><th>Example phrases</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>show_tool</td><td>“Show my heart rate” · “What's my oxygen?” · “Temperature?”</td><td>Highlights that tool on the side panel and reads the value aloud</td></tr>
+            <tr><td>scan_tool</td><td>“Run a neuro scan” · “Start a breathing check”</td><td>Runs a scan on one tool and reports the result</td></tr>
+            <tr><td>full_scan</td><td>“Run a full scan” · “Run diagnostics” · “Scan me”</td><td>Runs every tool in turn, then gives a summary</td></tr>
+            <tr><td>status_report</td><td>“Status report” · “How am I doing?”</td><td>Reads out the readiness score and any flags</td></tr>
+            <tr><td>panel_hide / panel_show</td><td>“Hide panel” · “Clear my view” · “Show panel”</td><td>Hides or shows the side panel</td></tr>
+            <tr><td>dock_left / dock_right</td><td>“Move panel left” · “Dock right”</td><td>Moves the panel to the other side of the lens</td></tr>
+            <tr><td>show_log / show_vitals</td><td>“Show command log” · “Back to vitals”</td><td>Switches the panel tab</td></tr>
+            <tr><td>breathing</td><td>“Breathing exercise” · “Help me relax”</td><td>Runs a guided paced-breathing exercise</td></tr>
+            <tr><td>simulate_alert / clear_alert</td><td>“Simulate emergency” · “Acknowledge”</td><td>Starts or dismisses a test priority alert</td></tr>
+            <tr><td>mute / unmute</td><td>“Be quiet” · “Voice on”</td><td>Turns spoken replies off or on</td></tr>
+            <tr><td>help</td><td>“Help” · “What can you do?”</td><td>Lists the available commands</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/vega.js"></script>
+  <script>
+    document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = ICONS[el.dataset.icon]));
+
+    const EXAMPLES = ["VEGA, show my heart rate", "how's my oxygen?", "run a neuro scan", "I feel tired, how fatigued am I", "move the panel to the left", "help me relax", "run a full scan", "hide panel"];
+    const ex = document.getElementById("examples");
+    ex.innerHTML = EXAMPLES.map((e) => `<button type="button">${e}</button>`).join("");
+    ex.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) run(b.textContent); });
+
+    const out = document.getElementById("console-out");
+    const steps = [...document.querySelectorAll(".pipe-step")];
+
+    function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+    function highlight(obj) {
+      return esc(JSON.stringify(obj, null, 2))
+        .replace(/&quot;(\w+)&quot;:/g, '<span class="k">"$1"</span>:')
+        .replace(/: &quot;([^&]*)&quot;/g, ': <span class="s">"$1"</span>')
+        .replace(/: (\d+\.?\d*|true|false)/g, ': <span class="nn">$1</span>');
+    }
+
+    function animatePipeline() {
+      steps.forEach((s) => s.classList.remove("lit"));
+      steps.forEach((s, i) => setTimeout(() => { steps.forEach((x) => x.classList.remove("lit")); s.classList.add("lit"); }, i * 180));
+      setTimeout(() => steps.forEach((s) => s.classList.remove("lit")), steps.length * 180 + 600);
+    }
+
+    function run(text) {
+      const p = VEGA.parse(text);
+      const tool = p.slots.tool ? toolById(p.slots.tool) : null;
+      const route = tool ? `tools.${tool.id}` : p.intent === "unknown" ? "fallback" : `hud.${p.intent}`;
+      const result = { ...p, route, latency_ms: Math.round(300 + Math.random() * 140) };
+      out.innerHTML = `
+        <div class="bubble user"><span class="who">Crew</span>${esc(text)}</div>
+        <pre>${highlight(result)}</pre>`;
+      animatePipeline();
+    }
+
+    document.getElementById("console-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const i = document.getElementById("console-in");
+      if (i.value.trim()) { run(i.value.trim()); i.value = ""; }
+    });
+  </script>
+</body>
+</html>
