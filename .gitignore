@@ -1,6 +1,30 @@
-# secrets
+# --- Secrets (public repo: never commit these) ---
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*secret*
+*credentials*.json
+config.local.js
 
+# --- Personal Claude Code context (stays on your machine) ---
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/*.local.*
+
+# --- Test / scratch output ---
+.screenshots/
+.tmp/
+test-results/
+playwright-report/
+__pycache__/
+*.pyc
+
+# --- Tooling / OS ---
 node_modules/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
