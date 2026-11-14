@@ -54,6 +54,8 @@ Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome
 | `js/data.js` | **Single source of truth** for the tools: `TOOLS[]` (id, unit, base, jitter, warn thresholds, sensor, steps, voice cmd, wave type) and `ICONS` |
 | `js/common.js` | Shared nav and footer (`NAV_LINKS`), starfield, `.reveal` scroll-in, `drawSpark()` |
 | `server.js` + `server/` | Node dev server (no deps): static files, `/api/tts` (ElevenLabs), `/api/ai/*` (VEGA on Qwen 2.5 via local Ollama). API contract in [docs/AI-BACKEND.md](docs/AI-BACKEND.md); persona in `server/persona.md` |
+| `build-static.js` | `npm run build:static`: copies the frontend into gitignored `dist/` plus a real `404.html`, for the static preview on Cloudflare Pages (build command `node build-static.js`, output `dist`). No backend there: no AI, sign-in, or ElevenLabs |
+| `deploy/oracle-setup.sh` | One-shot setup of the full site on an Oracle Cloud Always Free ARM server: Node, Ollama with both models kept loaded, `astrasight` systemd service, pull from `main` every 10 min, Cloudflare Tunnel. Guide in [docs/DEPLOY-ORACLE.md](docs/DEPLOY-ORACLE.md) |
 | `dev.js` + `package.json` | `npm run dev`: starts Ollama if it isn't already running, then `server.js` (no npm deps) |
 | `login.html` + `js/login.js` | Sign-in: choose face scan (face-api.js in the browser; only 128-number descriptors go to the server; "stored locally, demo only" notice) or Firebase email and password |
 | `js/auth.js` | `window.AstraAuth`: session, `requireAuth()`, profile storage (Firestore `users/{uid}`, localStorage fallback), nav name chip, `[data-auth-name]` |
