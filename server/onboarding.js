@@ -109,7 +109,8 @@ const strList = (v, n = 8, len = 80) => (Array.isArray(v) ? v.map((x) => str(x, 
 const num = (v, lo, hi) => (Number.isFinite(Number(v)) && Number(v) >= lo && Number(v) <= hi ? Number(v) : null);
 
 /** Keep only known fields with sane types. Profiles come from the client, so never trust them. */
-function cleanProfile(p = {}) {
+function cleanProfile(p) {
+  if (!p || typeof p !== "object" || Array.isArray(p)) p = {};
   const enumOf = (v, q) => (byQid[q].options.some((o) => o.value === v) ? v : null);
   const multiOf = (v, q) => (Array.isArray(v) ? v.filter((x) => byQid[q].options.some((o) => o.value === x)) : []);
   const out = {
