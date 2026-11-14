@@ -22,6 +22,7 @@ try {
 } catch { /* no .env: TTS falls back to the browser voice */ }
 
 const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
+const auth = require("./server/auth"); // face sign-in + Firebase custom tokens (docs/AUTH.md)
 
 const KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
@@ -84,12 +85,14 @@ function serveStatic(req, res) {
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
   if (ai.handle(req, res)) return;
+  if (auth.handle(req, res)) return;
   if (url === "/api/tts" && req.method === "POST") return tts(req, res);
   if (url === "/api/tts" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method not allowed");
   serveStatic(req, res);
 }).listen(PORT, () => {
   console.log(`AstraSight running at http://localhost:${PORT}`);
+  console.log(auth.describe());
   console.log(`VEGA AI: ${process.env.OLLAMA_MODEL || "qwen2.5:3b"} via Ollama (GET /api/ai/status to check)`);
   console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL})` : "ELEVENLABS_API_KEY not set: using browser voice");
 });

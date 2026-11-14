@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — Crew Sign-in</title>
+  <meta name="description" content="Sign in to AstraSight with a face scan or an email and password." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="auth-page">
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <main class="container auth-shell">
+    <section class="auth-copy">
+      <span class="eyebrow">Crew sign-in</span>
+      <h1 class="auth-title">Look into the <span class="grad-text">lens</span>.</h1>
+      <p class="lead">AstraSight recognizes who's wearing it, so VEGA reads your vitals against your own baseline. There's no password to type with gloves on, unless you'd rather use one.</p>
+      <ul class="auth-facts">
+        <li><b>Face scan.</b> Look at the lens and turn your head slightly. New crew enter a name first; it takes about ten seconds.</li>
+        <li><b>Stays on this device.</b> Face data is stored locally and is for demo purposes only. Camera images never leave your browser.</li>
+        <li><b>Email and password</b> is a standard Firebase account, if you'd rather not scan your face.</li>
+      </ul>
+    </section>
+
+    <section class="card auth-card" aria-live="polite">
+      <!-- 1. Choose a method -->
+      <div class="auth-view" id="view-choose" hidden>
+        <h2 class="auth-card-title">How do you want to sign in?</h2>
+        <button class="method" id="pick-face" type="button">
+          <span class="method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="9.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="14.5" cy="10.5" r=".6" fill="currentColor"/><path d="M9.5 15c1.4 1.1 3.6 1.1 5 0"/></svg></span>
+          <span class="method-text"><b>Face scan</b><span>Look at the camera. About ten seconds the first time.</span></span>
+        </button>
+        <p class="privacy-note"><b>Demo only.</b> If you choose face scan, your face data is stored locally on this device and is used only for this demo. Camera images never leave your browser; only a face template of 128 numbers is saved.</p>
+        <button class="method" id="pick-password" type="button">
+          <span class="method-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <span class="method-text"><b>Email and password</b><span>A standard Firebase account. Works on any device.</span></span>
+        </button>
+        <p class="scan-detail" id="password-off" hidden>Password sign-in needs Firebase, which isn't set up on this server.</p>
+        <a class="link-btn" href="index.html">Continue without signing in</a>
+      </div>
+
+      <!-- 2. Face scan -->
+      <div class="auth-view" id="view-face" hidden>
+        <div class="scan-frame" id="scan-frame" data-tone="busy">
+          <video id="cam" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <svg class="scan-ring" viewBox="0 0 104 104" aria-hidden="true">
+            <circle class="ring-track" cx="52" cy="52" r="48" />
+            <circle class="ring-ticks" cx="52" cy="52" r="51" />
+            <circle class="ring-arc" id="ring-arc" cx="52" cy="52" r="48" />
+          </svg>
+          <svg class="scan-idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="9" r="4" /><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4" />
+          </svg>
+        </div>
+
+        <ol class="scan-steps" id="scan-steps"></ol>
+        <p class="scan-status" id="status">Starting…</p>
+        <p class="scan-detail" id="detail"></p>
+
+        <form id="enroll-form" class="enroll-form" autocomplete="off" hidden>
+          <label for="crew-name" class="mono">Name or call sign</label>
+          <div class="enroll-row">
+            <input id="crew-name" maxlength="40" placeholder="e.g. Nova" required />
+            <button class="btn btn-primary" type="submit">Scan my face</button>
+          </div>
+        </form>
+
+        <div class="scan-actions">
+          <button class="btn btn-ghost" id="btn-retry" type="button" hidden>Try again</button>
+          <button class="btn btn-ghost" id="btn-back" type="button" hidden>I'm already enrolled</button>
+          <button class="btn btn-ghost" id="btn-new" type="button" hidden>New crew member</button>
+        </div>
+        <p class="privacy-note small">Face data stays on this device. Demo only.</p>
+        <button class="link-btn" id="to-password" type="button">Use email and password instead</button>
+      </div>
+
+      <!-- 3. Email and password -->
+      <div class="auth-view" id="view-password" hidden>
+        <div class="seg" role="tablist" aria-label="Account">
+          <button type="button" role="tab" data-mode="signin" aria-selected="true">Sign in</button>
+          <button type="button" role="tab" data-mode="create" aria-selected="false">Create account</button>
+        </div>
+        <form id="pw-form" class="pw-form" novalidate>
+          <label class="field" data-only="create" hidden><span>Name or call sign</span>
+            <input id="pw-name" maxlength="40" autocomplete="nickname" placeholder="e.g. Nova" />
+          </label>
+          <label class="field"><span>Email</span>
+            <input id="pw-email" type="email" autocomplete="username" required />
+          </label>
+          <label class="field"><span>Password</span>
+            <input id="pw-pass" type="password" minlength="6" autocomplete="current-password" required />
+          </label>
+          <p class="form-msg" id="pw-msg" role="alert"></p>
+          <button class="btn btn-primary" type="submit" id="pw-submit">Sign in</button>
+        </form>
+        <div class="pw-links">
+          <button class="link-btn" id="pw-forgot" type="button">Forgot password?</button>
+          <button class="link-btn" id="to-face" type="button">Use face scan instead</button>
+        </div>
+      </div>
+
+      <!-- Already signed in -->
+      <div class="auth-view" id="view-signed" hidden>
+        <p class="scan-status" id="signed-text"></p>
+        <p class="scan-detail">Continue to your lens, or sign out to switch crew member.</p>
+        <div class="scan-actions">
+          <a class="btn btn-primary" id="btn-continue" href="interface.html">Continue</a>
+          <button class="btn btn-ghost" id="btn-switch" type="button">Sign out</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

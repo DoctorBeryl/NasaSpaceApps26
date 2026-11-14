@@ -1,0 +1,10 @@
+rules_version = '2';
+// AstraSight: each crew member can read and write only their own profile doc.
+// Deploy: Firebase console > Firestore > Rules (paste), or `firebase deploy --only firestore:rules`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

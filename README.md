@@ -22,6 +22,8 @@ node server.js           # http://localhost:8000
 
 VEGA's AI (onboarding questionnaire, chat, critical-stats brief) runs on **Qwen 2.5 through a local [Ollama](https://ollama.com)**. Install Ollama and run `ollama pull qwen2.5:3b` before starting the server. See [docs/AI-BACKEND.md](docs/AI-BACKEND.md) for the API.
 
+**Crew sign-in** is by face, at `login.html`. New crew enter a name and do a ten-second scan; returning crew just look at the camera. Face recognition runs in the browser (face-api.js), and only 128-number face templates reach the server. Sign-in works with no setup in local mode. Add the `FIREBASE_*` values in `.env` to get real Firebase Auth sessions and Firestore profiles. See [docs/AUTH.md](docs/AUTH.md).
+
 The API key is only read by `server.js` and is never sent to the browser. `.env` is git-ignored. Without a key, or with a plain static server (`npx serve .`), VEGA falls back to the browser's built-in voice. Voice input needs a secure origin, so use localhost instead of opening the files directly.
 
 Voice recognition uses the Web Speech API, which works in Chrome and Edge. In any browser you can type commands or click the suggestion chips instead. Press **V** on the interface page to start talking.
