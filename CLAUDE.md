@@ -28,6 +28,7 @@ The frontend has no build step: plain HTML, CSS, and vanilla JS loaded with `<sc
 ```sh
 cp .env.example .env      # add keys locally; .env is gitignored, never commit it
 ollama pull qwen2.5:3b    # for VEGA's AI routes (see docs/AI-BACKEND.md)
+ollama pull medgemma1.5:4b   # medical model for body-map triage on report.html
 node server.js            # Node 18+, http://localhost:8000: static site + /api/*
 npm run dev               # same, plus starts Ollama first if it isn't running (dev.js)
 # frontend only, no AI or TTS:  python -m http.server 8000
@@ -45,14 +46,16 @@ Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome
 | `interface.html` + `js/hud.js` | Interactive lens HUD: simulated vitals, dockable side panel, voice and typed commands, alerts |
 | `tools.html` + `js/tools.js` | One demo stage per tool: procedural signal canvas, swapped for `media/<id>.mp4` if that file exists |
 | `vega.html` + `js/vega.js` | VEGA's rule-based intent parser (`VEGA.parse(text) → {intent, slots, confidence}`) and speech in/out |
-| `report.html` | Report screen (the team's "EVA-MED HUD" prototype): habitat/IVA and EVA modes, EVA clocks (time outside, plus a countdown that appears when a reading needs action), suit telemetry with manual override (sliders show low and high hazard lines from `LIMITS`; suit pressure hidden in the habitat), DCS risk heuristic, radiation shelter window, crew and habitat sensor modules, body-map triage with a rule-based review plus a VEGA AI note (`/api/ai/chat` with telemetry as `context`), VEGA as a 16-bit pixel companion, crew profile and ship-wide PA log. Uses the Tailwind CDN, unlike the rest of the site |
-| `js/crew.js` | `Crew` (rank and name for alerts; uses the signed-in name if `auth.js` is loaded), `ShipPA.announce()` (chime plus crew-wide spoken alert via `VEGA.speak`), `ReportBus` (report-screen heartbeat across tabs) |
+| `report.html` | Report screen (the team's "EVA-MED HUD" prototype): habitat/IVA and EVA modes, EVA clocks (time outside, plus a countdown that appears when a reading needs action), suit telemetry with manual override (sliders show low and high hazard lines from `LIMITS`; suit pressure hidden in the habitat), DCS risk heuristic, radiation shelter window, crew and habitat sensor modules, body-map triage with a rule-based review plus a VEGA medical AI note (`/api/ai/triage` on MedGemma 1.5 4B, falling back to Qwen, with telemetry and EVA clocks as context: possible causes to consider, what to check next, escalation; never a diagnosis), VEGA as a 16-bit pixel companion, crew profile and ship-wide PA log. Uses the Tailwind CDN, unlike the rest of the site |
+| `js/crew.js` | `Crew` (rank and name for alerts; uses the signed-in name if `auth.js` is loaded), `ShipPA.announce()` (chime plus crew-wide spoken alert via `VEGA.speak`), `ReportBus` (report-screen heartbeat across tabs); `ShipPA.ack()` stops the voice and forgets the current alert, and turning the PA on re-reads the current alert from the start |
 | `js/onboarding.js` | First-visit questionnaire overlay on `interface.html?welcome=1` (or `?onboard=1` to rerun): VEGA asks the `/api/ai/onboard/*` questions one at a time; every answer can be typed or spoken (mic button, Web Speech API, matches spoken words to choice options); ends with a short tour and `AstraAuth.saveProfile({ profile, onboarded: true })` |
 | `js/glasses3d.js` | Home-page 3D glasses (three.js 0.160.0 UMD from jsDelivr, procedural, no model files) with callout arrows to the left button, right button and scroll knob; drag to rotate, falls back to text cards without WebGL |
-| `js/companion.js` + `css/companion.css` | Home-page VEGA pop-up: greets by name and pops up with simulated hazards, but only while `report.html` isn't open in another tab |
+| `js/companion.js` + `css/companion.css` | VEGA pop-up on the home and diagnostics pages: starts collapsed (avatar only) and greets by name when clicked. No background events: `VegaBuddy.fireHazard()` (the diagnostics page's "Random health event" button) shows a random simulated hazard. Every bubble has Acknowledge (`ShipPA.ack()`: stops the voice). Hidden while `report.html` is open in another tab, unless an event is forced |
 | `js/data.js` | **Single source of truth** for the tools: `TOOLS[]` (id, unit, base, jitter, warn thresholds, sensor, steps, voice cmd, wave type) and `ICONS` |
 | `js/common.js` | Shared nav and footer (`NAV_LINKS`), starfield, `.reveal` scroll-in, `drawSpark()` |
 | `server.js` + `server/` | Node dev server (no deps): static files, `/api/tts` (ElevenLabs), `/api/ai/*` (VEGA on Qwen 2.5 via local Ollama). API contract in [docs/AI-BACKEND.md](docs/AI-BACKEND.md); persona in `server/persona.md` |
+| `build-static.js` | `npm run build:static`: copies the frontend into gitignored `dist/` plus a real `404.html`, for the static preview on Cloudflare Pages (build command `node build-static.js`, output `dist`). No backend there: no AI, sign-in, or ElevenLabs |
+| `deploy/oracle-setup.sh` | One-shot setup of the full site on an Oracle Cloud Always Free ARM server: Node, Ollama with both models kept loaded, `astrasight` systemd service, pull from `main` every 10 min, Cloudflare Tunnel. Guide in [docs/DEPLOY-ORACLE.md](docs/DEPLOY-ORACLE.md) |
 | `dev.js` + `package.json` | `npm run dev`: starts Ollama if it isn't already running, then `server.js` (no npm deps) |
 | `login.html` + `js/login.js` | Sign-in: choose face scan (face-api.js in the browser; only 128-number descriptors go to the server; "stored locally, demo only" notice) or Firebase email and password |
 | `js/auth.js` | `window.AstraAuth`: session, `requireAuth()`, profile storage (Firestore `users/{uid}`, localStorage fallback), nav name chip, `[data-auth-name]` |
@@ -81,6 +84,7 @@ These are committed, so every collaborator's Claude Code loads them automaticall
 | `space-health-research` | Any health or medical content: which indicators, normal ranges, NASA hazards and risks, thresholds for flight-surgeon escalation, countermeasures. Cite sources. |
 | `frontend-design` | New pages, or a visual redesign of an existing one (imported from `anthropics/skills`, Apache-2.0) |
 | `webapp-testing` | Driving the site in headless Chromium to verify behavior and take screenshots (imported from `anthropics/skills`, Apache-2.0). Needs `pip install playwright && playwright install chromium`. |
+| `git-sync` | Runs the Git sync protocol below on its own: fetch, commit your own files, `pull --no-rebase`, resolve conflicts as a union, verify, push. Use it at session start, after each finished piece of work, and at session end |
 
 Save screenshots and test output to `.screenshots/` or `.tmp/`. Both are gitignored.
 
@@ -97,6 +101,8 @@ Everything committed here is world-readable forever, git history included. Never
 Personal notes and local settings go in **gitignored** files: `CLAUDE.local.md` (your private instructions to Claude) and `.claude/settings.local.json`. Before every commit, check `git diff --staged` for the items above. If a secret was ever committed, tell the owner: it must be revoked, because deleting it in a later commit doesn't remove it from history.
 
 ## Git sync protocol (many instances, many devices)
+
+The `git-sync` skill (`.claude/skills/git-sync/SKILL.md`) runs this protocol without stopping to ask: at session start, after each finished piece of work, and before ending a session. The team has given standing approval for it to commit your own files and push to `main`.
 
 Several Claude instances work on this repo at once, on different machines and sometimes **in the same folder on one machine**. The goal of every pull and push: **keep every feature from every instance working together. Never silently drop someone's work.**
 

@@ -18,6 +18,11 @@
     frame: tok("--surface-solid", "#0e1428"), cyan: tok("--cyan", "#5ef2ff"),
     violet: tok("--violet", "#8f7cff"), magenta: tok("--magenta", "#ff6ad5"),
   };
+  // One color per control, shared by the 3D highlight, the arrow and the label (--c on each callout)
+  const calloutEls = [...stage.querySelectorAll("[data-target]")];
+  const ctrlColor = {};
+  calloutEls.forEach((el) => { ctrlColor[el.dataset.target] = (getComputedStyle(el).getPropertyValue("--c") || "").trim() || "#5ef2ff"; });
+  const ctrl3d = (k) => new THREE.Color(ctrlColor[k] || "#5ef2ff");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -83,44 +88,62 @@
     const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.7), frameMat);
     tip.position.set(x, TY - 0.2, -0.1 - TL - 0.25); tip.rotation.x = -0.65; glasses.add(tip);
     // Accent stripe along the outer face
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.02, TL * 0.6), glowMat(C.violet, 0.8));
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.02, TL * 0.6), glowMat(C.frame.clone().lerp(new THREE.Color("#ffffff"), 0.35), 0.5));   // neutral, so control colors stand out
     stripe.position.set(x + side * 0.052, TY - 0.03, -0.25 - TL * 0.3); glasses.add(stripe);
 
     // Button on top of each temple, near the hinge
-    const btn = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.24, 6, 12), glowMat(C.cyan));
+    const btn = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.24, 6, 12), glowMat(ctrl3d(side === 1 ? "left" : "right")));
     btn.rotation.x = Math.PI / 2;
     btn.position.set(x, TY + 0.1, -0.6); glasses.add(btn);
     const a = new THREE.Object3D(); a.position.set(x, TY + 0.14, -0.6); glasses.add(a);
     anchors[side === 1 ? "left" : "right"] = a;
   });
 
-  // Scroll knob: a ribbed wheel set into the top of the right temple (-x), behind the button
+  // Scroll knob: a small ribbed crown on the OUTER face of the right temple (-x), joined to it by a short axle
+  const KR = 0.095, KW = 0.06, AX = 0.035;            // knob radius, knob width, axle length
+  const armOuter = -(TX + 0.05);                       // outer face of the right arm
+  const knobX = armOuter - AX - KW / 2;
   const knob = new THREE.Group();
-  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.09, 28), new THREE.MeshStandardMaterial({ color: C.frame.clone().multiplyScalar(3), metalness: 0.85, roughness: 0.25, flatShading: true }));
+  const metal = new THREE.MeshStandardMaterial({ color: C.frame.clone().multiplyScalar(3), metalness: 0.85, roughness: 0.25, flatShading: true });
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(KR, KR, KW, 24), metal);
   wheel.rotation.z = Math.PI / 2; knob.add(wheel);
-  for (let i = 0; i < 14; i++) {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.025, 0.03), frameMat);
-    const t = (i / 14) * Math.PI * 2;
-    rib.position.set(0, Math.cos(t) * 0.175, Math.sin(t) * 0.175); rib.rotation.x = -t; knob.add(rib);
+  for (let i = 0; i < 12; i++) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(KW + 0.006, 0.016, 0.02), frameMat);
+    const t = (i / 12) * Math.PI * 2;
+    rib.position.set(0, Math.cos(t) * (KR + 0.004), Math.sin(t) * (KR + 0.004)); rib.rotation.x = -t; knob.add(rib);
   }
+  const knobGlow = glowMat(ctrl3d("knob"));
   [-1, 1].forEach((s) => {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.012, 8, 32), glowMat(C.magenta));
-    ring.rotation.y = Math.PI / 2; ring.position.x = s * 0.048; knob.add(ring);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(KR, 0.009, 8, 28), knobGlow);
+    ring.rotation.y = Math.PI / 2; ring.position.x = s * (KW / 2 - 0.004); knob.add(ring);
   });
-  knob.position.set(-TX, TY + 0.08, -1.15); glasses.add(knob);
-  anchors.knob = new THREE.Object3D(); anchors.knob.position.set(-TX, TY + 0.26, -1.15); glasses.add(anchors.knob);
+  const cap = new THREE.Mesh(new THREE.CircleGeometry(KR * 0.45, 20), knobGlow);   // lit centre on the outer face
+  cap.rotation.y = -Math.PI / 2; cap.position.x = -KW / 2 - 0.002; knob.add(cap);
+  const KZ = -1.0;
+  knob.position.set(knobX, TY, KZ); glasses.add(knob);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, AX + 0.01, 16), frameMat);
+  axle.rotation.z = Math.PI / 2; axle.position.set(armOuter - AX / 2 + 0.005, TY, KZ); glasses.add(axle);
+  anchors.knob = new THREE.Object3D(); anchors.knob.position.set(knobX - KW / 2, TY, KZ); glasses.add(anchors.knob);
 
   // Rotate around the middle of the frame, not the lenses, so the temples stay in view
   glasses.children.forEach((c) => { c.position.z += 1.3; });
   glasses.position.z = -0.7;
 
   /* Callouts: SVG arrows from each label to its projected anchor */
-  const callouts = [...stage.querySelectorAll("[data-target]")].map((el) => {
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    line.setAttribute("class", "g3d-line"); line.setAttribute("marker-end", "url(#g3d-arrow)");
-    svg.appendChild(line);
-    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    dot.setAttribute("r", "4"); dot.setAttribute("class", "g3d-dot"); svg.appendChild(dot);
+  const NS = "http://www.w3.org/2000/svg";
+  const defs = svg.querySelector("defs"), baseMarker = svg.querySelector("#g3d-arrow");
+  const callouts = calloutEls.map((el) => {
+    const color = ctrlColor[el.dataset.target];
+    const marker = baseMarker.cloneNode(true);          // one arrowhead per color (markers can't inherit stroke)
+    marker.id = `g3d-arrow-${el.dataset.target}`;
+    marker.querySelector("path").style.fill = color;
+    defs.appendChild(marker);
+    const line = document.createElementNS(NS, "path");
+    line.setAttribute("class", "g3d-line"); line.setAttribute("marker-end", `url(#${marker.id})`);
+    line.style.stroke = color; svg.appendChild(line);
+    const dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("r", "4"); dot.setAttribute("class", "g3d-dot");
+    dot.style.fill = color; dot.style.filter = `drop-shadow(0 0 6px ${color})`; svg.appendChild(dot);
     return { el, line, dot, anchor: anchors[el.dataset.target] };
   });
   const v = new THREE.Vector3();

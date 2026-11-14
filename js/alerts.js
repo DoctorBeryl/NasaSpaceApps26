@@ -96,7 +96,7 @@ const VegaAlerts = (() => {
     /* d = +1 / -1. Returns "ack" when R is pressed on the last page. */
     function go(d) {
       if (!current || !paged) return false;
-      if (d > 0 && page === pages.length - 1) { hide(); return "ack"; }
+      if (d > 0 && page === pages.length - 1) { silence(); hide(); return "ack"; }   // right button on the last page = acknowledge
       const n = Math.max(0, Math.min(pages.length - 1, page + d));
       if (n === page) return false;
       page = n; renderPage();
@@ -158,8 +158,13 @@ const VegaAlerts = (() => {
       }
     }
 
-    q(".vp-x").onclick = hide;
-    q(".vp-ack").onclick = hide;
+    // Acknowledge (and ✕) stop VEGA's voice as well as closing the card.
+    const silence = () => {
+      if (typeof ShipPA !== "undefined" && ShipPA.ack) ShipPA.ack();
+      else { if (typeof VEGA !== "undefined" && VEGA.stop) VEGA.stop(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+    };
+    q(".vp-x").onclick = () => { silence(); hide(); };
+    q(".vp-ack").onclick = () => { silence(); hide(); };
     q(".vp-reset").onclick = () => { const id = current; hide(); id && onReset && onReset(id); };
     if (paged) {
       q(".vp-prev").onclick = () => go(-1);

@@ -5,6 +5,7 @@ Claude Code loads these automatically for anyone who clones the repo.
 | Skill | Source | License |
 |-------|--------|---------|
 | `space-health-research` | Written for this project | Same as repo |
+| `git-sync` | Written for this project | Same as repo |
 | `frontend-design` | [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design) @ `2c5958e`, unmodified | Apache-2.0 (see its `LICENSE.txt`) |
 | `webapp-testing` | [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/webapp-testing) @ `2c5958e`, unmodified | Apache-2.0 (see its `LICENSE.txt`) |
 
