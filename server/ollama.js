@@ -1,10 +1,12 @@
 /* ==========================================================
    AstraSight: thin Ollama client (no dependencies, Node 18+)
-   Talks to a local Ollama server running Qwen 2.5.
-   Env: OLLAMA_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT_MS, OLLAMA_NUM_CTX
+   Talks to a local Ollama server running Qwen 2.5 (chat, onboarding,
+   brief) and MedGemma (body-map triage, /api/ai/triage).
+   Env: OLLAMA_URL, OLLAMA_MODEL, OLLAMA_MED_MODEL, OLLAMA_TIMEOUT_MS, OLLAMA_NUM_CTX
    ========================================================== */
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
 const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
+const MED_MODEL = process.env.OLLAMA_MED_MODEL || "medgemma1.5:4b";   // medical model for triage
 const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 120000;
 const NUM_CTX = Number(process.env.OLLAMA_NUM_CTX) || 8192;
 
@@ -16,18 +18,18 @@ class OllamaError extends Error {
   }
 }
 
-function body({ messages, format, temperature, stream }) {
+function body({ model = MODEL, messages, format, temperature, stream }) {
   return JSON.stringify({
-    model: MODEL,
+    model,
     messages,
     stream,
     ...(format ? { format } : {}),
-    keep_alive: "30m",                      // keep Qwen loaded between requests
+    keep_alive: "30m",                      // keep the model loaded between requests
     options: { temperature, num_ctx: NUM_CTX },
   });
 }
 
-async function post(path, payload, signal) {
+async function post(path, payload, signal, model = MODEL) {
   let r;
   try {
     r = await fetch(`${OLLAMA_URL}${path}`, {
@@ -45,7 +47,7 @@ async function post(path, payload, signal) {
     const text = await r.text().catch(() => "");
     const missing = r.status === 404 && /not found/i.test(text);
     throw new OllamaError(
-      missing ? `Model "${MODEL}" isn't pulled. Run: ollama pull ${MODEL}` : `Ollama ${r.status}: ${text.slice(0, 300)}`,
+      missing ? `Model "${model}" isn't pulled. Run: ollama pull ${model}` : `Ollama ${r.status}: ${text.slice(0, 300)}`,
       { status: missing ? 503 : 502, code: missing ? "model_missing" : "ollama_error" },
     );
   }
@@ -53,8 +55,8 @@ async function post(path, payload, signal) {
 }
 
 /** One-shot chat. Returns the assistant text, or the parsed object when `format` is a JSON schema. */
-async function chat({ messages, format, temperature = 0.4, signal } = {}) {
-  const r = await post("/api/chat", body({ messages, format, temperature, stream: false }), signal);
+async function chat({ model = MODEL, messages, format, temperature = 0.4, signal } = {}) {
+  const r = await post("/api/chat", body({ model, messages, format, temperature, stream: false }), signal, model);
   const data = await r.json();
   const content = data?.message?.content ?? "";
   if (!format) return content.trim();
@@ -86,7 +88,7 @@ async function* chatStream({ messages, temperature = 0.5, signal } = {}) {
 }
 
 /** Is Ollama up, and is the model pulled? Never throws. */
-async function status() {
+async function status(MODEL = module.exports.MODEL) {
   try {
     const r = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(2500) });
     if (!r.ok) return { reachable: false, model: MODEL, modelReady: false, url: OLLAMA_URL };
@@ -99,4 +101,4 @@ async function status() {
   }
 }
 
-module.exports = { chat, chatStream, status, OllamaError, MODEL, OLLAMA_URL };
+module.exports = { chat, chatStream, status, OllamaError, MODEL, MED_MODEL, OLLAMA_URL };

@@ -10,6 +10,8 @@
    POST /api/ai/onboard/finish      { profile }
    POST /api/ai/chat                { messages, profile?, vitals?, context?, stream? }
    POST /api/ai/brief               { vitals, profile?, context? }   (critical-stats screen)
+   POST /api/ai/triage              { report, flag?, level?, vitals?, context?, profile? }
+                                    (body-map triage on MedGemma; falls back to Qwen)
 
    See docs/AI-BACKEND.md for the full contract.
    ========================================================== */
@@ -138,7 +140,8 @@ function cleanMessages(messages) {
 
 /* ---------------- handlers ---------------- */
 async function status(req, res) {
-  json(res, 200, { ...(await ollama.status()), endpoints: ["onboard", "chat", "brief"] });
+  const [main, med] = await Promise.all([ollama.status(), ollama.status(ollama.MED_MODEL)]);
+  json(res, 200, { ...main, medModel: med.model, medModelReady: med.modelReady, endpoints: ["onboard", "chat", "brief", "triage"] });
 }
 
 async function chat(req, res) {
@@ -190,6 +193,85 @@ async function chat(req, res) {
     if (e.code !== "aborted") send({ type: "error", error: e.code || "server_error", message: e.message });
   }
   res.end();
+}
+
+/*
+ * Body-map triage (report.html): MedGemma, a model trained on medical text, lists
+ * possible causes to consider and what to check next. It flags and suggests; it
+ * does not diagnose. Escalation is decided in code (rule-based level or a red-flag
+ * symptom) and the model can only add to it, never clear it.
+ * If MedGemma isn't pulled, the same prompt goes to the general model (Qwen).
+ */
+const TRIAGE_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+    possibleCauses: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { name: { type: "string" }, likelihood: { type: "string", enum: ["more likely", "possible", "less likely"] }, why: { type: "string" } },
+        required: ["name", "likelihood", "why"],
+      },
+    },
+    checkNext: { type: "array", items: { type: "string" } },
+    escalate: { type: "boolean" },
+  },
+  required: ["summary", "possibleCauses", "checkNext", "escalate"],
+};
+
+function triagePrompt(profile, rows, context) {
+  const facts = onboarding.profileForModel(profile);
+  return [
+    "You are VEGA's medical reasoning module on a crewed deep-space mission. The crew can't reach a hospital; the flight surgeon is on a delayed link.",
+    "A crew member marked symptoms on a body map. Help the crew medical officer think it through.",
+    "Rules:",
+    "- You do NOT diagnose. List 2 to 4 possible causes to consider, most likely first, each with one short sentence on why it fits.",
+    "- Weigh spaceflight causes where they fit: decompression sickness after EVA, suit or glove pressure points, fluid shift and SANS (eyes, headache), radiation exposure, space motion sickness, back pain from spinal lengthening, bone loss, kidney stones, muscle strain from exercise.",
+    "- Decompression sickness (DCS) is a real risk after any EVA (suit pressure is about 4.3 psi), not only in diving. If onset is during or after an EVA and the symptom is joint or limb pain, numbness, tingling, skin mottling, or anything neurological, list DCS first as \"more likely\".",
+    "- checkNext: 2 to 4 short, concrete things the crew can check or record now (no drugs, doses, or procedures).",
+    "- escalate: true if any cause could be serious or time-critical.",
+    "- summary: one plain sentence. Keep everything short; it shows in a small panel.",
+    Object.keys(facts).length ? `Crew profile: ${JSON.stringify(facts)}` : "",
+    rows.length ? `Live readings (simulated):\n${rows.map(readingLine).join("\n")}` : "",
+    context.length ? `Telemetry from the screen:\n${context.join("\n")}` : "",
+  ].filter(Boolean).join("\n");
+}
+
+const str = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+
+async function triage(req, res) {
+  const body = await readJson(req);
+  const report = str(body.report, 2000);
+  if (!report) throw Object.assign(new Error("report is required"), { status: 400 });
+  const profile = onboarding.cleanProfile(body.profile);
+  const rows = evaluate(body.vitals, profile);
+  const ruleEscalate = body.level === "critical" || RED_FLAGS.test(report) || rows.some((r) => r.zone === "crit");
+  const messages = [
+    { role: "system", content: triagePrompt(profile, rows, cleanContext(body.context)) },
+    { role: "user", content: `${report}${body.flag ? `\nThe rule-based screen flagged: ${str(body.flag, 200)}.` : ""}` },
+  ];
+  const signal = abortOnClose(res);
+
+  let out, model = ollama.MED_MODEL, fallback = false;
+  try {
+    out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
+  } catch (e) {
+    if (e.code !== "model_missing" || ollama.MED_MODEL === ollama.MODEL) throw e;
+    console.warn(`[ai] ${e.message}. Triage is using ${ollama.MODEL} instead.`);
+    model = ollama.MODEL; fallback = true;
+    out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
+  }
+
+  const possibleCauses = (Array.isArray(out.possibleCauses) ? out.possibleCauses : [])
+    .filter((c) => c && str(c.name, 80))
+    .slice(0, 4)
+    .map((c) => ({ name: str(c.name, 80), likelihood: ["more likely", "possible", "less likely"].includes(c.likelihood) ? c.likelihood : "possible", why: str(c.why, 220) }));
+  const checkNext = (Array.isArray(out.checkNext) ? out.checkNext : []).map((x) => str(x, 180)).filter(Boolean).slice(0, 4);
+  const escalate = ruleEscalate || out.escalate === true;
+  if (escalate && !checkNext.some((a) => MENTIONS_SURGEON.test(a))) checkNext.unshift(ESCALATION_LINE);
+
+  json(res, 200, { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis. Confirm with the flight surgeon." });
 }
 
 /* Critical-stats screen: a short VEGA briefing. Status and escalation are decided in code, the words by Qwen. */
@@ -274,6 +356,7 @@ const ROUTES = {
   "POST /api/ai/onboard/finish": onboardFinish,
   "POST /api/ai/chat": chat,
   "POST /api/ai/brief": brief,
+  "POST /api/ai/triage": triage,
 };
 
 /*

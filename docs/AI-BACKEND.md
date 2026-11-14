@@ -40,7 +40,7 @@ All bodies are JSON. Errors look like `{ "error": "<code>", "message": "..." }`,
 
 ### `GET /api/ai/status`
 ```json
-{ "reachable": true, "model": "qwen2.5:3b", "modelReady": true, "url": "http://127.0.0.1:11434", "installed": ["qwen2.5:3b"], "endpoints": ["onboard","chat","brief"] }
+{ "reachable": true, "model": "qwen2.5:3b", "modelReady": true, "url": "http://127.0.0.1:11434", "installed": ["qwen2.5:3b","medgemma1.5:4b"], "medModel": "medgemma1.5:4b", "medModelReady": true, "endpoints": ["onboard","chat","brief","triage"] }
 ```
 
 ### `GET /api/ai/onboard/questions`
@@ -142,6 +142,21 @@ Request: `{ "vitals": {...}, "profile": {...} }`. Response:
 }
 ```
 `readings` is sorted worst first. `status` and `escalate` are always computed in code. This takes 2–10 s on Qwen, so call it when the screen opens or on a refresh button, not on every vitals tick.
+
+### `POST /api/ai/triage` (body-map triage on `report.html`)
+
+Uses the medical model `OLLAMA_MED_MODEL` (default `medgemma1.5:4b`, Google's MedGemma 1.5, open weights, trained on medical text and images). Run `ollama pull medgemma1.5:4b` once. If it isn't pulled, the route uses `OLLAMA_MODEL` (Qwen) and returns `"fallback": true`.
+
+Request: `{ "report": "Left knee: pain 5/10. Onset: during EVA. Crew notes: ...", "flag": "<rule-based title>", "level": "critical|caution|low", "vitals"?, "context"?, "profile"? }`
+
+Response:
+```json
+{ "summary": "...", "possibleCauses": [{ "name": "Decompression sickness (type I)", "likelihood": "more likely|possible|less likely", "why": "..." }],
+  "checkNext": ["..."], "escalate": true, "model": "medgemma1.5:4b", "fallback": false,
+  "disclaimer": "AI suggestion, not a diagnosis. Confirm with the flight surgeon." }
+```
+
+The model lists possible causes to consider; it doesn't diagnose. `escalate` is true when the page's rule-based level is `critical`, the report has a red-flag symptom, a vital is in the danger zone, or the model asks for it. The model can add escalation but never clear it. When `escalate` is true, `checkNext` always mentions the flight surgeon.
 
 ## Profile fields
 

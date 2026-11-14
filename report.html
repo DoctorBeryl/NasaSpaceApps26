@@ -1197,22 +1197,23 @@ const ReportLink = (() => {
     out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SIMULATION ROUTING / NOT A TREATMENT PROTOCOL</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
     state.triageRan=true;
     if(level==='none'){ $('vegaNote').hidden=true; }
-    else askVega(`Crew report from the ${state.operatingMode==='habitat'?'habitat':'post-EVA'} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Crew notes: ${$('triageText').value.trim()||'none'}. The rule-based screen flagged: ${title}. In 2 to 4 sentences, tell me what to record or check next and whether this needs the flight surgeon now. Don't diagnose.`, title);
+    else askVega(`Crew report from the ${state.operatingMode==='habitat'?'habitat':'post-EVA'} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
     if(level==='critical')setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');
     else if(level==='caution')setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');
     else if(level==='low'){if(state.companionMode==='auto') state.expression='reminder';updateCompanion();}
   }
 
-  // Second opinion from VEGA (Qwen 2.5 on the local server, /api/ai/chat, docs/AI-BACKEND.md).
+  // Second opinion from VEGA's medical model (MedGemma on the local server, /api/ai/triage,
+  // docs/AI-BACKEND.md; falls back to Qwen if MedGemma isn't pulled).
   // The rule-based review always shows; this note is added when the AI backend answers.
   let vegaReq=null;
-  async function askVega(summary, flag){
+  async function askVega(summary, flag, level){
     const box=$('vegaNote');
     if(vegaReq) vegaReq.abort();
     vegaReq=new AbortController();
-    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">VEGA NOTE · ON-DEVICE AI</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
+    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">VEGA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
     box.hidden=false;
-    box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report…</p>';
+    box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report (the first run can take a minute while the model loads)…</p>';
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
@@ -1226,15 +1227,22 @@ const ReportLink = (() => {
         'Peak heart rate':Math.round(state.peakHr)+' bpm','Metabolic load':Math.round(state.work)+' W','Radiation flux':state.rad.toFixed(2)+' mSv/h',
         'DCS R-value (demo heuristic, 0-100)':state.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag
       };
-      const r=await fetch('/api/ai/chat',{method:'POST',headers,signal:vegaReq.signal,body:JSON.stringify({
-        messages:[{role:'user',content:summary}],
+      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:vegaReq.signal,body:JSON.stringify({
+        report:summary, flag, level,
         vitals:{cardio:Math.round(state.hr),spo2:round(state.spo2,1),thermal:round(state.temp,1),hrv:Math.round(state.hrv)},
         context,profile
       })});
       const j=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(j.message||('HTTP '+r.status));
-      box.innerHTML=head.replace('%M',esc(j.model||''))+'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.reply).replace(/\n/g,'<br>')+'</p>'
-        +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'');
+      const tone={'more likely':'text-amber-200','possible':'text-cyan','less likely':'text-slate-400'};
+      const causes=(j.possibleCauses||[]).map(c=>`<li class="text-[10px] text-slate-300 leading-relaxed"><span class="font-bold text-slate-100">${esc(c.name)}</span> <span class="mono text-[8px] ${tone[c.likelihood]||'text-cyan'}">${esc((c.likelihood||'').toUpperCase())}</span><br><span class="text-slate-400">${esc(c.why)}</span></li>`).join('');
+      const checks=(j.checkNext||[]).map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${esc(a)}</span></li>`).join('');
+      box.innerHTML=head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
+        +(j.summary?'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.summary)+'</p>':'')
+        +(causes?'<div class="eyebrow mt-3 mb-1">POSSIBLE CAUSES TO CONSIDER</div><ul class="space-y-2">'+causes+'</ul>':'')
+        +(checks?'<div class="eyebrow mt-3 mb-1">CHECK OR RECORD NEXT</div><ol class="space-y-1">'+checks+'</ol>':'')
+        +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'')
+        +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>';
     }catch(e){
       if(e.name==='AbortError') return;
       box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">VEGA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>';
