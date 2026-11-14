@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VEGA report screen · AstraSight</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/data.js"></script>
+  <script src="js/vega.js"></script>
+  <script src="js/crew.js"></script>
+  <script src="js/auth.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            pixel: ['"Press Start 2P"', 'monospace'],
+          },
+          colors: {
+            space: {
+              950: '#04070D',
+              900: '#060B14',
+              800: '#0C1526',
+              700: '#13223D',
+            },
+            cyber: {
+              cyan: '#00F0FF',
+              pink: '#FF2A85',
+              green: '#39FF14',
+              amber: '#FFB800',
+              red: '#FF2A4B',
+            }
+          },
+          animation: {
+            'float': 'float 3s ease-in-out infinite',
+            'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'scanline': 'scanline 8s linear infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            scanline: {
+              '0%': { transform: 'translateY(-100%)' },
+              '100%': { transform: 'translateY(100vh)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #060B14;
+      color: #E2E8F0;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(0, 240, 255, 0.06) 0%, transparent 35%),
+        radial-gradient(circle at 85% 80%, rgba(255, 42, 133, 0.06) 0%, transparent 35%),
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+    }
+
+    /* Crisp Pixel Rendering */
+    .pixelated {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Subtle CRT Scanline Overlay */
+    .crt-overlay {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
+
+    /* HUD Corner Brackets */
+    .hud-card {
+      position: relative;
+      background: rgba(12, 21, 38, 0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.22);
+      transition: all 0.25s ease;
+    }
+    .hud-card::before, .hud-card::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      transition: border-color 0.25s ease;
+    }
+    .hud-card::before {
+      top: -1px;
+      left: -1px;
+      border-top: 2px solid #00F0FF;
+      border-left: 2px solid #00F0FF;
+    }
+    .hud-card::after {
+      bottom: -1px;
+      right: -1px;
+      border-bottom: 2px solid #00F0FF;
+      border-right: 2px solid #00F0FF;
+    }
+
+    /* Status States for HUD Cards */
+    .hud-card.status-caution {
+      border-color: rgba(255, 184, 0, 0.65);
+      box-shadow: 0 0 20px rgba(255, 184, 0, 0.15);
+    }
+    .hud-card.status-caution::before, .hud-card.status-caution::after {
+      border-color: #FFB800;
+    }
+
+    .hud-card.status-critical {
+      border-color: rgba(255, 42, 75, 0.85);
+      box-shadow: 0 0 25px rgba(255, 42, 75, 0.28);
+      animation: pulse-border 1.4s infinite;
+    }
+    .hud-card.status-critical::before, .hud-card.status-critical::after {
+      border-color: #FF2A4B;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 18px rgba(255, 42, 75, 0.25); }
+      50% { box-shadow: 0 0 32px rgba(255, 42, 75, 0.55); }
+    }
+
+    /* Custom Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(19, 34, 61, 0.9);
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: #00F0FF;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+      border: 1px solid #fff;
+    }
+    input[type="range"].accent-pink::-webkit-slider-thumb {
+      background: #FF2A85;
+      box-shadow: 0 0 10px rgba(255, 42, 133, 0.8);
+    }
+
+    /* Glitch & Teleport Animations for VEGA Companion */
+    @keyframes glitch-teleport-out {
+      0% { transform: scale(1) skew(0deg); opacity: 1; filter: hue-rotate(0deg); }
+      30% { transform: scale(1.2, 0.4) skew(25deg); opacity: 0.8; filter: hue-rotate(90deg) brightness(2); }
+      70% { transform: scale(0.1, 1.8) skew(-35deg); opacity: 0.4; filter: hue-rotate(240deg) contrast(3); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+    @keyframes glitch-teleport-in {
+      0% { transform: scale(0, 2) skew(30deg); opacity: 0; filter: hue-rotate(180deg) brightness(2.5); }
+      50% { transform: scale(1.15, 0.7) skew(-15deg); opacity: 0.9; filter: hue-rotate(45deg); }
+      80% { transform: scale(0.95, 1.05) skew(5deg); opacity: 1; }
+      100% { transform: scale(1) skew(0deg); opacity: 1; filter: hue-rotate(0deg); }
+    }
+    @keyframes critical-jitter {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-2px, 1px); }
+      40% { transform: translate(2px, -1px); }
+      60% { transform: translate(-1px, -2px); }
+      80% { transform: translate(1px, 2px); }
+    }
+
+    .teleport-out {
+      animation: glitch-teleport-out 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .teleport-in {
+      animation: glitch-teleport-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .avatar-critical-shake {
+      animation: critical-jitter 0.35s infinite;
+    }
+
+    /* Smooth Floating Companion Container */
+    #ai-companion-wrapper {
+      position: fixed;
+      z-index: 50;
+      transition: top 0.42s cubic-bezier(0.22, 1, 0.36, 1), left 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: auto;
+    }
+
+    /* Interactive SVG Body Parts */
+    .body-zone {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .body-zone:hover {
+      fill: rgba(0, 240, 255, 0.35);
+      stroke: #00F0FF;
+      stroke-width: 2;
+    }
+    .body-zone.selected {
+      fill: rgba(255, 42, 133, 0.45);
+      stroke: #FF2A85;
+      stroke-width: 2.5;
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-cyber-pink selection:text-white pb-24">
+
+  <!-- Subtle CRT Scanlines -->
+  <div class="fixed inset-0 crt-overlay z-40"></div>
+
+  <!-- FLOATING 16-BIT AI COMPANION ("VEGA / VEGA") -->
+  <div id="ai-companion-wrapper" style="bottom: 24px; right: 24px;" class="max-w-[320px] sm:max-w-[360px]">
+    <div id="ai-companion-inner" class="flex items-end gap-3">
+      <!-- Speech Bubble -->
+      <div id="ai-speech-bubble" class="hud-card rounded-xl p-3.5 shadow-2xl border-cyber-pink/60 bg-space-900/95 text-xs leading-relaxed relative flex-1">
+        <div class="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-white/10">
+          <span id="ai-status-badge" class="font-pixel text-[9px] text-cyber-cyan tracking-wider flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyber-cyan inline-block animate-ping"></span>
+            VEGA // NOMINAL
+          </span>
+          <button onclick="dismissSpeechBubble()" class="text-slate-400 hover:text-white text-[10px] font-mono px-1" title="Minimize bubble">[_]</button>
+        </div>
+        <p id="ai-message-text" class="text-slate-200 font-mono text-[11.5px]">
+          Link established with Ship Core AI Server! All EVA parameters nominal. Cabin-exit radiation &amp; DCS exposure timers are actively tracking.
+        </p>
+        <div id="ai-action-hint" class="mt-2 pt-1.5 border-t border-white/10 text-[10px] font-mono text-cyber-cyan flex items-center justify-between gap-2">
+          <span>LOC: VISOR HUD STANDBY</span>
+          <button onclick="cycleAvatarPalette()" class="underline hover:text-cyber-amber transition" title="Switch 16-bit character palette">Palette: Cobalt</button>
+        </div>
+      </div>
+
+      <!-- 16-Bit Pixel Avatar Frame -->
+      <div class="flex flex-col items-center shrink-0">
+        <div id="avatar-box" onclick="cycleAvatarGreeting()" title="Click VEGA for status check" class="cursor-pointer relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-space-950/90 border-2 border-cyber-cyan shadow-[0_0_20px_rgba(0,240,255,0.45)] flex items-center justify-center overflow-hidden animate-float group">
+          <!-- Pixel Canvas (36x36 to accommodate crisp floating anime emotes) -->
+          <canvas id="cap16-canvas" width="36" height="36" class="w-full h-full pixelated"></canvas>
+          <!-- Hologram Glitch Bar -->
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-cyber-cyan/10 to-transparent opacity-60 pointer-events-none"></div>
+          <div class="absolute bottom-0 inset-x-0 bg-slate-900/95 border-t border-cyber-cyan/40 text-cyber-cyan font-pixel text-[7px] text-center py-0.5 tracking-tighter">
+            VEGA
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP HEADER & SHIP-TO-SUIT ARCHITECTURE BAR -->
+  <header class="sticky top-0 z-30 bg-space-950/90 backdrop-blur-md border-b border-cyber-cyan/20">
+    <div class="border-b border-white/5 bg-space-950/95">
+      <div class="max-w-7xl mx-auto px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[10.5px] font-mono">
+        <a href="index.html" class="text-cyber-cyan hover:text-white transition">&larr; AstraSight home</a>
+        <span class="text-cyber-amber">Concept prototype · Simulated data · Not a medical device</span>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <!-- Brand & Mission Title -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-cyber-cyan/10 border border-cyber-cyan/50 flex items-center justify-center text-cyber-cyan font-mono font-bold text-lg shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="font-mono font-extrabold text-base sm:text-lg tracking-wider text-white">
+                  VEGA <span class="text-cyber-pink">//</span> REPORT SCREEN
+                </h1>
+                <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono rounded bg-cyber-cyan/15 text-cyber-cyan border border-cyber-cyan/30">
+                  NASA SPACE APPS 2026
+                </span>
+              </div>
+              <p class="text-[11px] font-mono text-slate-400">
+                AstraSight · EVA telemetry, ship PA &amp; post-EVA triage
+              </p>
+            </div>
+          </div>
+
+          <!-- Voice Toggle Mobile -->
+          <button id="voice-toggle-btn-mobile" onclick="toggleVoiceAlerts()" class="lg:hidden px-2.5 py-1.5 rounded-lg border border-white/15 bg-space-800 text-[11px] font-mono flex items-center gap-1.5 text-slate-300">
+            <span id="voice-dot-mobile" class="w-2 h-2 rounded-full bg-slate-500"></span>
+            VOICE: OFF
+          </button>
+        </div>
+
+        <!-- Ship-to-Suit Local Mesh Architecture Visualizer -->
+        <div class="flex flex-wrap items-center gap-2 bg-space-900/90 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-mono">
+          <div class="flex items-center gap-1.5 text-cyber-pink font-semibold">
+            <span class="w-2 h-2 rounded-full bg-cyber-pink animate-pulse"></span>
+            <span>SHIP AI CORE (LOCAL EDGE)</span>
+          </div>
+          <div class="flex items-center gap-1 text-cyber-green px-1">
+            <span>◄══</span>
+            <span class="text-[9px] bg-cyber-green/10 border border-cyber-green/30 px-1.5 py-0.5 rounded">SUB-GHz MESH // 0ms EARTH DELAY</span>
+            <span>══►</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-cyber-cyan font-semibold">
+            <span class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse"></span>
+            <span>EVA HELMET VISOR HUD</span>
+          </div>
+        </div>
+
+        <!-- Mode Switcher & Voice Control -->
+        <div class="flex items-center gap-2">
+          <div class="grid grid-cols-3 bg-space-900 p-1 rounded-xl border border-white/10 w-full sm:w-auto">
+            <button onclick="setViewMode('split')" id="tab-split" class="mode-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition bg-cyber-cyan text-space-950">
+              DUAL LINK
+            </button>
+            <button onclick="setViewMode('hud')" id="tab-hud" class="mode-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition text-slate-300 hover:text-white">
+              EVA HUD
+            </button>
+            <button onclick="setViewMode('triage')" id="tab-triage" class="mode-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition text-slate-300 hover:text-white">
+              SHIP TRIAGE
+            </button>
+          </div>
+
+          <!-- Voice Synthesis Toggle -->
+          <button id="voice-toggle-btn" onclick="toggleVoiceAlerts()" class="hidden lg:flex px-3 py-2 rounded-xl border border-white/15 bg-space-800 hover:bg-space-700 text-xs font-mono items-center gap-2 text-slate-200 transition">
+            <span id="voice-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+            <span id="voice-label">VOICE: OFF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="max-w-7xl mx-auto px-4 pt-5 space-y-6">
+
+    <!-- CREW PROFILE & SHIP-WIDE PA (AstraSight) -->
+    <section id="card-ship-pa" class="hud-card rounded-2xl p-4 border-cyber-pink/30">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-5 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyber-pink animate-pulse"></span>
+            <h2 class="font-mono font-bold text-sm tracking-wider text-white">CREW PROFILE &amp; SHIP PA</h2>
+          </div>
+          <p class="text-[11px] font-mono text-slate-400 leading-relaxed">
+            When a reading goes wrong, VEGA announces it on the ship's speakers so the whole crew knows who needs help. Announcements use this crew member's name.
+          </p>
+          <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-2" autocomplete="off">
+            <label class="sr-only" for="crew-rank">Rank</label>
+            <select id="crew-rank" class="bg-space-950 border border-white/15 rounded-lg px-2.5 py-2 text-xs font-mono text-slate-200 focus:border-cyber-cyan outline-none">
+              <option value="">No rank</option>
+            </select>
+            <label class="sr-only" for="crew-name">Astronaut name</label>
+            <input id="crew-name" type="text" maxlength="40" placeholder="Astronaut name"
+              class="bg-space-950 border border-white/15 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:border-cyber-cyan outline-none" />
+          </form>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="pa-toggle" type="button" class="px-3 py-2 rounded-xl border border-white/15 bg-space-800 hover:bg-space-700 text-xs font-mono flex items-center gap-2 text-slate-200 transition">
+              <span id="pa-dot" class="w-2 h-2 rounded-full bg-cyber-green"></span>
+              <span id="pa-label">SHIP PA: ON</span>
+            </button>
+            <button id="pa-test" type="button" class="px-3 py-2 rounded-xl border border-cyber-pink/40 bg-cyber-pink/10 hover:bg-cyber-pink/20 text-xs font-mono text-cyber-pink transition">
+              Test announcement
+            </button>
+          </div>
+          <p id="pa-who" class="text-[10.5px] font-mono text-slate-400"></p>
+        </div>
+        <div class="lg:col-span-7 min-w-0">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-mono text-slate-400 tracking-wider">PA LOG // CREW-WIDE ANNOUNCEMENTS</span>
+            <span id="pa-count" class="text-[10px] font-mono text-slate-500">0 announcements</span>
+          </div>
+          <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto pr-1 text-[11px] font-mono" aria-live="polite">
+            <li class="text-slate-500">No announcements yet. Inject a hazard below to hear one.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEMO CONTROL BAR, LIVE SENSOR STREAM & SCENARIO INJECTOR -->
+    <section class="hud-card rounded-2xl p-4 border-cyber-cyan/30 space-y-3">
+      <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan font-mono text-[10px] font-bold uppercase tracking-wider border border-cyber-cyan/30">
+              Hardware Telemetry Bridge
+            </span>
+            <span class="text-xs font-mono text-slate-400">Mission Elapsed: <strong id="met-clock" class="text-white">02:14:08</strong></span>
+            <span class="text-xs font-mono text-slate-400">| Cabin Exit: <strong id="cabin-exit-badge" class="text-cyber-amber">OUTSIDE AIRLOCK</strong></span>
+          </div>
+          <p class="text-xs text-slate-300 mt-1">
+            Stream live suit sensor data in real time or inject EVA hazards (<span class="text-cyber-amber font-semibold">Solar Radiation Spike</span>, <span class="text-cyber-pink font-semibold">Heavy Exertion</span>, <span class="text-cyber-red font-semibold">Micro-Leak</span>) to see <span class="text-cyber-cyan font-semibold">VEGA</span> react with anime emotes &amp; countdown alerts.
+          </p>
+        </div>
+
+        <!-- Live Sensor Stream Toggle + Scenario Preset Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="live-stream-btn" onclick="toggleLiveSensorStream()" class="px-3 py-2 rounded-lg bg-cyber-green/15 hover:bg-cyber-green/25 border border-cyber-green/50 text-cyber-green font-mono text-xs font-bold transition flex items-center gap-2 shadow-[0_0_12px_rgba(57,255,20,0.2)]">
+            <span id="live-stream-dot" class="w-2 h-2 rounded-full bg-cyber-green animate-ping"></span>
+            <span id="live-stream-label">LIVE SENSORS: ON</span>
+          </button>
+
+          <button onclick="applyScenario('nominal')" class="px-3 py-2 rounded-lg bg-cyber-cyan/15 hover:bg-cyber-cyan/25 border border-cyber-cyan/40 text-cyber-cyan font-mono text-xs font-semibold transition">
+            ✓ Nominal EVA
+          </button>
+          <button onclick="applyScenario('radiation')" class="px-3 py-2 rounded-lg bg-cyber-amber/20 hover:bg-cyber-amber/30 border border-cyber-amber/60 text-cyber-amber font-mono text-xs font-bold transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,184,0,0.25)]">
+            <span>☢</span> Solar Radiation Spike
+          </button>
+          <button onclick="applyScenario('exertion')" class="px-3 py-2 rounded-lg bg-cyber-pink/15 hover:bg-cyber-pink/25 border border-cyber-pink/40 text-cyber-pink font-mono text-xs font-semibold transition">
+            ⚡ Heavy Exertion
+          </button>
+          <button onclick="applyScenario('microleak')" class="px-3 py-2 rounded-lg bg-cyber-red/15 hover:bg-cyber-red/25 border border-cyber-red/50 text-cyber-red font-mono text-xs font-semibold transition">
+            ⚠ Suit Micro-Leak
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Incoming Sensor Packet Strip (WebSocket / Serial / Biometric Bus Preview) -->
+      <div class="bg-space-950/90 border border-white/10 rounded-xl px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono">
+        <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap text-slate-300">
+          <span class="text-cyber-green font-bold shrink-0">[BUS // 1Hz]</span>
+          <code id="live-packet-preview" class="text-cyan-200">{"psi":4.30,"o2":84,"co2":92,"hr":78,"rad_msv_h":0.18,"r_val":1.14}</code>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="toggleCabinState()" id="cabin-toggle-btn" class="px-2.5 py-1 rounded bg-cyber-amber/15 hover:bg-cyber-amber/25 border border-cyber-amber/40 text-cyber-amber text-[10px] font-bold transition">
+            Simulate Airlock Re-Entry
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN GRID: MODE A (EVA HUD) & MODE B (SHIP SERVER POST-EVA TRIAGE) -->
+    <div id="workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- ========================================================= -->
+      <!-- MODE A: EVA HELMET VISOR HUD & SUIT TELEMETRY (7 Columns) -->
+      <!-- ========================================================= -->
+      <section id="panel-hud" class="lg:col-span-7 space-y-5">
+        <div class="flex items-center justify-between border-b border-cyber-cyan/20 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-sm bg-cyber-cyan"></span>
+            <h2 class="font-mono font-bold text-sm sm:text-base tracking-wider text-cyber-cyan uppercase">
+              01 // EVA Helmet Visor HUD (Live Suit Telemetry)
+            </h2>
+          </div>
+          <span id="eva-exposure-badge" class="font-mono text-[11px] px-2.5 py-1 rounded-md bg-space-800 border border-cyber-amber/40 text-cyber-amber">
+            Cabin-Exit Safe Window: 14:59
+          </span>
+        </div>
+
+        <!-- Primary DCS Risk Index (R-Value) & Pre-Breathe Banner -->
+        <div id="card-dcs-risk" class="hud-card rounded-2xl p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Live Decompression Sickness Index (Conkin R-Value)</span>
+                <span id="dcs-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyber-green/20 text-cyber-green border border-cyber-green/40">
+                  LOW RISK (R &lt; 1.3)
+                </span>
+              </div>
+              <div class="mt-2 flex items-baseline gap-3">
+                <span id="r-value-display" class="text-4xl sm:text-5xl font-mono font-extrabold text-white tracking-tight">1.14</span>
+                <span class="text-xs font-mono text-slate-400">Tissue N₂ Supersaturation Ratio</span>
+              </div>
+              <p id="dcs-advice-text" class="text-xs text-slate-300 mt-2 font-mono">
+                Pre-breathe nitrogen washout complete. Safe for 4.3 PSI suit operations.
+              </p>
+            </div>
+
+            <!-- Dynamic Pre-Breathe / Decompression Buffer Gauge -->
+            <div class="bg-space-950/80 border border-white/10 rounded-xl p-3.5 sm:w-56 shrink-0">
+              <div class="flex justify-between text-[11px] font-mono mb-1">
+                <span class="text-slate-400">N₂ Bubble Margin</span>
+                <span id="n2-margin-val" class="text-cyber-cyan font-bold">86%</span>
+              </div>
+              <div class="w-full h-2.5 bg-space-800 rounded-full overflow-hidden mb-2.5">
+                <div id="n2-margin-bar" class="h-full bg-cyber-cyan transition-all duration-300" style="width: 86%"></div>
+              </div>
+              <div class="text-[10px] font-mono text-slate-400 flex justify-between">
+                <span>Est. Return Protocol:</span>
+                <span id="repress-time" class="text-white font-semibold">12 min std</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Gauges & Live Sensor Inputs Grid (6 Cards) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <!-- 1. Suit Pressure -->
+          <div id="card-pressure" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">Suit Internal Pressure</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-pressure" class="text-2xl font-mono font-bold text-white">4.30</span>
+                  <span class="text-xs font-mono text-cyber-cyan">PSI</span>
+                </div>
+              </div>
+              <span id="tag-pressure" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">NOMINAL</span>
+            </div>
+            <input id="slider-pressure" type="range" min="2.8" max="4.8" step="0.05" value="4.3" oninput="manualSliderOverride()" class="w-full mt-2" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>2.8 Leak</span>
+              <span>4.3 EMU Std</span>
+              <span>4.8</span>
+            </div>
+          </div>
+
+          <!-- 2. O2 Tank Reserve -->
+          <div id="card-o2" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">Primary O₂ Reserve</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-o2" class="text-2xl font-mono font-bold text-white">84</span>
+                  <span class="text-xs font-mono text-cyber-cyan">%</span>
+                </div>
+              </div>
+              <span id="tag-o2" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">5h 12m REM</span>
+            </div>
+            <input id="slider-o2" type="range" min="5" max="100" step="1" value="84" oninput="manualSliderOverride()" class="w-full mt-2" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>15% Abort</span>
+              <span>50% Turnaround</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <!-- 3. CO2 Scrubber Efficiency -->
+          <div id="card-co2" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">CO₂ Scrubber Cap</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-co2" class="text-2xl font-mono font-bold text-white">92</span>
+                  <span class="text-xs font-mono text-cyber-green">%</span>
+                </div>
+              </div>
+              <span id="tag-co2" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-green/15 text-cyber-green">CLEAN</span>
+            </div>
+            <input id="slider-co2" type="range" min="15" max="100" step="1" value="92" oninput="manualSliderOverride()" class="w-full mt-2" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>20% Hypercapnia</span>
+              <span>60%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <!-- 4. Astronaut Heart Rate -->
+          <div id="card-hr" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">Biometric Heart Rate</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-hr" class="text-2xl font-mono font-bold text-white">78</span>
+                  <span class="text-xs font-mono text-cyber-pink">BPM</span>
+                </div>
+              </div>
+              <span id="tag-hr" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">RESTING</span>
+            </div>
+            <input id="slider-hr" type="range" min="50" max="185" step="1" value="78" oninput="manualSliderOverride()" class="w-full mt-2 accent-pink" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>50</span>
+              <span>115 Active</span>
+              <span>165+ Danger</span>
+            </div>
+          </div>
+
+          <!-- 5. Core Body Temp -->
+          <div id="card-temp" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">Core Body Temp</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-temp" class="text-2xl font-mono font-bold text-white">37.0</span>
+                  <span class="text-xs font-mono text-cyber-cyan">°C</span>
+                </div>
+              </div>
+              <span id="tag-temp" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">LCVG BALANCED</span>
+            </div>
+            <input id="slider-temp" type="range" min="35.5" max="39.5" step="0.1" value="37.0" oninput="manualSliderOverride()" class="w-full mt-2" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>35.5°C</span>
+              <span>37.0°C</span>
+              <span>38.5°C+ Heat</span>
+            </div>
+          </div>
+
+          <!-- 6. EVA Workload / Exertion -->
+          <div id="card-workload" class="hud-card rounded-xl p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[11px] font-mono text-slate-400 uppercase">Metabolic Workload</span>
+                <div class="flex items-baseline gap-1.5 mt-0.5">
+                  <span id="val-workload" class="text-2xl font-mono font-bold text-white">210</span>
+                  <span class="text-xs font-mono text-cyber-amber">W (Watts)</span>
+                </div>
+              </div>
+              <span id="tag-workload" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">MODERATE</span>
+            </div>
+            <input id="slider-workload" type="range" min="100" max="600" step="10" value="210" oninput="manualSliderOverride()" class="w-full mt-2 accent-pink" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+              <span>100W Float</span>
+              <span>300W Tool</span>
+              <span>550W+ Sprint</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solar Radiation Dose & Cabin-Exit Shelter Countdown Card -->
+        <div id="card-radiation" class="hud-card rounded-2xl p-4 border-cyber-amber/35">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono font-bold text-cyber-amber uppercase tracking-wider flex items-center gap-1.5">
+                  <span>☢</span> Solar Radiation &amp; Cabin-Exit Shelter Timer
+                </span>
+                <span id="rad-status-tag" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">
+                  BACKGROUND GCR
+                </span>
+              </div>
+              <p id="rad-timer-advice" class="text-[11px] font-mono text-slate-300 mt-1">
+                Outside shielded cabin: cumulative dose tracked against acute EVA shelter limit (50 mSv).
+              </p>
+            </div>
+
+            <!-- Urgent Hurry-Back Countdown Box -->
+            <div id="shelter-countdown-box" class="bg-space-950/90 border border-cyber-amber/40 rounded-xl px-3.5 py-2 text-right shrink-0">
+              <div class="flex items-center justify-end gap-1.5">
+                <span class="text-[9px] font-mono uppercase text-slate-400">Max Safe Outside Time</span>
+                <span id="countdown-rate-pill" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyber-cyan/15 text-cyber-cyan">1.0x</span>
+              </div>
+              <span id="shelter-countdown-clock" class="text-2xl font-mono font-extrabold text-cyber-amber tracking-wider">14:59</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+            <div class="sm:col-span-7">
+              <div class="flex justify-between text-[11px] font-mono mb-1">
+                <span class="text-slate-400">External Radiation Flux:</span>
+                <span class="text-white font-bold"><span id="val-radiation">0.20</span> mSv/hr</span>
+              </div>
+              <input id="slider-radiation" type="range" min="0.1" max="25.0" step="0.1" value="0.2" oninput="manualSliderOverride()" class="w-full" />
+              <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                <span>0.2 Nominal</span>
+                <span>5.0 Solar Flare</span>
+                <span>25.0 SPE Storm!</span>
+              </div>
+            </div>
+
+            <div class="sm:col-span-5 bg-space-950/75 border border-white/10 rounded-xl p-2.5 text-[11px] font-mono space-y-1">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Cumulative EVA Dose:</span>
+                <span id="val-cum-dose" class="text-white font-bold">1.42 mSv</span>
+              </div>
+              <div class="w-full h-2 bg-space-800 rounded-full overflow-hidden">
+                <div id="rad-dose-bar" class="h-full bg-cyber-amber transition-all duration-300" style="width: 14%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Shelter Status:</span>
+                <span id="shelter-shield-status" class="text-cyber-amber font-semibold">EXPOSED (EVA)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- MODE B: SHIP SERVER POST-EVA TRIAGE & AI CHAT (5 Columns)  -->
+      <!-- ========================================================= -->
+      <section id="panel-triage" class="lg:col-span-5 space-y-5">
+        <div class="flex items-center justify-between border-b border-cyber-pink/30 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-sm bg-cyber-pink"></span>
+            <h2 class="font-mono font-bold text-sm sm:text-base tracking-wider text-cyber-pink uppercase">
+              02 // Ship Core AI: Post-EVA Triage
+            </h2>
+          </div>
+          <span class="font-mono text-[10px] px-2 py-0.5 rounded bg-cyber-pink/15 text-cyber-pink border border-cyber-pink/30">
+            OFFLINE FLIGHT SURGEON DB
+          </span>
+        </div>
+
+        <!-- Anatomical Body Map + Symptom Selector -->
+        <div id="card-body-triage" class="hud-card rounded-2xl p-4 border-cyber-pink/30">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-mono text-xs font-bold text-white uppercase">Interactive Post-EVA Body Map</h3>
+              <p class="text-[11px] text-slate-400">Tap an anatomical zone to log discomfort after airlock repressurization.</p>
+            </div>
+            <button onclick="resetTriage()" class="text-[11px] font-mono text-slate-400 hover:text-white underline">Reset</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+            <!-- Clickable SVG Astronaut Silhouette -->
+            <div class="sm:col-span-5 flex flex-col items-center justify-center bg-space-950/90 rounded-xl p-3 border border-white/10">
+              <svg viewBox="0 0 140 240" class="w-32 h-52 select-none">
+                <!-- Grid Crosshairs -->
+                <line x1="70" y1="5" x2="70" y2="235" stroke="rgba(0,240,255,0.12)" stroke-dasharray="3 3"/>
+                <line x1="10" y1="90" x2="130" y2="90" stroke="rgba(0,240,255,0.12)" stroke-dasharray="3 3"/>
+
+                <!-- Head / Neuro-Ocular -->
+                <circle id="zone-head" onclick="selectBodyZone('head')" cx="70" cy="30" r="18" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="70" y="33" text-anchor="middle" fill="#E2E8F0" font-size="7" font-family="monospace" pointer-events="none">HEAD</text>
+
+                <!-- Shoulders / Joints (High DCS Risk Zone) -->
+                <rect id="zone-shoulder" onclick="selectBodyZone('shoulder')" x="32" y="54" width="76" height="22" rx="8" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="70" y="68" text-anchor="middle" fill="#E2E8F0" font-size="7" font-family="monospace" pointer-events="none">SHOULDERS</text>
+
+                <!-- Chest / Lungs (Chokes / Cardiopulmonary) -->
+                <rect id="zone-chest" onclick="selectBodyZone('chest')" x="45" y="80" width="50" height="44" rx="6" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="70" y="105" text-anchor="middle" fill="#E2E8F0" font-size="7" font-family="monospace" pointer-events="none">CHEST</text>
+
+                <!-- Forearms / Hands (Suit Glove Trauma vs Tingling) -->
+                <rect id="zone-hands" onclick="selectBodyZone('hands')" x="18" y="80" width="20" height="62" rx="7" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <rect id="zone-hands-r" onclick="selectBodyZone('hands')" x="102" y="80" width="20" height="62" rx="7" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="28" y="114" text-anchor="middle" fill="#E2E8F0" font-size="6" font-family="monospace" pointer-events="none">ARM</text>
+                <text x="112" y="114" text-anchor="middle" fill="#E2E8F0" font-size="6" font-family="monospace" pointer-events="none">ARM</text>
+
+                <!-- Skin / Torso Cutaneous (Skin Mottling / Itching) -->
+                <rect id="zone-skin" onclick="selectBodyZone('skin')" x="48" y="128" width="44" height="26" rx="5" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="70" y="144" text-anchor="middle" fill="#E2E8F0" font-size="6.5" font-family="monospace" pointer-events="none">SKIN/CORE</text>
+
+                <!-- Legs / Knees -->
+                <rect id="zone-legs" onclick="selectBodyZone('legs')" x="46" y="158" width="20" height="68" rx="7" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <rect id="zone-legs-r" onclick="selectBodyZone('legs')" x="74" y="158" width="20" height="68" rx="7" fill="rgba(0,240,255,0.12)" stroke="#00F0FF" stroke-width="1.5" class="body-zone"/>
+                <text x="56" y="195" text-anchor="middle" fill="#E2E8F0" font-size="6" font-family="monospace" pointer-events="none">KNEE</text>
+                <text x="84" y="195" text-anchor="middle" fill="#E2E8F0" font-size="6" font-family="monospace" pointer-events="none">KNEE</text>
+              </svg>
+              <span class="text-[10px] font-mono text-cyber-cyan mt-1">TAP ZONE TO INSPECT</span>
+            </div>
+
+            <!-- Symptom Prompt Buttons for Selected Zone -->
+            <div class="sm:col-span-7 space-y-2.5">
+              <div class="bg-space-950/70 rounded-xl p-3 border border-white/10">
+                <span class="text-[10px] font-mono text-cyber-pink uppercase block mb-1">Selected Zone: <strong id="selected-zone-label" class="text-white">SHOULDERS & JOINTS</strong></span>
+                <div id="zone-symptom-buttons" class="space-y-1.5 mt-2">
+                  <!-- Populated dynamically by JS -->
+                </div>
+              </div>
+
+              <!-- Live Telemetry Correlation Note -->
+              <div class="bg-space-900/90 rounded-xl p-2.5 border border-cyber-cyan/20 text-[11px] font-mono text-slate-300">
+                <span class="text-cyber-cyan font-bold">Telemetry Cross-Check:</span>
+                <span id="telemetry-correlation-note">Current R-Value is 1.14. AI will weigh suit pressure history against reported pain.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ship AI Diagnostic Triage Result & Chat Interface -->
+        <div id="card-triage-chat" class="hud-card rounded-2xl p-4 flex flex-col h-[340px]">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+            <span class="font-mono text-xs font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyber-green"></span>
+              VEGA FLIGHT SURGEON TRIAGE LOG
+            </span>
+            <span id="triage-severity-pill" class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan">
+              READY FOR INPUT
+            </span>
+          </div>
+
+          <!-- Chat Messages Scroll Area -->
+          <div id="triage-chat-feed" class="flex-1 overflow-y-auto space-y-2.5 pr-1 font-mono text-xs">
+            <div class="bg-space-950/90 border border-cyber-cyan/25 rounded-xl p-3 text-slate-200">
+              <div class="text-[10px] text-cyber-cyan font-bold mb-1">VEGA [SHIP SERVER EDGE AI]:</div>
+              Post-EVA triage module online. Select a body zone above or describe symptoms below. I will cross-reference your EVA suit pressure & exertion logs to separate normal glove/suit fatigue from Decompression Sickness (DCS).
+            </div>
+          </div>
+
+          <!-- Chat Input Form -->
+          <form onsubmit="handleCustomSymptomSubmit(event)" class="mt-3 pt-2 border-t border-white/10 flex gap-2">
+            <input id="triage-user-input" type="text" placeholder="e.g., 'Deep ache in left shoulder' or 'fingertips sore'..." class="flex-1 bg-space-950 border border-white/15 focus:border-cyber-pink rounded-xl px-3 py-2 text-xs font-mono text-white outline-none" />
+            <button type="submit" class="px-3.5 py-2 rounded-xl bg-cyber-pink hover:bg-cyber-pink/85 text-white font-mono text-xs font-bold transition shrink-0">
+              ANALYZE
+            </button>
+          </form>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. 16-BIT PIXEL ART AVATAR RENDERER ("VEGA" / VEGA) + ANIME EMOTES
+    // =========================================================================
+    // Crisp high-contrast 36x36 pixel matrix with selectable retro palettes
+    // and classic anime floating emote symbols (💢 anger vein, 💧 sweat, ❗ shock, ✦ sparkle).
+    const canvas = document.getElementById('cap16-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const AVATAR_PALETTES = {
+      cobalt: {
+        name: 'Cobalt',
+        'K': '#0A0E17', // Deep obsidian outline
+        'P': '#E2E8F0', // Platinum silver hair primary
+        'M': '#94A3B8', // Cool slate hair shadow
+        'L': '#FFFFFF', // Crisp specular hair highlight
+        'C': '#00F0FF', // Tactical cyan visor / headset
+        'B': '#0284C7', // Deep cobalt accent
+        'S': '#FDE2D2', // Warm natural skin tone
+        'H': '#E2B49A', // Skin shading
+        'G': '#38BDF8', // Bright sky-cyan iris ring
+        'E': '#0F172A', // Deep pupil
+        'W': '#FFFFFF', // Eye catchlight
+        'R': '#FF2A4B', // Crimson alert / anime anger vein
+        'A': '#FFB800', // Amber warning
+        'D': '#1E293B', // Tactical dark navy collar
+      },
+      solaris: {
+        name: 'Solaris',
+        'K': '#120C18', // Deep plum-black outline
+        'P': '#FBBF24', // Golden-amber hair primary
+        'M': '#D97706', // Warm copper hair shadow
+        'L': '#FEF08A', // Sunlit gold highlight
+        'C': '#38BDF8', // Electric ice-blue visor
+        'B': '#1D4ED8', // Royal blue accent
+        'S': '#FDE2D2', // Warm skin tone
+        'H': '#E2B49A', // Skin shadow
+        'G': '#F97316', // Vibrant amber-orange iris
+        'E': '#1E1B4B', // Deep indigo pupil
+        'W': '#FFFFFF', // Eye catchlight
+        'R': '#EF4444', // Crimson alert
+        'A': '#F59E0B', // Amber warning
+        'D': '#1E293B', // Dark tactical suit
+      },
+      crimson: {
+        name: 'Valkyrie',
+        'K': '#090D16', // Deep outline
+        'P': '#F43F5E', // Crisp coral-crimson hair
+        'M': '#BE123C', // Deep ruby shadow
+        'L': '#FDA4AF', // Soft rose highlight
+        'C': '#22D3EE', // Cyan tactical headset
+        'B': '#0E7490', // Teal shadow
+        'S': '#FDE2D2', // Warm skin tone
+        'H': '#E2B49A', // Skin shadow
+        'G': '#22D3EE', // Cyan digital eyes
+        'E': '#0F172A', // Deep pupil
+        'W': '#FFFFFF', // Eye catchlight
+        'R': '#FF1E42', // Bright red alert
+        'A': '#FACC15', // Gold warning
+        'D': '#18181B', // Carbon black collar
+      }
+    };
+
+    const PALETTE_KEYS = ['cobalt', 'solaris', 'crimson'];
+    let activePaletteKey = 'cobalt';
+
+    function cycleAvatarPalette() {
+      const idx = (PALETTE_KEYS.indexOf(activePaletteKey) + 1) % PALETTE_KEYS.length;
+      activePaletteKey = PALETTE_KEYS[idx];
+      const palName = AVATAR_PALETTES[activePaletteKey].name;
+      const btn = aiActionHint.querySelector('button');
+      if (btn) btn.textContent = `Palette: ${palName}`;
+      renderCap16(currentMood, false);
+    }
+
+    // 36x36 Base Hair & Headset (32px character centered with 2px margin for floating anime emotes)
+    const SPRITE_HAIR_TOP = [
+      "............KKKKKKKKKKKK............",
+      "..........KKPPPPPPPPPPPPKK..........",
+      "........KKPPLLLLPPPPPPPPPPKK........",
+      ".......KPPPLLLLLPPPPPPPPPPPPK.......",
+      "......KPPPPPPPPPPPPPPPMMPPPPPK......",
+      ".....KPPPPPPPPPPPPPPPPMMMPPPPPK.....",
+      "....CCKPPPPPPPPPPPPPPPMMMPPPPKCC....",
+      "...CGGC.KPPPPPPPPPPPPPPPPPPK.CGGC...",
+      "...CGGC.KPPPPLLLPPPPPPPPMMPK.CGGC...",
+      "....CC.KPPPPPPPPPPPPPPPPPPMPK.CC....",
+      "......KPPPPPPPKKKKKKKKPPPPPPPK......",
+      "......KPPPPPKKSSSSSSSSKKPPPPPK......",
+      ".....KPPPPPKSSSSSSSSSSSSKPPPPPK.....",
+    ];
+
+    const SPRITE_COLLAR = [
+      "......KPPPK..KSSSSSSSSK..KPPPK......",
+      ".....KPPPK....KKSSSSKK....KPPPK.....",
+      ".....KPPK.....DDDDDDDD.....KPPK.....",
+      "......KK....CCDDDDDDDDCC....KK......",
+      "...........CGGDDDDDDDDGGC...........",
+      "..........KDDDDDCCCCDDDDDK..........",
+      ".........KDDDDCCCCCCCCDDDDK.........",
+      ".........KDDDDDDDDDDDDDDDDK.........",
+      "........KDDDDDDDDDDDDDDDDDDK........",
+      "....................................",
+      "....................................",
+      "....................................",
+      "....................................",
+    ];
+
+    // Dynamic Face Expressions (Rows 13 to 22 -> 10 rows of 36 chars)
+    const EXPRESSIONS = {
+      nominal: [
+        ".....KPPPPKSSSSSSSSSSSSSSKPPPPK.....",
+        ".....KPPPKSSKKKSSSSSSKKKSSKPPPK.....",
+        ".....KPPPKSSGWGSSSSSSGWGSSKPPPK.....",
+        ".....KPPPKSSGEGSSSSSSGEGSSKPPPK.....",
+        ".....KPPPKSSKKKSSSSSSKKKSSKPPPK.....",
+        ".....KPPPKSSSSSSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSSKSSKSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSSKKKKSSSSSSKPPPK.....",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+      ],
+      reminder: [
+        ".....KPPPPKSSSSSSSSSSSSSSKPPPPK.....",
+        ".....KPPPKSSKKKSSSSSSKKKSSKPPPK.....",
+        ".....KPPPKSSGWGSSSSSSKKKSSKPPPK.....", // Friendly Wink
+        ".....KPPPKSSGEGSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSKKKSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSKKKKKKSSSSSKPPPK.....", // Happy smile
+        ".....KPPPKSSSSSKWWWWKSSSSSKPPPK.....",
+        "......KPPPKSSSSSKKKKSSSSSKPPPK......",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+      ],
+      caution: [
+        ".....KPPPPKSSSSSSSSSSSSSSKPPPPK.....",
+        ".....KPPPKSSKKSSSSSSSSKKSSKPPPK.....", // Furrowed worried brows
+        ".....KPPPKSSAAKSSSSSSKAAKSKPPPK.....",
+        ".....KPPPKSSAWASSSSSSAWASSPPPPK.....",
+        ".....KPPPKSSKKKSSSSSSKKKSSKPPPK.....",
+        ".....KPPPKSSSSSSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSSKKKKSSSSSSKPPPK.....", // Tense mouth
+        ".....KPPPKSSSSSSSSSSSSSSSSKPPPK.....",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+      ],
+      critical: [
+        ".....KPPPPKSSSSSSSSSSSSSSKPPPPK.....",
+        ".....KPPPKSRRRKSSSSSSKRRRKSKPPK.....", // Angry / Urgent narrowed eyes
+        ".....KPPPKSRWRSSSSSSSSWRWSKPPPK.....",
+        ".....KPPPKSRRRSSSSSSSSRRRSKPPPK.....",
+        ".....KPPPKSSSSSSSSSSSSSSSSKPPPK.....",
+        ".....KPPPKSSSSSSKKKKSSSSSSKPPPK.....", // Shouting / Urgent 'O'
+        ".....KPPPKSSSSSKRRRRKSSSSSKPPPK.....",
+        ".....KPPPKSSSSSKRRRRKSSSSSKPPPK.....",
+        "......KPPPKSSSSSKKKKSSSSSKPPPK......",
+        "......KPPPKSSSSSSSSSSSSSSKPPPK......",
+      ]
+    };
+
+    let currentMood = 'nominal';
+    let emotePulsePhase = 0;
+
+    /**
+     * Draws classic 16-bit anime floating emote symbols on the 36x36 canvas
+     * - critical: 💢 Four-way red anime anger/urgency cross-vein symbol (top-right)
+     * - caution:  💧 Blue/cyan anime sweat drop (side of temple) + ! alert
+     * - reminder: ❗ Urgent exclamation mark (when hurry-back countdown is active)
+     * - nominal:  ✦ Crisp 4-point pixel sparkles
+     */
+    function drawAnimeEmote(mood, phase) {
+      const offset = phase % 2 === 0 ? 0 : -1;
+      if (mood === 'critical') {
+        // Classic 4-way anime anger / urgency symbol (💢) at top-right (x: 27..34, y: 2..9)
+        const ox = 27;
+        const oy = 2 + (phase % 2);
+        ctx.fillStyle = '#FF1E42';
+        // Top-left bracket
+        ctx.fillRect(ox + 2, oy, 1, 2);
+        ctx.fillRect(ox, oy + 2, 2, 1);
+        // Top-right bracket
+        ctx.fillRect(ox + 4, oy, 1, 2);
+        ctx.fillRect(ox + 5, oy + 2, 2, 1);
+        // Bottom-left bracket
+        ctx.fillRect(ox, oy + 4, 2, 1);
+        ctx.fillRect(ox + 2, oy + 5, 1, 2);
+        // Bottom-right bracket
+        ctx.fillRect(ox + 5, oy + 4, 2, 1);
+        ctx.fillRect(ox + 4, oy + 5, 1, 2);
+        // Bright white highlight pixels
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(ox + 2, oy + 1, 1, 1);
+        ctx.fillRect(ox + 5, oy + 2, 1, 1);
+      } else if (mood === 'caution') {
+        // Classic anime sweat drop (💧) on right temple (x: 30..33, y: 11..17)
+        const sx = 30;
+        const sy = 11 + (phase % 2);
+        ctx.fillStyle = '#0A0E17';
+        ctx.fillRect(sx + 1, sy, 1, 1);
+        ctx.fillRect(sx, sy + 1, 3, 4);
+        ctx.fillStyle = '#38BDF8';
+        ctx.fillRect(sx + 1, sy + 1, 1, 4);
+        ctx.fillRect(sx, sy + 3, 3, 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(sx + 1, sy + 3, 1, 1);
+      } else if (mood === 'reminder') {
+        // Urgent Pixel Exclamation Mark (❗) at top-right (x: 29..32, y: 2..10)
+        const ex = 30;
+        const ey = 2 + offset;
+        ctx.fillStyle = '#0A0E17';
+        ctx.fillRect(ex - 1, ey - 1, 4, 9);
+        ctx.fillStyle = '#FFB800';
+        ctx.fillRect(ex, ey, 2, 4);
+        ctx.fillRect(ex, ey + 6, 2, 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(ex, ey, 1, 2);
+      } else {
+        // Nominal 4-point anime pixel sparkle (✦) at top-right
+        const kx = 29;
+        const ky = 3;
+        ctx.fillStyle = phase % 2 === 0 ? '#00F0FF' : '#FFFFFF';
+        ctx.fillRect(kx + 2, ky, 1, 5);
+        ctx.fillRect(kx, ky + 2, 5, 1);
+      }
+    }
+
+    function renderCap16(mood = currentMood, isBlinking = false) {
+      ctx.clearRect(0, 0, 36, 36);
+      const pal = AVATAR_PALETTES[activePaletteKey] || AVATAR_PALETTES.cobalt;
+      const faceRows = EXPRESSIONS[mood] || EXPRESSIONS.nominal;
+      const fullSprite = [...SPRITE_HAIR_TOP, ...faceRows, ...SPRITE_COLLAR];
+
+      for (let y = 0; y < 36; y++) {
+        const row = fullSprite[y];
+        if (!row) continue;
+        for (let x = 0; x < 36; x++) {
+          let char = row[x];
+          if (isBlinking && mood === 'nominal' && (y === 14 || y === 15 || y === 16)) {
+            if (char === 'G' || char === 'W' || char === 'E') char = 'K';
+          }
+          const color = pal[char];
+          if (color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+      }
+
+      drawAnimeEmote(mood, emotePulsePhase);
+    }
+
+    // Animate emote pulse & natural blink
+    setInterval(() => {
+      emotePulsePhase++;
+      renderCap16(currentMood, false);
+    }, 650);
+
+    setInterval(() => {
+      if (currentMood === 'nominal') {
+        renderCap16('nominal', true);
+        setTimeout(() => renderCap16(currentMood, false), 150);
+      }
+    }, 4000);
+
+    // =========================================================================
+    // 2. VEGA TELEPORTATION & SPEECH ENGINE
+    // =========================================================================
+    const companionWrapper = document.getElementById('ai-companion-wrapper');
+    const avatarBox = document.getElementById('avatar-box');
+    const speechBubble = document.getElementById('ai-speech-bubble');
+    const aiBadge = document.getElementById('ai-status-badge');
+    const aiMessageText = document.getElementById('ai-message-text');
+    const aiActionHint = document.getElementById('ai-action-hint');
+
+    let voiceEnabled = false;
+
+    function toggleVoiceAlerts() {
+      voiceEnabled = !voiceEnabled;
+      const dot = document.getElementById('voice-dot');
+      const label = document.getElementById('voice-label');
+      const btnMob = document.getElementById('voice-toggle-btn-mobile');
+
+      if (voiceEnabled) {
+        dot.className = 'w-2 h-2 rounded-full bg-cyber-green animate-ping';
+        label.textContent = 'VOICE: ON';
+        btnMob.innerHTML = '<span id="voice-dot-mobile" class="w-2 h-2 rounded-full bg-cyber-green animate-ping"></span> VOICE: ON';
+        speakText("VEGA voice telemetry alerts online.");
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+        label.textContent = 'VOICE: OFF';
+        btnMob.innerHTML = '<span id="voice-dot-mobile" class="w-2 h-2 rounded-full bg-slate-500"></span> VOICE: OFF';
+        window.speechSynthesis && window.speechSynthesis.cancel();
+      }
+    }
+
+    function speakText(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.08;
+      utterance.pitch = 1.25;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function dismissSpeechBubble() {
+      speechBubble.classList.toggle('hidden');
+    }
+
+    function cycleAvatarGreeting() {
+      speechBubble.classList.remove('hidden');
+      const tips = [
+        "Tip: High physical exertion accelerates nitrogen off-gassing—watch your DCS R-value!",
+        "Radiation Watch: Outside the shielded hull, solar particle spikes cut your safe window down to minutes!",
+        "Ship AI Core synced via Sub-GHz mesh. Zero Earth communication lag!",
+        "You can click 'Palette' below my speech bubble to switch my 16-bit color theme!"
+      ];
+      const randomTip = tips[Math.floor(Math.random() * tips.length)];
+      teleportCap16(null, 'nominal', randomTip, 'VISOR HUD // READY');
+    }
+
+    /**
+     * Teleports VEGA with a 16-bit glitch effect right next to any target DOM element
+     */
+    function teleportCap16(targetElementId, mood, message, locationLabel, speak = false) {
+      currentMood = mood;
+      renderCap16(mood);
+      speechBubble.classList.remove('hidden');
+
+      avatarBox.classList.remove('border-cyber-cyan', 'border-cyber-pink', 'border-cyber-amber', 'border-cyber-red', 'border-cyber-green', 'avatar-critical-shake');
+      if (mood === 'critical') {
+        avatarBox.classList.add('border-cyber-red', 'avatar-critical-shake');
+        aiBadge.className = 'font-pixel text-[9px] text-cyber-red tracking-wider flex items-center gap-1.5';
+        aiBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyber-red inline-block animate-ping"></span> VEGA // URGENT!';
+      } else if (mood === 'caution') {
+        avatarBox.classList.add('border-cyber-amber');
+        aiBadge.className = 'font-pixel text-[9px] text-cyber-amber tracking-wider flex items-center gap-1.5';
+        aiBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyber-amber inline-block animate-pulse"></span> VEGA // CAUTION';
+      } else if (mood === 'reminder') {
+        avatarBox.classList.add('border-cyber-amber');
+        aiBadge.className = 'font-pixel text-[9px] text-cyber-amber tracking-wider flex items-center gap-1.5';
+        aiBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyber-amber inline-block animate-ping"></span> VEGA // TIMER ALERT';
+      } else {
+        avatarBox.classList.add('border-cyber-cyan');
+        aiBadge.className = 'font-pixel text-[9px] text-cyber-cyan tracking-wider flex items-center gap-1.5';
+        aiBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyber-cyan inline-block"></span> VEGA // NOMINAL';
+      }
+
+      aiMessageText.textContent = message;
+      aiActionHint.querySelector('span').textContent = `LOC: ${locationLabel}`;
+
+      if (speak) speakText(message);
+
+      avatarBox.classList.remove('teleport-in');
+      avatarBox.classList.add('teleport-out');
+
+      setTimeout(() => {
+        const targetEl = targetElementId ? document.getElementById(targetElementId) : null;
+        const rect = targetEl && targetEl.offsetParent !== null ? targetEl.getBoundingClientRect() : null;
+        const isTargetOnScreen = rect && rect.bottom > 80 && rect.top < window.innerHeight - 60;
+
+        if (isTargetOnScreen) {
+          const wrapperWidth = companionWrapper.offsetWidth || Math.min(350, window.innerWidth - 24);
+          const wrapperHeight = companionWrapper.offsetHeight || 145;
+
+          // Position beside/above target card while strictly clamping inside the visible viewport
+          let leftPos = rect.right - wrapperWidth + 10;
+          let topPos = rect.top - wrapperHeight + 14;
+
+          if (topPos < 76) {
+            topPos = rect.bottom - 14;
+          }
+
+          // Hard clamp so VEGA NEVER disappears off any edge of the screen
+          leftPos = Math.max(12, Math.min(window.innerWidth - wrapperWidth - 12, leftPos));
+          topPos = Math.max(76, Math.min(window.innerHeight - wrapperHeight - 16, topPos));
+
+          companionWrapper.style.bottom = 'auto';
+          companionWrapper.style.right = 'auto';
+          companionWrapper.style.left = `${leftPos}px`;
+          companionWrapper.style.top = `${topPos}px`;
+        } else {
+          // Always stay cleanly visible in the bottom-right HUD dock if target card is scrolled out of view
+          companionWrapper.style.top = 'auto';
+          companionWrapper.style.left = 'auto';
+          companionWrapper.style.bottom = '20px';
+          companionWrapper.style.right = '20px';
+        }
+
+        avatarBox.classList.remove('teleport-out');
+        avatarBox.classList.add('teleport-in');
+      }, 160);
+    }
+
+    // Keep VEGA clamped inside the viewport if the window resizes
+    window.addEventListener('resize', () => {
+      if (companionWrapper.style.left && companionWrapper.style.left !== 'auto') {
+        const w = companionWrapper.offsetWidth || 340;
+        const h = companionWrapper.offsetHeight || 145;
+        const curLeft = parseFloat(companionWrapper.style.left) || 20;
+        const curTop = parseFloat(companionWrapper.style.top) || 80;
+        companionWrapper.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, curLeft))}px`;
+        companionWrapper.style.top = `${Math.max(76, Math.min(window.innerHeight - h - 16, curTop))}px`;
+      }
+    });
+
+    // =========================================================================
+    // 3. REAL-TIME SENSOR STREAM, DCS R-VALUE & RADIATION SHELTER TIMER
+    // =========================================================================
+    let lastAlertKey = 'nominal';
+    let liveStreamActive = true;
+    let isOutsideCabin = true;
+    let shelterSecondsRemaining = 14 * 60 + 59;
+    let cumulativeRadiationMsv = 1.42;
+
+    let activeBaseline = {
+      pressure: 4.30,
+      o2: 84,
+      co2: 92,
+      hr: 78,
+      temp: 37.0,
+      workload: 210,
+      radiation: 0.20
+    };
+
+    let currentTelemetryState = {
+      pressure: 4.30,
+      o2: 84,
+      co2: 92,
+      hr: 78,
+      temp: 37.0,
+      workload: 210,
+      radiation: 0.20,
+      rValue: 1.14
+    };
+
+    function toggleLiveSensorStream() {
+      liveStreamActive = !liveStreamActive;
+      const btn = document.getElementById('live-stream-btn');
+      const dot = document.getElementById('live-stream-dot');
+      const label = document.getElementById('live-stream-label');
+
+      if (liveStreamActive) {
+        btn.className = 'px-3 py-2 rounded-lg bg-cyber-green/15 hover:bg-cyber-green/25 border border-cyber-green/50 text-cyber-green font-mono text-xs font-bold transition flex items-center gap-2 shadow-[0_0_12px_rgba(57,255,20,0.2)]';
+        dot.className = 'w-2 h-2 rounded-full bg-cyber-green animate-ping';
+        label.textContent = 'LIVE SENSORS: ON';
+      } else {
+        btn.className = 'px-3 py-2 rounded-lg bg-space-800 hover:bg-space-700 border border-white/15 text-slate-300 font-mono text-xs font-bold transition flex items-center gap-2';
+        dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+        label.textContent = 'LIVE SENSORS: PAUSED';
+      }
+    }
+
+    function toggleCabinState() {
+      isOutsideCabin = !isOutsideCabin;
+      const exitBadge = document.getElementById('cabin-exit-badge');
+      const toggleBtn = document.getElementById('cabin-toggle-btn');
+      const shieldStatus = document.getElementById('shelter-shield-status');
+
+      if (isOutsideCabin) {
+        shelterSecondsRemaining = 14 * 60 + 59;
+        exitBadge.textContent = 'OUTSIDE AIRLOCK';
+        exitBadge.className = 'text-cyber-amber';
+        toggleBtn.textContent = 'Simulate Airlock Re-Entry';
+        shieldStatus.textContent = 'EXPOSED (EVA)';
+        shieldStatus.className = 'text-cyber-amber font-semibold';
+        teleportCap16('card-radiation', 'reminder', 'Cabin exit logged! Radiation & safe exposure countdown timer is now active.', 'RADIATION & SHELTER TIMER', false);
+      } else {
+        exitBadge.textContent = 'INSIDE SHIELDED CABIN';
+        exitBadge.className = 'text-cyber-green';
+        toggleBtn.textContent = 'Simulate Cabin Exit (Start EVA)';
+        shieldStatus.textContent = 'SHIELDED (HULL)';
+        shieldStatus.className = 'text-cyber-green font-semibold';
+        teleportCap16('card-radiation', 'nominal', 'Airlock re-entry confirmed! Hull radiation shielding active—exposure countdown paused.', 'RADIATION & SHELTER TIMER', false);
+      }
+      updateTelemetry();
+    }
+
+    function manualSliderOverride() {
+      activeBaseline.pressure = parseFloat(document.getElementById('slider-pressure').value);
+      activeBaseline.o2 = parseFloat(document.getElementById('slider-o2').value);
+      activeBaseline.co2 = parseFloat(document.getElementById('slider-co2').value);
+      activeBaseline.hr = parseFloat(document.getElementById('slider-hr').value);
+      activeBaseline.temp = parseFloat(document.getElementById('slider-temp').value);
+      activeBaseline.workload = parseFloat(document.getElementById('slider-workload').value);
+      activeBaseline.radiation = parseFloat(document.getElementById('slider-radiation').value);
+      updateTelemetry();
+    }
+
+    // 1Hz Real-Time Hardware Telemetry Loop
+    setInterval(() => {
+      if (!liveStreamActive) return;
+
+      const jitter = (range) => (Math.random() - 0.5) * range;
+      const nextPressure = Math.max(2.8, Math.min(4.8, activeBaseline.pressure + jitter(0.03)));
+      const nextHr = Math.round(Math.max(50, Math.min(185, activeBaseline.hr + jitter(3))));
+      const nextWorkload = Math.round(Math.max(100, Math.min(600, activeBaseline.workload + jitter(12))));
+      const nextRad = Math.max(0.1, Math.min(25.0, activeBaseline.radiation + jitter(activeBaseline.radiation * 0.04)));
+
+      activeBaseline.o2 = Math.max(5, activeBaseline.o2 - (0.015 + nextWorkload / 25000));
+      activeBaseline.co2 = Math.max(15, activeBaseline.co2 - (0.01 + nextWorkload / 30000));
+
+      if (isOutsideCabin) {
+        cumulativeRadiationMsv += nextRad / 3600;
+      }
+
+      document.getElementById('slider-pressure').value = nextPressure.toFixed(2);
+      document.getElementById('slider-o2').value = activeBaseline.o2.toFixed(1);
+      document.getElementById('slider-co2').value = activeBaseline.co2.toFixed(1);
+      document.getElementById('slider-hr').value = nextHr;
+      document.getElementById('slider-workload').value = nextWorkload;
+      document.getElementById('slider-radiation').value = nextRad.toFixed(1);
+
+      updateTelemetry();
+    }, 1000);
+
+    // Smooth 1.0x Real-Time Countdown Loop (always ticks 1 real second = 1 clock second)
+    setInterval(() => {
+      if (!liveStreamActive || !isOutsideCabin || shelterSecondsRemaining <= 0) return;
+      shelterSecondsRemaining = Math.max(0, shelterSecondsRemaining - 1);
+
+      const wholeSecs = Math.ceil(shelterSecondsRemaining);
+      const cdMins = Math.floor(wholeSecs / 60).toString().padStart(2, '0');
+      const cdSecs = (wholeSecs % 60).toString().padStart(2, '0');
+      const formattedCountdown = `${cdMins}:${cdSecs}`;
+
+      document.getElementById('shelter-countdown-clock').textContent = formattedCountdown;
+      document.getElementById('eva-exposure-badge').textContent = `Cabin-Exit Safe Window: ${formattedCountdown}`;
+    }, 1000);
+
+    function updateTelemetry() {
+      const pressure = parseFloat(document.getElementById('slider-pressure').value);
+      const o2 = Math.round(parseFloat(document.getElementById('slider-o2').value));
+      const co2 = Math.round(parseFloat(document.getElementById('slider-co2').value));
+      const hr = parseInt(document.getElementById('slider-hr').value, 10);
+      const temp = parseFloat(document.getElementById('slider-temp').value);
+      const workload = parseInt(document.getElementById('slider-workload').value, 10);
+      const radiation = parseFloat(document.getElementById('slider-radiation').value);
+
+      // Update numeric readouts
+      document.getElementById('val-pressure').textContent = pressure.toFixed(2);
+      document.getElementById('val-o2').textContent = o2;
+      document.getElementById('val-co2').textContent = co2;
+      document.getElementById('val-hr').textContent = hr;
+      document.getElementById('val-temp').textContent = temp.toFixed(1);
+      document.getElementById('val-workload').textContent = workload;
+      document.getElementById('val-radiation').textContent = radiation.toFixed(2);
+
+      // Estimated O2 hours remaining
+      const totalMins = Math.round((o2 / 100) * 370);
+      const hrs = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      document.getElementById('tag-o2').textContent = `${hrs}h ${mins}m REM`;
+
+      // Calculate Dynamic Conkin R-Value (DCS Supersaturation Risk)
+      const pressureFactor = 4.30 / Math.max(pressure, 2.5);
+      const exertionBonus = Math.max(0, (workload - 180) / 750) + Math.max(0, (hr - 80) / 380);
+      const rValue = parseFloat((1.05 * pressureFactor + exertionBonus).toFixed(2));
+
+      currentTelemetryState = { pressure, o2, co2, hr, temp, workload, radiation, rValue };
+      document.getElementById('r-value-display').textContent = rValue.toFixed(2);
+
+      // Update live JSON bus preview
+      document.getElementById('live-packet-preview').textContent = JSON.stringify({
+        psi: Number(pressure.toFixed(2)),
+        o2,
+        co2,
+        hr,
+        rad_msv_h: Number(radiation.toFixed(2)),
+        r_val: rValue
+      });
+
+      // Update N2 Bubble Safety Margin Bar
+      const marginPct = Math.max(5, Math.min(100, Math.round(100 - ((rValue - 1.0) / 1.1) * 100)));
+      document.getElementById('n2-margin-val').textContent = `${marginPct}%`;
+      const marginBar = document.getElementById('n2-margin-bar');
+      marginBar.style.width = `${marginPct}%`;
+
+      // Update Radiation Dose & Cabin-Exit Countdown Clock
+      const wholeSecs = Math.ceil(shelterSecondsRemaining);
+      const cdMins = Math.floor(wholeSecs / 60).toString().padStart(2, '0');
+      const cdSecs = (wholeSecs % 60).toString().padStart(2, '0');
+      const formattedCountdown = `${cdMins}:${cdSecs}`;
+      document.getElementById('shelter-countdown-clock').textContent = isOutsideCabin ? formattedCountdown : 'SHIELDED';
+      document.getElementById('eva-exposure-badge').textContent = isOutsideCabin
+        ? `Cabin-Exit Safe Window: ${formattedCountdown}`
+        : 'Inside Shielded Cabin';
+
+      const ratePill = document.getElementById('countdown-rate-pill');
+      if (!isOutsideCabin) {
+        ratePill.textContent = 'PAUSED';
+        ratePill.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyber-green/15 text-cyber-green';
+      } else if (radiation >= 10.0) {
+        ratePill.textContent = '1.0x // STORM LIMIT';
+        ratePill.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyber-red/25 text-cyber-red font-bold';
+      } else if (radiation >= 3.0) {
+        ratePill.textContent = '1.0x // REDUCED CAP';
+        ratePill.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyber-amber/25 text-cyber-amber font-bold';
+      } else {
+        ratePill.textContent = '1.0x REAL-TIME';
+        ratePill.className = 'text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyber-cyan/15 text-cyber-cyan';
+      }
+
+      document.getElementById('val-cum-dose').textContent = `${cumulativeRadiationMsv.toFixed(2)} mSv`;
+      const radBar = document.getElementById('rad-dose-bar');
+      const dosePct = Math.min(100, Math.round((cumulativeRadiationMsv / 25.0) * 100));
+      radBar.style.width = `${dosePct}%`;
+
+      // Reset card alert borders before evaluating
+      ['card-dcs-risk', 'card-pressure', 'card-o2', 'card-co2', 'card-hr', 'card-temp', 'card-workload', 'card-radiation'].forEach(id => {
+        document.getElementById(id).classList.remove('status-caution', 'status-critical');
+      });
+
+      let highestAlert = { key: 'nominal', target: null, mood: 'nominal', msg: '', loc: 'VISOR HUD' };
+
+      // Evaluate DCS R-Value
+      const dcsBadge = document.getElementById('dcs-badge');
+      const dcsAdvice = document.getElementById('dcs-advice-text');
+      const repressTime = document.getElementById('repress-time');
+
+      if (rValue >= 1.65) {
+        document.getElementById('card-dcs-risk').classList.add('status-critical');
+        dcsBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyber-red/25 text-cyber-red border border-cyber-red/50';
+        dcsBadge.textContent = 'CRITICAL DCS RISK (R ≥ 1.65)';
+        dcsAdvice.textContent = 'HIGH NITROGEN BUBBLE PROBABILITY! Halt strenuous work & initiate airlock return.';
+        repressTime.textContent = '45 min staged';
+        marginBar.className = 'h-full bg-cyber-red transition-all duration-300';
+      } else if (rValue >= 1.35) {
+        document.getElementById('card-dcs-risk').classList.add('status-caution');
+        dcsBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyber-amber/25 text-cyber-amber border border-cyber-amber/50';
+        dcsBadge.textContent = 'ELEVATED DCS RISK (R ≥ 1.35)';
+        dcsAdvice.textContent = 'Elevated tissue supersaturation. Reduce exertion & extend post-EVA O2 flush.';
+        repressTime.textContent = '25 min + O2';
+        marginBar.className = 'h-full bg-cyber-amber transition-all duration-300';
+      } else {
+        dcsBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyber-green/20 text-cyber-green border border-cyber-green/40';
+        dcsBadge.textContent = 'LOW RISK (R < 1.35)';
+        dcsAdvice.textContent = 'Pre-breathe nitrogen washout complete. Safe for 4.3 PSI suit operations.';
+        repressTime.textContent = '12 min std';
+        marginBar.className = 'h-full bg-cyber-cyan transition-all duration-300';
+      }
+
+      // Check Suit Pressure
+      if (pressure <= 3.50) {
+        document.getElementById('card-pressure').classList.add('status-critical');
+        document.getElementById('tag-pressure').textContent = 'RAPID LEAK!';
+        document.getElementById('tag-pressure').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-red/25 text-cyber-red font-bold';
+        highestAlert = {
+          key: 'pressure-crit',
+          target: 'card-pressure',
+          mood: 'critical',
+          msg: `HURRY! Suit pressure dropped to ${pressure.toFixed(2)} PSI! Severe DCS & hypoxia hazard—activate secondary O2 purge and get back to the airlock NOW!`,
+          loc: 'SUIT PRESSURE GAUGE'
+        };
+      } else if (pressure < 4.05) {
+        document.getElementById('card-pressure').classList.add('status-caution');
+        document.getElementById('tag-pressure').textContent = 'LOW PSI';
+        document.getElementById('tag-pressure').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-amber/25 text-cyber-amber';
+        highestAlert = {
+          key: 'pressure-warn',
+          target: 'card-pressure',
+          mood: 'caution',
+          msg: `Heads up! Suit pressure is drifting low (${pressure.toFixed(2)} PSI). Inspect wrist/waist seals and watch your R-value.`,
+          loc: 'SUIT PRESSURE GAUGE'
+        };
+      } else {
+        document.getElementById('tag-pressure').textContent = 'NOMINAL';
+        document.getElementById('tag-pressure').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan';
+      }
+
+      // Check Radiation Spike & Cabin-Exit Countdown Timer!
+      const radTag = document.getElementById('rad-status-tag');
+      const radAdvice = document.getElementById('rad-timer-advice');
+      const countdownClock = document.getElementById('shelter-countdown-clock');
+      const countdownBox = document.getElementById('shelter-countdown-box');
+
+      if (radiation >= 10.0 || (isOutsideCabin && shelterSecondsRemaining <= 180)) {
+        document.getElementById('card-radiation').classList.add('status-critical');
+        radTag.textContent = 'SOLAR PARTICLE STORM!';
+        radTag.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-red/25 text-cyber-red font-bold';
+        radAdvice.textContent = `CRITICAL RADIATION (${radiation.toFixed(1)} mSv/hr)! Safe window collapsing—HURRY BACK TO SHIELDED CABIN IMMEDIATELY!`;
+        countdownClock.className = 'text-2xl font-mono font-extrabold text-cyber-red tracking-wider animate-pulse';
+        countdownBox.className = 'bg-space-950/90 border border-cyber-red/70 rounded-xl px-3.5 py-2 text-right shrink-0';
+        radBar.className = 'h-full bg-cyber-red transition-all duration-300';
+
+        if (highestAlert.mood !== 'critical') {
+          highestAlert = {
+            key: 'rad-crit',
+            target: 'card-radiation',
+            mood: 'critical',
+            msg: `HURRY UP! Solar Radiation Spike at ${radiation.toFixed(1)} mSv/hr! You only have ${formattedCountdown} left outside the cabin—abort EVA and get behind hull shielding NOW!`,
+            loc: 'RADIATION & SHELTER TIMER'
+          };
+        }
+      } else if (radiation >= 3.0 || (isOutsideCabin && shelterSecondsRemaining <= 480)) {
+        document.getElementById('card-radiation').classList.add('status-caution');
+        radTag.textContent = 'ELEVATED FLUX';
+        radTag.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-amber/25 text-cyber-amber font-bold';
+        radAdvice.textContent = `Solar activity rising (${radiation.toFixed(1)} mSv/hr). Cabin-exit timer accelerated—prepare to wrap up external work.`;
+        countdownClock.className = 'text-2xl font-mono font-extrabold text-cyber-amber tracking-wider';
+        countdownBox.className = 'bg-space-950/90 border border-cyber-amber/50 rounded-xl px-3.5 py-2 text-right shrink-0';
+        radBar.className = 'h-full bg-cyber-amber transition-all duration-300';
+
+        if (highestAlert.mood === 'nominal') {
+          highestAlert = {
+            key: 'rad-warn',
+            target: 'card-radiation',
+            mood: 'reminder',
+            msg: `Radiation flux elevated (${radiation.toFixed(1)} mSv/hr)! Your safe cabin-exit timer is ticking down faster (${formattedCountdown} left). Start heading toward the airlock!`,
+            loc: 'RADIATION & SHELTER TIMER'
+          };
+        }
+      } else {
+        radTag.textContent = 'BACKGROUND GCR';
+        radTag.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan';
+        radAdvice.textContent = 'Outside shielded cabin: cumulative dose tracked against acute EVA shelter limit (25 mSv).';
+        countdownClock.className = 'text-2xl font-mono font-extrabold text-cyber-cyan tracking-wider';
+        countdownBox.className = 'bg-space-950/90 border border-cyber-cyan/30 rounded-xl px-3.5 py-2 text-right shrink-0';
+        radBar.className = 'h-full bg-cyber-cyan transition-all duration-300';
+      }
+
+      // Check O2 Reserve
+      if (o2 <= 20) {
+        document.getElementById('card-o2').classList.add('status-critical');
+        if (highestAlert.mood !== 'critical') {
+          highestAlert = {
+            key: 'o2-crit',
+            target: 'card-o2',
+            mood: 'critical',
+            msg: `OXYGEN RESERVE CRITICAL (${o2}%)! Switch to secondary oxygen pack and return to hatch NOW!`,
+            loc: 'PRIMARY O2 TANK'
+          };
+        }
+      } else if (o2 <= 40) {
+        document.getElementById('card-o2').classList.add('status-caution');
+        if (highestAlert.mood === 'nominal') {
+          highestAlert = {
+            key: 'o2-warn',
+            target: 'card-o2',
+            mood: 'caution',
+            msg: `Turnaround threshold! Primary O2 is at ${o2}%. Wrap up current task and begin translating back toward airlock.`,
+            loc: 'PRIMARY O2 TANK'
+          };
+        }
+      }
+
+      // Check CO2 Scrubber
+      if (co2 <= 35) {
+        document.getElementById('card-co2').classList.add('status-critical');
+        document.getElementById('tag-co2').textContent = 'SATURATED';
+        document.getElementById('tag-co2').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-red/25 text-cyber-red';
+        if (highestAlert.mood !== 'critical') {
+          highestAlert = {
+            key: 'co2-crit',
+            target: 'card-co2',
+            mood: 'critical',
+            msg: `CO2 Scrubber efficiency critical (${co2}%)! Risk of hypercapnia & confusion. Slow breathing and return to ship.`,
+            loc: 'CO2 SCRUBBER'
+          };
+        }
+      } else {
+        document.getElementById('tag-co2').textContent = 'CLEAN';
+        document.getElementById('tag-co2').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-green/15 text-cyber-green';
+      }
+
+      // Check Heart Rate & Workload
+      if (hr >= 155 || workload >= 480) {
+        document.getElementById('card-hr').classList.add('status-critical');
+        document.getElementById('card-workload').classList.add('status-critical');
+        document.getElementById('tag-hr').textContent = 'OVEREXERTION';
+        document.getElementById('tag-hr').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-red/25 text-cyber-red';
+        if (highestAlert.mood !== 'critical') {
+          highestAlert = {
+            key: 'exertion-crit',
+            target: 'card-dcs-risk',
+            mood: 'critical',
+            msg: `Whoa! Heart rate (${hr} BPM) & workload (${workload}W) are spiking your DCS R-value to ${rValue}! Pause physical work for 3 minutes to stabilize off-gassing.`,
+            loc: 'DCS RISK & BIOMETRICS'
+          };
+        }
+      } else if (hr >= 125 || workload >= 360) {
+        document.getElementById('card-hr').classList.add('status-caution');
+        document.getElementById('card-workload').classList.add('status-caution');
+        document.getElementById('tag-hr').textContent = 'ELEVATED';
+        document.getElementById('tag-hr').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-amber/25 text-cyber-amber';
+        if (highestAlert.mood === 'nominal') {
+          highestAlert = {
+            key: 'exertion-warn',
+            target: 'card-workload',
+            mood: 'caution',
+            msg: `Heavy exertion detected (${workload}W). High muscle strain increases nitrogen bubble formation risk—pace your movements!`,
+            loc: 'METABOLIC WORKLOAD'
+          };
+        }
+      } else {
+        document.getElementById('tag-hr').textContent = 'RESTING';
+        document.getElementById('tag-hr').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan';
+      }
+
+      window.currentAlert = highestAlert;
+
+      // Update Triage Correlation Banner
+      document.getElementById('telemetry-correlation-note').textContent =
+        `Live R-Value: ${rValue.toFixed(2)} | Suit PSI: ${pressure.toFixed(2)} | Rad Flux: ${radiation.toFixed(1)} mSv/h. Ship AI factors this into symptom triage.`;
+
+      // Teleport VEGA if the alert state changed!
+      if (highestAlert.key !== lastAlertKey) {
+        lastAlertKey = highestAlert.key;
+        if (highestAlert.key === 'nominal') {
+          const who = Crew.firstName();
+          teleportCap16(null, 'nominal', `All suit telemetry, radiation flux, and biometric vitals back inside nominal envelopes. Good job${who ? ', ' + who : ''}!`, 'VISOR HUD STANDBY', false);
+          ReportBus.send({ type: 'alert', key: 'nominal', mood: 'nominal' });
+        } else {
+          const who = Crew.firstName();
+          const bubble = who ? `${who}: ${highestAlert.msg}` : highestAlert.msg;
+          // When the ship PA is on it does the talking; the helmet voice stays quiet so two voices don't overlap.
+          teleportCap16(highestAlert.target, highestAlert.mood, bubble, highestAlert.loc, !ShipPA.enabled);
+          announceAlert(highestAlert);
+        }
+      }
+    }
+
+    // Preset Demo Scenarios
+    function applyScenario(type) {
+      if (type === 'nominal') {
+        isOutsideCabin = true;
+        shelterSecondsRemaining = 14 * 60 + 59;
+        activeBaseline = { pressure: 4.30, o2: 84, co2: 92, hr: 78, temp: 37.0, workload: 210, radiation: 0.20 };
+      } else if (type === 'radiation') {
+        isOutsideCabin = true;
+        shelterSecondsRemaining = 2 * 60 + 45; // Urgent 2m45s hurry-back timer!
+        activeBaseline = { pressure: 4.30, o2: 72, co2: 88, hr: 128, temp: 37.4, workload: 340, radiation: 18.5 };
+      } else if (type === 'exertion') {
+        activeBaseline = { pressure: 4.25, o2: 61, co2: 68, hr: 162, temp: 38.2, workload: 520, radiation: 0.35 };
+      } else if (type === 'microleak') {
+        activeBaseline = { pressure: 3.25, o2: 34, co2: 75, hr: 142, temp: 37.3, workload: 290, radiation: 0.25 };
+      }
+
+      document.getElementById('slider-pressure').value = activeBaseline.pressure;
+      document.getElementById('slider-o2').value = activeBaseline.o2;
+      document.getElementById('slider-co2').value = activeBaseline.co2;
+      document.getElementById('slider-hr').value = activeBaseline.hr;
+      document.getElementById('slider-temp').value = activeBaseline.temp;
+      document.getElementById('slider-workload').value = activeBaseline.workload;
+      document.getElementById('slider-radiation').value = activeBaseline.radiation;
+      updateTelemetry();
+    }
+
+    // Mission Elapsed Time Clock
+    let metSeconds = 2 * 3600 + 14 * 60 + 8;
+    setInterval(() => {
+      metSeconds++;
+      const h = Math.floor(metSeconds / 3600).toString().padStart(2, '0');
+      const m = Math.floor((metSeconds % 3600) / 60).toString().padStart(2, '0');
+      const s = (metSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('met-clock').textContent = `${h}:${m}:${s}`;
+    }, 1000);
+
+    function triggerScubaReminder() {
+      scubaCountdown = 45;
+      const o2Val = document.getElementById('slider-o2').value;
+      const psiVal = parseFloat(document.getElementById('slider-pressure').value).toFixed(2);
+      teleportCap16(
+        'card-o2',
+        'reminder',
+        `🤿 SCUBA PROTOCOL CHECK! Verify O2 tank pressure (${o2Val}%), suit seal (${psiVal} PSI), and wiggle fingers/shoulders to check for early N₂ joint stiffness!`,
+        'SCUBA SAFETY CHECK',
+        true
+      );
+    }
+
+    function verifyAllScubaChecks() {
+      document.getElementById('chk-o2').checked = true;
+      document.getElementById('chk-tether').checked = true;
+      document.getElementById('chk-joints').checked = true;
+      teleportCap16('card-scuba-checklist', 'nominal', 'All 3 Scuba-Protocol safety checks logged and synced to Ship Core AI!', 'SAFETY CHECKLIST', false);
+    }
+
+    function checkScubaStatus() {
+      const allChecked = document.getElementById('chk-o2').checked &&
+                         document.getElementById('chk-tether').checked &&
+                         document.getElementById('chk-joints').checked;
+      if (!allChecked) {
+        teleportCap16('card-scuba-checklist', 'caution', 'Unverified safety check detected! Confirm O2 valve, tether lock, and joint status before continuing EVA.', 'SAFETY CHECKLIST', false);
+      }
+    }
+
+    // =========================================================================
+    // 4. MODE B: POST-EVA SYMPTOM TRIAGE ENGINE & BODY MAP
+    // =========================================================================
+    const BODY_SYMPTOM_DATA = {
+      shoulder: {
+        label: 'SHOULDERS & ROTATOR JOINTS',
+        symptoms: [
+          { text: 'Deep, dull ache inside shoulder joint (unchanged by movement)', type: 'dcs_type1' },
+          { text: 'Superficial muscle soreness when lifting arms against suit bearing', type: 'suit_strain' }
+        ]
+      },
+      chest: {
+        label: 'CHEST & CARDIOPULMONARY',
+        symptoms: [
+          { text: 'Substernal burning pain, dry cough, or shortness of breath ("The Chokes")', type: 'dcs_type2' },
+          { text: 'Mild chest wall tightness from upper-torso harness pressure', type: 'suit_strain' }
+        ]
+      },
+      hands: {
+        label: 'ARMS, WRISTS & GLOVE FINGERTIPS',
+        symptoms: [
+          { text: 'Pins-and-needles tingling / numbness spreading up forearm', type: 'dcs_neuro' },
+          { text: 'Fingernail tenderness & skin chafing from pressurized glove resistance', type: 'suit_strain' }
+        ]
+      },
+      skin: {
+        label: 'SKIN & CUTANEOUS TISSUE',
+        symptoms: [
+          { text: 'Itchy, red/marbled skin mottling (Cutis Marmorata) on torso', type: 'dcs_skin' },
+          { text: 'Minor sweat rash or LCVG cooling tube pressure marks', type: 'suit_strain' }
+        ]
+      },
+      head: {
+        label: 'HEAD, VISION & NEUROLOGICAL',
+        symptoms: [
+          { text: 'Dizziness, visual tunnel/spots, or unusual post-EVA confusion', type: 'dcs_type2' },
+          { text: 'Mild sinus pressure or headset strap headache', type: 'suit_strain' }
+        ]
+      },
+      legs: {
+        label: 'KNEES & LOWER EXTREMITIES',
+        symptoms: [
+          { text: 'Deep boring knee pain persisting at rest after suit doffing', type: 'dcs_type1' },
+          { text: 'Calf/quad fatigue from foot-restraint stabilization', type: 'suit_strain' }
+        ]
+      }
+    };
+
+    function selectBodyZone(zoneKey) {
+      // Highlight SVG zone
+      document.querySelectorAll('.body-zone').forEach(el => el.classList.remove('selected'));
+      const primaryEl = document.getElementById(`zone-${zoneKey}`);
+      const secondaryEl = document.getElementById(`zone-${zoneKey}-r`);
+      if (primaryEl) primaryEl.classList.add('selected');
+      if (secondaryEl) secondaryEl.classList.add('selected');
+
+      const data = BODY_SYMPTOM_DATA[zoneKey];
+      document.getElementById('selected-zone-label').textContent = data.label;
+
+      const btnContainer = document.getElementById('zone-symptom-buttons');
+      btnContainer.innerHTML = '';
+      data.symptoms.forEach(sym => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-2 rounded-lg bg-space-900 hover:bg-space-800 border border-white/10 hover:border-cyber-pink/50 text-[11px] font-mono text-slate-200 transition flex items-start gap-2';
+        btn.innerHTML = `<span class="text-cyber-pink font-bold mt-0.5">►</span><span>${sym.text}</span>`;
+        btn.onclick = () => runTriageDiagnosis(sym.text, sym.type);
+        btnContainer.appendChild(btn);
+      });
+    }
+
+    function appendChatMessage(sender, text, severity = 'info') {
+      const feed = document.getElementById('triage-chat-feed');
+      const div = document.createElement('div');
+      if (sender === 'user') {
+        div.className = 'bg-cyber-pink/15 border border-cyber-pink/40 rounded-xl p-2.5 text-white ml-6';
+        div.innerHTML = `<div class="text-[10px] text-cyber-pink font-bold mb-0.5">ASTRONAUT LOG:</div>${text}`;
+      } else {
+        let borderClass = 'border-cyber-cyan/30';
+        let titleColor = 'text-cyber-cyan';
+        if (severity === 'critical') {
+          borderClass = 'border-cyber-red/60 bg-cyber-red/10';
+          titleColor = 'text-cyber-red';
+        } else if (severity === 'caution') {
+          borderClass = 'border-cyber-amber/60 bg-cyber-amber/10';
+          titleColor = 'text-cyber-amber';
+        } else {
+          borderClass = 'border-cyber-green/40 bg-space-950/90';
+          titleColor = 'text-cyber-green';
+        }
+        div.className = `border ${borderClass} rounded-xl p-3 text-slate-200 mr-3`;
+        div.innerHTML = `<div class="text-[10px] ${titleColor} font-bold mb-1">VEGA TRIAGE ANALYSIS:</div>${text}`;
+      }
+      feed.appendChild(div);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function runTriageDiagnosis(symptomText, forcedType = null) {
+      appendChatMessage('user', symptomText);
+
+      const lower = symptomText.toLowerCase();
+      const rVal = currentTelemetryState.rValue;
+      const highRiskTelemetry = rVal >= 1.35 || currentTelemetryState.pressure < 4.0;
+
+      let diagnosisType = forcedType;
+      if (!diagnosisType) {
+        if (lower.includes('chest') || lower.includes('breath') || lower.includes('cough') || lower.includes('dizzy') || lower.includes('vision')) {
+          diagnosisType = 'dcs_type2';
+        } else if (lower.includes('tingl') || lower.includes('numb') || lower.includes('pins')) {
+          diagnosisType = 'dcs_neuro';
+        } else if (lower.includes('mottl') || lower.includes('itch') || lower.includes('rash') || lower.includes('marbl')) {
+          diagnosisType = 'dcs_skin';
+        } else if (lower.includes('deep') || lower.includes('ache') || lower.includes('shoulder') || lower.includes('knee') || lower.includes('joint')) {
+          diagnosisType = 'dcs_type1';
+        } else {
+          diagnosisType = 'suit_strain';
+        }
+      }
+
+      const pill = document.getElementById('triage-severity-pill');
+
+      if (diagnosisType === 'dcs_type2' || diagnosisType === 'dcs_neuro') {
+        pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-red/25 text-cyber-red font-bold';
+        pill.textContent = 'TYPE II DCS // EMERGENCY';
+        const reply = `🚨 PROBABLE TYPE II (NEURO/CARDIOPULMONARY) DCS! Paired with your EVA R-Value (${rVal.toFixed(2)}), these symptoms indicate intravascular nitrogen bubbles.\n\nACTION PROTOCOL:\n1. Immediately don 100% O2 mask at maximum flow.\n2. Keep astronaut supine (lying flat).\n3. Prepare Airlock Hyperbaric Treatment Table 6 re-pressurization & alert Flight Surgeon.`;
+        appendChatMessage('ai', reply.replace(/\n/g, '<br>'), 'critical');
+        teleportCap16('card-triage-chat', 'critical', 'EMERGENCY! Symptoms match Type II Decompression Sickness! Initiate 100% O2 breathing & airlock hyperbaric protocol immediately!', 'SHIP TRIAGE LOG', true);
+      } else if (diagnosisType === 'dcs_type1' || diagnosisType === 'dcs_skin' || (diagnosisType === 'suit_strain' && highRiskTelemetry && lower.includes('shoulder'))) {
+        pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-amber/25 text-cyber-amber font-bold';
+        pill.textContent = 'TYPE I DCS // BEND SUSPECTED';
+        const reply = `⚠️ PROBABLE TYPE I DCS ("THE BENDS"). Deep joint/cutaneous symptoms + EVA R-Value of ${rVal.toFixed(2)} suggest localized nitrogen bubble nucleation rather than simple muscle fatigue.\n\nACTION PROTOCOL:\n1. Administer 100% surface-level O2 for 60 minutes.\n2. Hydrate with 1,000 mL electrolyte solution.\n3. Re-evaluate every 15 mins; escalate to hyperbaric repressurization if ache persists.`;
+        appendChatMessage('ai', reply.replace(/\n/g, '<br>'), 'caution');
+        teleportCap16('card-triage-chat', 'caution', `Suspected Type I DCS ("The Bends") correlated with R-Value ${rVal.toFixed(2)}! Start 100% O2 flush and monitor joint pain.`, 'SHIP TRIAGE LOG', true);
+      } else {
+        pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-green/20 text-cyber-green font-bold';
+        pill.textContent = 'ROUTINE SUIT STRAIN';
+        const reply = `✅ LIKELY MECHANICAL SUIT RESISTANCE / FATIGUE. Your EVA telemetry remained stable (R-Value ${rVal.toFixed(2)}), and symptoms match normal pressurized glove/bearing resistance.\n\nRECOVERY PROTOCOL:\n1. Perform gentle range-of-motion shoulder & finger stretches.\n2. Hydrate (500 mL electrolytes) & log follow-up check in 2 hours.`;
+        appendChatMessage('ai', reply.replace(/\n/g, '<br>'), 'nominal');
+        teleportCap16('card-triage-chat', 'reminder', 'Good news! Cross-check with your EVA telemetry shows normal suit resistance fatigue—not DCS. Hydrate and stretch!', 'SHIP TRIAGE LOG', false);
+      }
+    }
+
+    function handleCustomSymptomSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('triage-user-input');
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = '';
+      runTriageDiagnosis(val);
+    }
+
+    function resetTriage() {
+      document.querySelectorAll('.body-zone').forEach(el => el.classList.remove('selected'));
+      document.getElementById('triage-severity-pill').className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-cyber-cyan/15 text-cyber-cyan';
+      document.getElementById('triage-severity-pill').textContent = 'READY FOR INPUT';
+      document.getElementById('triage-chat-feed').innerHTML = `
+        <div class="bg-space-950/90 border border-cyber-cyan/25 rounded-xl p-3 text-slate-200">
+          <div class="text-[10px] text-cyber-cyan font-bold mb-1">VEGA [SHIP SERVER EDGE AI]:</div>
+          Triage log cleared. Tap an anatomical zone on the astronaut silhouette or enter symptoms below.
+        </div>`;
+      selectBodyZone('shoulder');
+    }
+
+    // =========================================================================
+    // 5. VIEW MODE SWITCHER (DUAL LINK / EVA HUD / SHIP TRIAGE)
+    // =========================================================================
+    function setViewMode(mode) {
+      const panelHud = document.getElementById('panel-hud');
+      const panelTriage = document.getElementById('panel-triage');
+      const tabs = ['split', 'hud', 'triage'];
+
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === mode) {
+          btn.className = 'mode-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition bg-cyber-cyan text-space-950';
+        } else {
+          btn.className = 'mode-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition text-slate-300 hover:text-white';
+        }
+      });
+
+      if (mode === 'split') {
+        panelHud.classList.remove('hidden', 'lg:col-span-12');
+        panelHud.classList.add('lg:col-span-7');
+        panelTriage.classList.remove('hidden', 'lg:col-span-12');
+        panelTriage.classList.add('lg:col-span-5');
+      } else if (mode === 'hud') {
+        panelHud.classList.remove('hidden', 'lg:col-span-7');
+        panelHud.classList.add('lg:col-span-12');
+        panelTriage.classList.add('hidden');
+      } else if (mode === 'triage') {
+        panelTriage.classList.remove('hidden', 'lg:col-span-5');
+        panelTriage.classList.add('lg:col-span-12');
+        panelHud.classList.add('hidden');
+      }
+
+      // Dock VEGA cleanly on view switch
+      companionWrapper.style.top = 'auto';
+      companionWrapper.style.left = 'auto';
+      companionWrapper.style.bottom = '20px';
+      companionWrapper.style.right = '20px';
+    }
+
+    // =========================================================================
+    // INITIALIZE ON LOAD
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCap16('nominal', false);
+      selectBodyZone('shoulder');
+      updateTelemetry();
+    });
+  </script>
+
+  <script>
+    // =========================================================================
+    // 6. CREW PROFILE, SHIP-WIDE PA & REPORT-SCREEN HEARTBEAT (AstraSight)
+    // =========================================================================
+    let lastPaAt = 0;
+    function announceAlert(alert) {
+      lastPaAt = Date.now();
+      ShipPA.announce({ mood: alert.mood, msg: alert.msg, loc: alert.loc });
+      ReportBus.send({ type: 'alert', key: alert.key, mood: alert.mood, msg: alert.msg, loc: alert.loc });
+    }
+
+    // A critical alert that is still active is repeated on the PA every 45 s, with fresh numbers.
+    setInterval(() => {
+      const a = window.currentAlert;
+      if (a && a.mood === 'critical' && Date.now() - lastPaAt > 45000) announceAlert(a);
+    }, 1000);
+
+    (function initCrewPa() {
+      const rankSel = document.getElementById('crew-rank');
+      const nameIn = document.getElementById('crew-name');
+      const who = document.getElementById('pa-who');
+      Crew.RANKS.forEach((r) => rankSel.insertAdjacentHTML('beforeend', `<option>${r}</option>`));
+
+      function fill() {
+        const p = Crew.get();
+        if (document.activeElement !== nameIn) nameIn.value = p.name;
+        rankSel.value = p.rank;
+        who.textContent = Crew.callSign()
+          ? `Announcing as: ${Crew.callSign()}`
+          : 'No name set. Announcements will say "EVA crew member".';
+      }
+      fill();
+      Crew.onChange(fill);
+      nameIn.addEventListener('input', () => Crew.set({ name: nameIn.value.trim() }));
+      rankSel.addEventListener('change', () => Crew.set({ rank: rankSel.value }));
+      document.getElementById('crew-form').addEventListener('submit', (e) => { e.preventDefault(); nameIn.blur(); });
+
+      function paButton() {
+        document.getElementById('pa-label').textContent = ShipPA.enabled ? 'SHIP PA: ON' : 'SHIP PA: OFF (LOG ONLY)';
+        document.getElementById('pa-dot').className = 'w-2 h-2 rounded-full ' + (ShipPA.enabled ? 'bg-cyber-green' : 'bg-slate-500');
+      }
+      paButton();
+      document.getElementById('pa-toggle').addEventListener('click', () => { ShipPA.setEnabled(!ShipPA.enabled); paButton(); });
+      document.getElementById('pa-test').addEventListener('click', () => {
+        ShipPA.announce({ mood: 'caution', msg: 'This is a test of the ship PA. No action needed.', loc: 'PA TEST' });
+      });
+
+      const list = document.getElementById('pa-log');
+      const COLOR = {
+        critical: 'text-cyber-red border-cyber-red/60',
+        caution: 'text-cyber-amber border-cyber-amber/60',
+        reminder: 'text-cyber-amber border-cyber-amber/60',
+      };
+      const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      ShipPA.onLog((log) => {
+        document.getElementById('pa-count').textContent = `${log.length} announcement${log.length === 1 ? '' : 's'}`;
+        list.innerHTML = log.map((e) => `
+          <li class="border-l-2 pl-2 py-0.5 ${COLOR[e.mood] || 'text-cyber-cyan border-cyber-cyan/60'}">
+            <span class="text-slate-500">${e.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span class="font-bold">${esc(e.mood.toUpperCase())}</span>
+            <span class="text-slate-300">${esc(e.text)}</span>
+          </li>`).join('');
+      });
+    })();
+
+    // Tell other tabs (the home-page VEGA pop-up) that the report screen is open.
+    ReportBus.send({ type: 'heartbeat' });
+    setInterval(() => ReportBus.send({ type: 'heartbeat' }), 1000);
+    ReportBus.on((m) => { if (m && m.type === 'ping') ReportBus.send({ type: 'heartbeat' }); });
+    window.addEventListener('pagehide', () => ReportBus.send({ type: 'bye' }));
+
+    // report.html?scenario=radiation|exertion|microleak opens straight into that hazard (used by the home pop-up).
+    window.addEventListener('DOMContentLoaded', () => {
+      const sc = new URLSearchParams(location.search).get('scenario');
+      if (['radiation', 'exertion', 'microleak'].includes(sc)) setTimeout(() => applyScenario(sc), 700);
+    });
+  </script>
+</body>
+</html>

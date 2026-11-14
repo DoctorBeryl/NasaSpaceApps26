@@ -28,6 +28,9 @@ Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome
 | `interface.html` + `js/hud.js` | Interactive lens HUD: simulated vitals, dockable side panel, voice and typed commands, alerts |
 | `tools.html` + `js/tools.js` | One demo stage per tool: procedural signal canvas, swapped for `media/<id>.mp4` if that file exists |
 | `vega.html` + `js/vega.js` | VEGA's rule-based intent parser (`VEGA.parse(text) → {intent, slots, confidence}`) and speech in/out |
+| `report.html` | Report screen: EVA suit telemetry, radiation shelter timer, DCS risk, post-EVA triage, VEGA as a 16-bit pixel companion, crew profile and ship-wide PA log. Imported from the team's Gemini prototype; it uses the Tailwind CDN, unlike the rest of the site |
+| `js/crew.js` | `Crew` (rank and name for alerts; uses the signed-in name if `auth.js` is loaded), `ShipPA.announce()` (chime plus crew-wide spoken alert via `VEGA.speak`), `ReportBus` (report-screen heartbeat across tabs) |
+| `js/companion.js` + `css/companion.css` | Home-page VEGA pop-up: greets by name and pops up with simulated hazards, but only while `report.html` isn't open in another tab |
 | `js/data.js` | **Single source of truth** for the tools: `TOOLS[]` (id, unit, base, jitter, warn thresholds, sensor, steps, voice cmd, wave type) and `ICONS` |
 | `js/common.js` | Shared nav and footer (`NAV_LINKS`), starfield, `.reveal` scroll-in, `drawSpark()` |
 | `css/styles.css` | Design tokens in `:root` (dark space theme: cyan, violet, magenta, plus ok/warn/crit) and all components |

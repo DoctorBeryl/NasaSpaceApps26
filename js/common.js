@@ -15,6 +15,7 @@ const NAV_LINKS = [
   ["interface.html", "Interface"],
   ["tools.html", "Diagnostics"],
   ["vega.html", "VEGA AI"],
+  ["report.html", "Report"],
 ];
 
 function renderChrome() {
