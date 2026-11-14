@@ -7,6 +7,11 @@
 *secret*
 *credentials*.json
 config.local.js
+*firebase-adminsdk*.json
+*service-account*.json
+
+# --- Biometric templates (face sign-in, server/auth.js) ---
+server/data/
 
 # --- Personal Claude Code context (stays on your machine) ---
 CLAUDE.local.md

@@ -5,6 +5,8 @@
      The API key stays here (read from .env), never in the browser.
    - POST /api/chat { messages, context } -> { reply } from a local Ollama model
      The system prompt is fixed here, so the page can't replace it.
+   - /api/ai/*  VEGA on Qwen 2.5 via local Ollama (server/ai.js,
+     contract in docs/AI-BACKEND.md)
    Run: node server.js
    ========================================================== */
 const http = require("http");
@@ -21,12 +23,15 @@ try {
   }
 } catch { /* no .env: TTS falls back to the browser voice */ }
 
+const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
+const auth = require("./server/auth"); // face sign-in + Firebase custom tokens (docs/AUTH.md)
+
 const KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
 const MODEL = process.env.ELEVENLABS_MODEL_ID || "eleven_flash_v2_5";
 const PORT = Number(process.env.PORT) || 8000;
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b"; // same default as server/ollama.js
 
 /* VEGA's standing instructions. Sent as the system message on every request and
    never taken from the browser, so later prompts can't swap out the role. */
@@ -170,7 +175,7 @@ function serveStatic(req, res) {
   if (p.endsWith("/")) p += "index.html";
   const file = path.normalize(path.join(ROOT, p));
   const base = path.basename(file);
-  if (!file.startsWith(ROOT + path.sep) || base.startsWith(".") || base === "server.js") return send(res, 404, "Not found");
+  if (!file.startsWith(ROOT + path.sep) || base.startsWith(".") || base === "server.js" || file.startsWith(path.join(ROOT, "server") + path.sep)) return send(res, 404, "Not found");
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, "Not found");
     res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream" });
@@ -180,6 +185,8 @@ function serveStatic(req, res) {
 
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
+  if (ai.handle(req, res)) return;
+  if (auth.handle(req, res)) return;
   if (url === "/api/tts" || url === "/api/chat") {
     // Let pages served by another local static server (npx serve, Live Server) use these proxies.
     // Localhost origins only, so other websites can't spend the ElevenLabs key or the local model.
@@ -207,6 +214,8 @@ http.createServer((req, res) => {
   process.exit(1);
 }).listen(PORT, () => {
   console.log(`AstraSight running at http://localhost:${PORT}`);
+  console.log(auth.describe());
+  console.log(`VEGA AI: ${process.env.OLLAMA_MODEL || "qwen2.5:3b"} via Ollama (GET /api/ai/status to check)`);
   console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL})` : "ELEVENLABS_API_KEY not set: using browser voice");
   ollamaUp().then((up) => console.log(up
     ? `Ollama chat enabled (model ${OLLAMA_MODEL} at ${OLLAMA_URL})`

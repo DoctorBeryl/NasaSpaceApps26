@@ -20,6 +20,10 @@ cp .env.example .env     # then put your ELEVENLABS_API_KEY in .env
 node server.js           # http://localhost:8000
 ```
 
+VEGA's AI (onboarding questionnaire, chat, critical-stats brief) runs on **Qwen 2.5 through a local [Ollama](https://ollama.com)**. Install Ollama and run `ollama pull qwen2.5:3b` before starting the server. See [docs/AI-BACKEND.md](docs/AI-BACKEND.md) for the API.
+
+**Crew sign-in** is by face, at `login.html`. New crew enter a name and do a ten-second scan; returning crew just look at the camera. Face recognition runs in the browser (face-api.js), and only 128-number face templates reach the server. Sign-in works with no setup in local mode. Add the `FIREBASE_*` values in `.env` to get real Firebase Auth sessions and Firestore profiles. See [docs/AUTH.md](docs/AUTH.md).
+
 To start Ollama (for VEGA's free-form answers) and the server together, run `npm run dev` (or `node dev.js`) instead. It uses Ollama if it's already running, otherwise starts `ollama serve`, prefixes each process's output, and stops both on Ctrl+C.
 
 The API key is only read by `server.js` and is never sent to the browser. `.env` is git-ignored. Without a key, or with a plain static server (`npx serve .`), VEGA falls back to the browser's built-in voice. Voice input needs a secure origin, so use localhost instead of opening the files directly.
@@ -51,6 +55,7 @@ js/alerts.js     reading sliders, VEGA warning popups, cross-tab sync
 js/hud.js        interface page controller
 js/tools.js      diagnostics demo stage
 media/           put tool demo videos here (see media/README.md)
+server/          VEGA AI backend: Ollama client, onboarding, chat and brief routes, persona.md
 backups/         earlier versions of the site, runnable as-is
 ```
 

@@ -75,3 +75,12 @@ Missing, roughly in order of impact for judging:
 6. **Environment selector:** ISS / Lunar base / Mars transit / Mars base. Change thresholds, dose rate, gravity, and comm delay to match.
 7. **Explicit RIDGE mapping** on the site, so judges see we used the NASA resources.
 8. Cite the NASA and CSA sources on the site (an "About the science" section).
+
+## Extension idea: smart handrails
+
+Full note: [docs/research/smart-handrails.md](research/smart-handrails.md). Sensors in the spacecraft's support bars collect short, passive health samples (grip force, PPG, two-hand ECG, skin conductance) at every touch, and stream them to the wearer's AstraSight HUD.
+
+- ✅ NASA's closest equivalent to "phenotyping" is **Spaceflight Standard Measures** (a core dataset and baseline from all crew; 9 measures, [NASA](https://www.nasa.gov/humans-in-space/spaceflight-standard-measures-characterizing-how-humans-adapt-in-space)) plus **CIPHER** (14 studies, up to 30 astronauts, whole-body, [NASA](https://www.nasa.gov/reference/about-cipher)). Almost all of it is episodic; actigraphy is the only continuous measure.
+- ✅ Handgrip and pinch force declined during long ISS increments and didn't recover in flight (2 crew; Puglia et al. 2018).
+- ✅ Steering-wheel two-hand ECG (Lead I) gave usable signal only 42–48% of the time while driving (Warnecke et al., *Sensors* 2022), so rail ECG is opportunistic.
+- ✅ Microbes persist on ISS handrails; DLR's *Touching Surfaces* experiment tested antimicrobial copper alloys.
