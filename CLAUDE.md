@@ -81,6 +81,7 @@ These are committed, so every collaborator's Claude Code loads them automaticall
 | `space-health-research` | Any health or medical content: which indicators, normal ranges, NASA hazards and risks, thresholds for flight-surgeon escalation, countermeasures. Cite sources. |
 | `frontend-design` | New pages, or a visual redesign of an existing one (imported from `anthropics/skills`, Apache-2.0) |
 | `webapp-testing` | Driving the site in headless Chromium to verify behavior and take screenshots (imported from `anthropics/skills`, Apache-2.0). Needs `pip install playwright && playwright install chromium`. |
+| `git-sync` | Runs the Git sync protocol below on its own: fetch, commit your own files, `pull --no-rebase`, resolve conflicts as a union, verify, push. Use it at session start, after each finished piece of work, and at session end |
 
 Save screenshots and test output to `.screenshots/` or `.tmp/`. Both are gitignored.
 
@@ -97,6 +98,8 @@ Everything committed here is world-readable forever, git history included. Never
 Personal notes and local settings go in **gitignored** files: `CLAUDE.local.md` (your private instructions to Claude) and `.claude/settings.local.json`. Before every commit, check `git diff --staged` for the items above. If a secret was ever committed, tell the owner: it must be revoked, because deleting it in a later commit doesn't remove it from history.
 
 ## Git sync protocol (many instances, many devices)
+
+The `git-sync` skill (`.claude/skills/git-sync/SKILL.md`) runs this protocol without stopping to ask: at session start, after each finished piece of work, and before ending a session. The team has given standing approval for it to commit your own files and push to `main`.
 
 Several Claude instances work on this repo at once, on different machines and sometimes **in the same folder on one machine**. The goal of every pull and push: **keep every feature from every instance working together. Never silently drop someone's work.**
 
