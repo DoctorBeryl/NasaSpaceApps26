@@ -33,6 +33,12 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Open / next:** If the team approves, add a `grip` tool to `TOOLS`, VEGA aliases, a simulated "rail session" on the HUD, and a tools-page stage. Verify the ⚠️ items (Lefèvre 2026 numbers, EDA and bioimpedance evidence) before the pitch. The escalation thresholds (15% for 14 days) are our proposal, not NASA's.
 **Gotchas:** nasa.gov doesn't use the phrase "deep phenotyping"; say "Standard Measures / CIPHER" to judges.
 
+## 2026-11-14: DoctorBeryl (+ Claude): ElevenLabs voice works from any local static server
+**Changed:** `js/vega.js` probes `/api/tts` on its own origin, then falls back to `http://localhost:8000/api/tts`, and logs a console warning when it ends up on the browser voice. `server.js` sends CORS headers on `/api/tts` for localhost origins only, answers preflight, and prints a clear message on `EADDRINUSE`. `CLAUDE.md` now says to run `node server.js`.
+**Decisions:** CORS is restricted to localhost origins so other sites can't spend the ElevenLabs key.
+**Open / next:** None from this change.
+**Gotchas:** If port 8000 is busy, set `PORT` (PowerShell: `$env:PORT=8001; node server.js`). The cross-origin fallback only targets port 8000.
+
 ## 2026-11-14: Alex (+ Claude): VEGA AI backend on Qwen 2.5 (Ollama)
 **Changed:** Added `server/` (`ollama.js` client, `registry.js` loads `js/data.js` in a sandbox, `onboarding.js` questionnaire and tailoring, `ai.js` routes, `persona.md`), mounted in `server.js` under `/api/ai/*`. Added `OLLAMA_*` to `.env.example`, a README note, and the API contract in `docs/AI-BACKEND.md`. `server.js` no longer serves `server/` as static files.
 **Decisions:** Backend only. Login (Firebase plus face recognition), the tutorial, the questionnaire UI, the chat sidebar, and the critical-stats screen are for other agents and code against `docs/AI-BACKEND.md`. The backend is stateless: the client stores the profile and sends it with each call. The default model is `qwen2.5:3b` so it runs on laptops; set `OLLAMA_MODEL=qwen2.5:7b` for better answers. The questionnaire is a fixed bank of 11 questions (it works without the model); Qwen extracts fields from free text and may ask one follow-up. Zones and escalation are computed in code from `js/data.js`, never by the model. Personal caution lines can move at most halfway toward the danger line and are marked `proposed` (our proposal, not a NASA rule ⚠️).

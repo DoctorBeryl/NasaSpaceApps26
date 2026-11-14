@@ -28,9 +28,11 @@ The frontend has no build step: plain HTML, CSS, and vanilla JS loaded with `<sc
 ```sh
 cp .env.example .env      # add keys locally; .env is gitignored, never commit it
 ollama pull qwen2.5:3b    # for VEGA's AI routes (see docs/AI-BACKEND.md)
-node server.js            # http://localhost:8000: static site + /api/*
+node server.js            # Node 18+, http://localhost:8000: static site + /api/*
 # frontend only, no AI or TTS:  python -m http.server 8000
 ```
+
+`server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`, key from the gitignored `.env`; copy `.env.example`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
 
 Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome or Edge. Typed commands work everywhere. Without the server or keys, VEGA falls back to the browser's built-in voice.
 
