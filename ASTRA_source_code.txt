@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#060b14" />
+  <title>A.S.T.R.A. // EVA-MED HUD · Pixel UI + IVA Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            space: '#060B14', panel: '#0B1422', line: '#1B3043', cyan: '#00F0FF', pink: '#FF2A85', amber: '#FFB800', alert: '#FF2A4B'
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'], pixel: ['Press Start 2P', 'monospace']
+          },
+          boxShadow: {
+            glow: '0 0 18px rgba(0,240,255,.13)',
+            danger: '0 0 22px rgba(255,42,75,.17)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: dark; --bg:#060b14; --panel:#0b1422; --line:#1b3043; --cyan:#00f0ff; --pink:#ff2a85; --amber:#ffb800; --red:#ff2a4b; }
+    * { box-sizing:border-box; }
+    body { background: radial-gradient(ellipse at 50% -20%, #10263a 0%, #060b14 48%, #04070d 100%); color:#d8e8f4; min-height:100vh; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; opacity:.032; background:repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,.45) 4px); mix-blend-mode:screen; }
+    body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:49; opacity:.025; background-image:radial-gradient(rgba(0,240,255,.4) .6px, transparent .6px); background-size:5px 5px; }
+    .panel { background:linear-gradient(145deg, rgba(13,25,41,.96), rgba(7,15,27,.97)); border:1px solid rgba(63,103,130,.34); box-shadow:0 12px 36px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.025); }
+    .panel-head { border-bottom:1px solid rgba(63,103,130,.25); }
+    .eyebrow { font:600 10px 'JetBrains Mono',monospace; letter-spacing:.17em; text-transform:uppercase; color:#7193aa; }
+    .mono { font-family:'JetBrains Mono',monospace; }
+    .pixel { font-family:'Press Start 2P',monospace; }
+    .neon-text { text-shadow:0 0 12px rgba(0,240,255,.42); }
+    .pink-text { text-shadow:0 0 12px rgba(255,42,133,.42); }
+    .btn { border:1px solid rgba(67,105,133,.55); background:rgba(13,29,45,.8); color:#a9c5d6; transition:.18s ease; }
+    .btn:hover { border-color:rgba(0,240,255,.65); color:#eaffff; box-shadow:0 0 15px rgba(0,240,255,.11); }
+    .btn.active { color:#001217; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    .btn.warn { border-color:rgba(255,184,0,.48); color:#ffd46a; }
+    .btn.danger { border-color:rgba(255,42,75,.6); color:#ff8094; }
+    .metric { background:linear-gradient(135deg,rgba(11,25,39,.92),rgba(7,16,28,.95)); border:1px solid rgba(48,88,116,.30); min-height:106px; }
+    .metric.alerting { border-color:rgba(255,42,75,.75); box-shadow:0 0 18px rgba(255,42,75,.12), inset 0 0 22px rgba(255,42,75,.04); }
+    .metric .value { font:600 clamp(21px,2.35vw,29px) 'JetBrains Mono',monospace; letter-spacing:-.06em; }
+    input[type=range] { accent-color:var(--cyan); width:100%; cursor:pointer; }
+    .track { height:7px; background:#15283a; border-radius:99px; overflow:hidden; }
+    .fill { height:100%; border-radius:99px; transition:width .35s ease; }
+    .chip { border:1px solid rgba(70,112,140,.4); background:rgba(10,22,36,.8); }
+    .dot { width:7px;height:7px;border-radius:50%;display:inline-block;box-shadow:0 0 10px currentColor; }
+    .hidden-view { display:none !important; }
+    .slider-row { display:grid; grid-template-columns: minmax(84px,1fr) minmax(110px,2fr) 54px; gap:12px; align-items:center; }
+    .sensor-card { min-height:106px; display:flex; flex-direction:column; }
+    .sensor-tune { margin-top:auto; padding-top:10px; border-top:1px solid rgba(63,103,130,.22); }
+    .sensor-tune label { font:600 8px 'JetBrains Mono',monospace; letter-spacing:.1em; color:#66879c; }
+    .sensor-tune output { font:600 9px 'JetBrains Mono',monospace; color:var(--cyan); }
+    .sensor-tune input[type=range] { margin-top:6px; height:13px; }
+    .zone { cursor:pointer; transition:fill .12s,stroke .12s,filter .12s; fill:rgba(23,54,75,.82); stroke:#39b8c8; stroke-width:1.25; }
+    .zone:hover,.zone.selected { fill:rgba(0,190,208,.62); stroke:#00f0ff; filter:drop-shadow(0 0 4px rgba(0,240,255,.48)); }
+    .zone-limb { cursor:pointer; fill:none; stroke:rgba(42,111,139,.92); stroke-width:13; stroke-linecap:round; stroke-linejoin:round; transition:stroke .12s,filter .12s; }
+    .zone-limb:hover,.zone-limb.selected { stroke:#00c5d3; filter:drop-shadow(0 0 4px rgba(0,240,255,.5)); }
+    .zone-label { fill:#a7dce7; font:7px 'JetBrains Mono',monospace; pointer-events:none; text-anchor:middle; }
+    #bodyMap { width:100%; max-width:270px; }
+    #bodyMap svg { width:100%; height:auto; display:block; }
+    .body-base { fill:#10283a; stroke:#426e83; stroke-width:1.5; }
+    .body-guide { stroke:#244b62; stroke-width:1; fill:none; stroke-dasharray:2 3; pointer-events:none; }
+    .body-orientation { border:1px solid rgba(63,103,130,.45); border-radius:7px; padding:5px 9px; font:9px 'JetBrains Mono',monospace; color:#83a7bb; background:#091624; }
+    .body-orientation.active { color:#001217; border-color:var(--cyan); background:var(--cyan); }
+    .pain-control { border:1px solid rgba(63,103,130,.3); background:#091624; border-radius:8px; padding:9px 10px; }
+    .zone-btn { border:1px solid rgba(63,103,130,.35); background:#0a1827; border-radius:8px; padding:9px 10px; color:#a6c2d4; text-align:left; font-size:11px; }
+    .zone-btn.selected { border-color:var(--cyan); color:#eaffff; background:rgba(0,240,255,.08); }
+    .symptom-btn { border:1px solid rgba(68,111,138,.4); border-radius:7px; padding:7px 9px; font-size:10px; color:#aec7d6; background:#0a1725; text-align:left; }
+    .symptom-btn.selected { border-color:var(--pink); color:#ffd5e5; background:rgba(255,42,133,.1); }
+    .symptom-chip { border:1px solid rgba(255,42,133,.28); background:rgba(255,42,133,.09); color:#ffd5e5; border-radius:6px; padding:5px 7px; font:8px 'JetBrains Mono',monospace; }
+    .companion { position:fixed; z-index:80; width:min(316px,calc(100vw - 16px)); pointer-events:none; transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1); filter:drop-shadow(0 7px 14px rgba(0,0,0,.42)); opacity:.94; }
+    .companion-layout { display:flex; align-items:flex-end; gap:7px; }
+    .companion-card { flex:1; min-width:0; background:rgba(5,10,20,.96); border:1px solid rgba(255,42,133,.46); box-shadow:0 0 14px rgba(255,42,133,.08); border-radius:11px; padding:7px 8px; position:relative; }
+    .companion-card:after { content:""; position:absolute; bottom:-6px; right:21px; width:10px;height:10px; background:#050a14; border-right:1px solid rgba(255,42,133,.56); border-bottom:1px solid rgba(255,42,133,.56); transform:rotate(45deg); }
+    .sprite-frame { flex:0 0 76px; border:1.5px solid var(--cyan); border-radius:10px; padding:3px; background:rgba(4,15,25,.98); box-shadow:0 0 11px rgba(0,240,255,.14),inset 0 0 8px rgba(0,240,255,.06); text-align:center; position:relative; }
+    .sprite-frame:before,.sprite-frame:after { content:""; position:absolute; width:10px;height:10px; border-color:#00f0ff; border-style:solid; }
+    .sprite-frame:before { top:4px;left:4px;border-width:2px 0 0 2px; }
+    .sprite-frame:after { right:4px;bottom:4px;border-width:0 2px 2px 0; }
+    .sprite-stage { height:59px;display:flex;align-items:center;justify-content:center;position:relative; }
+    .companion-sprite { image-rendering:pixelated; image-rendering:crisp-edges; width:62px;height:62px; filter:contrast(1.045) saturate(1.04); }
+    .sprite-caption { font:6px 'Press Start 2P',monospace; color:#00f0ff; letter-spacing:.02em; padding-top:1px; }
+    .floating-emote { position:absolute; right:0;top:5px;width:22px;height:30px;image-rendering:pixelated; }
+    .glitch { animation:glitch .25s steps(2,end) 2; }
+    @keyframes glitch { 0%{transform:translate(0)} 25%{transform:translate(4px,-2px) skewX(4deg)} 50%{transform:translate(-3px,2px)} 75%{transform:translate(2px,1px) skewX(-3deg)} 100%{transform:translate(0)} }
+    .pulse { animation:pulse 1.4s infinite; } @keyframes pulse { 50%{opacity:.45} }
+    .float { animation:float 1.3s ease-in-out infinite; } @keyframes float { 50%{transform:translateY(-5px)} }
+    .blink { animation:blink 1.1s steps(2,end) infinite; } @keyframes blink { 50%{opacity:.25} }
+    .bus-scroll { scrollbar-width:thin; scrollbar-color:#24536c transparent; }
+    .bus-scroll::-webkit-scrollbar { height:5px; }.bus-scroll::-webkit-scrollbar-thumb{background:#24536c;border-radius:8px;}
+    .sprite-row { display:flex; align-items:flex-end; gap:4px; }
+    .glitch { animation:glitch .25s steps(2,end) 2; }
+    @keyframes glitch { 0%{transform:translate(0)} 25%{transform:translate(4px,-2px) skewX(4deg)} 50%{transform:translate(-3px,2px)} 75%{transform:translate(2px,1px) skewX(-3deg)} 100%{transform:translate(0)} }
+    .pulse { animation:pulse 1.4s infinite; } @keyframes pulse { 50%{opacity:.45} }
+    .float { animation:float 1.3s ease-in-out infinite; } @keyframes float { 50%{transform:translateY(-5px)} }
+    .blink { animation:blink 1.1s steps(2,end) infinite; } @keyframes blink { 50%{opacity:.25} }
+    .status-line { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .toolbar-scenario { border:1px solid rgba(70,112,140,.42); background:rgba(8,20,33,.82); color:#b8cfdd; border-radius:9px; padding:8px 11px; font:10px 'JetBrains Mono',monospace; transition:.16s ease; white-space:nowrap; }
+    .toolbar-scenario:hover { border-color:rgba(0,240,255,.6); color:#eaffff; }
+    .toolbar-scenario.active { border-color:var(--cyan); background:rgba(0,240,255,.095); color:var(--cyan); box-shadow:inset 0 0 12px rgba(0,240,255,.05); }
+    .manual-drawer { display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:7px; }
+    .manual-knob { background:rgba(5,14,25,.88); border:1px solid rgba(63,103,130,.24); border-radius:7px; padding:6px 8px; min-width:0; }
+    .manual-knob label { display:block; color:#7796aa; font:600 8px 'JetBrains Mono',monospace; letter-spacing:.07em; white-space:nowrap; }
+    .manual-knob output { color:var(--cyan); font:600 9px 'JetBrains Mono',monospace; }
+    .manual-knob input[type=range] { margin-top:3px; height:12px; }
+    .custom-panel { background:linear-gradient(120deg,rgba(6,18,29,.97),rgba(10,19,34,.97)); border:1px solid rgba(0,240,255,.3); border-radius:11px; }
+    .custom-option { border:1px solid rgba(63,103,130,.36); background:#091624; color:#a9c5d6; border-radius:7px; padding:6px 9px; font:9px 'JetBrains Mono',monospace; }
+    .custom-option.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,240,255,.08); }
+    .module-tab { border:1px solid rgba(63,103,130,.35); background:#081522; color:#8ba8bb; padding:7px 10px; border-radius:7px; font:9px 'JetBrains Mono',monospace; }
+    .module-tab.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,240,255,.07); }
+    .module-pane { display:none; }
+    .module-pane.active { display:block; }
+    .telemetry-mini { background:rgba(6,16,28,.85); border:1px solid rgba(63,103,130,.26); border-radius:9px; padding:10px; min-height:74px; }
+    .telemetry-mini .mini-value { font:600 22px 'JetBrains Mono',monospace; letter-spacing:-.04em; }
+    .soft-label { color:#6e8da3; font:600 8px 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; }
+    .architecture-details summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .architecture-details summary::-webkit-details-marker { display:none; }
+    .architecture-details[open] summary { margin-bottom:12px; }
+    @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario{padding:7px 8px;font-size:9px}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
+  
+    /* A.S.T.R.A. pixel atmosphere: restrained raster, pixel grid and terminal grain. */
+    body {
+      background-color:#050a12;
+      background-image:
+        radial-gradient(ellipse at 50% -18%, rgba(24,58,78,.78) 0%, rgba(6,11,20,.0) 56%),
+        linear-gradient(rgba(0,240,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,.035) 1px, transparent 1px),
+        radial-gradient(rgba(255,42,133,.10) .65px, transparent .8px);
+      background-size:auto, 8px 8px, 8px 8px, 4px 4px;
+      background-position:center top, 0 0, 0 0, 1px 1px;
+    }
+    body::before {
+      opacity:.052;
+      background:repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0,0,0,.52) 3px);
+    }
+    body::after {
+      opacity:.048;
+      background-image:
+        linear-gradient(rgba(55,124,151,.24) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55,124,151,.24) 1px, transparent 1px),
+        radial-gradient(rgba(0,240,255,.34) .55px, transparent .7px);
+      background-size:16px 16px, 16px 16px, 4px 4px;
+      background-position:0 0, 0 0, 2px 2px;
+    }
+    .panel, .metric, .telemetry-mini, .custom-panel {
+      box-shadow:inset 0 0 0 1px rgba(66,126,150,.045), 0 10px 28px rgba(0,0,0,.24);
+    }
+    .sensor-tune {
+      margin-top:10px;
+      padding-top:8px;
+      border-top:1px dashed rgba(0,240,255,.22);
+      animation:tuneIn .16s steps(3,end);
+    }
+    .sensor-tune .manual-knob {
+      padding:3px 0 0;
+      border:0;
+      border-radius:0;
+      background:transparent;
+    }
+    .sensor-tune .manual-knob label { color:#83a9bc; }
+    .sensor-tune .manual-knob input[type=range] { margin-top:5px; height:12px; }
+    .sensor-tune .manual-knob output { text-shadow:0 0 7px rgba(0,240,255,.18); }
+    @keyframes tuneIn { from { opacity:.35; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
+    .sensor-tune[hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { .sensor-tune { animation:none; } }
+
+    /* Reference-matched raster: fine horizontal phosphor lines, small pixel grid and stepped corners. */
+    body {
+      background-color:#040912;
+      background-image:
+        radial-gradient(ellipse at 50% -18%, rgba(24,58,78,.72) 0%, rgba(6,11,20,0) 56%),
+        repeating-linear-gradient(180deg, rgba(48,103,132,.13) 0 1px, transparent 1px 3px),
+        linear-gradient(rgba(0,240,255,.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,.025) 1px, transparent 1px),
+        radial-gradient(rgba(255,42,133,.09) .65px, transparent .8px);
+      background-size:auto, 100% 3px, 4px 4px, 4px 4px, 4px 4px;
+      background-position:center top, 0 0, 0 0, 0 0, 1px 1px;
+      background-attachment:fixed;
+    }
+    body::before {
+      opacity:.085;
+      background:repeating-linear-gradient(to bottom, rgba(34,78,102,.22) 0 1px, transparent 1px 3px);
+      mix-blend-mode:screen;
+    }
+    body::after {
+      opacity:.052;
+      background-image:
+        linear-gradient(rgba(52,113,139,.19) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(52,113,139,.15) 1px, transparent 1px),
+        radial-gradient(rgba(0,240,255,.30) .55px, transparent .75px);
+      background-size:16px 16px, 16px 16px, 4px 4px;
+      background-position:0 0, 0 0, 2px 2px;
+    }
+    .panel, .metric, .telemetry-mini, .custom-panel {
+      background-image:
+        repeating-linear-gradient(180deg, rgba(56,114,144,.055) 0 1px, transparent 1px 3px),
+        linear-gradient(145deg, rgba(13,25,41,.96), rgba(7,15,27,.97));
+      box-shadow:inset 0 0 0 1px rgba(66,126,150,.055), 0 10px 28px rgba(0,0,0,.26);
+    }
+    .metric { position:relative; isolation:isolate; border-color:rgba(31,104,137,.42); }
+    .metric::after, .panel::after, .telemetry-mini::after {
+      content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+      background:
+        linear-gradient(var(--cyan),var(--cyan)) left top / 13px 2px no-repeat,
+        linear-gradient(var(--cyan),var(--cyan)) left top / 2px 13px no-repeat,
+        linear-gradient(var(--cyan),var(--cyan)) right bottom / 13px 2px no-repeat,
+        linear-gradient(var(--cyan),var(--cyan)) right bottom / 2px 13px no-repeat;
+      opacity:.45;
+    }
+    .panel, .telemetry-mini { position:relative; isolation:isolate; }
+    .pixel-divider { height:2px; background:repeating-linear-gradient(90deg, rgba(0,240,255,.42) 0 5px, transparent 5px 8px); opacity:.45; }
+    .mode-chip { border:1px solid rgba(62,113,143,.45); background:rgba(5,15,25,.88); color:#90adbf; border-radius:7px; padding:7px 10px; font:9px 'JetBrains Mono',monospace; letter-spacing:.04em; }
+    .mode-chip.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,240,255,.085); box-shadow:inset 0 0 10px rgba(0,240,255,.06); }
+    .mode-status { color:#7596aa; font:8px 'JetBrains Mono',monospace; letter-spacing:.08em; }
+    @media (prefers-reduced-motion:reduce) { body::before { opacity:.055; } }
+
+</style>
+</head>
+<body class="font-sans antialiased">
+  <div class="max-w-[1500px] mx-auto px-3 sm:px-5 lg:px-7 py-4 sm:py-6 relative z-10">
+    <!-- TOP BAR -->
+    <header class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-5">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl border border-cyan/50 bg-cyan/10 flex items-center justify-center shadow-glow">
+          <svg viewBox="0 0 40 40" class="w-7 h-7" fill="none" aria-hidden="true"><path d="M20 3 34 11v18L20 37 6 29V11L20 3Z" stroke="#00F0FF" stroke-width="1.4"/><path d="m20 9 7 11-7 11-7-11 7-11Z" stroke="#00F0FF"/><circle cx="20" cy="20" r="3" fill="#FF2A85"/><path d="M3 20h9m16 0h9M20 1v8m0 22v8" stroke="#00F0FF" stroke-width="1.3"/></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap"><h1 class="text-lg sm:text-xl font-extrabold tracking-[.08em] text-white">A.S.T.R.A. <span class="text-cyan">//</span> EVA-MED HUD</h1><span class="chip rounded px-2 py-1 text-[9px] mono tracking-widest text-cyan">PROTOTYPE 1.0.0</span></div>
+          <p class="eyebrow mt-1">Autonomous Suit Telemetry & Response Assistant</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="View mode">
+          <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual">DUAL LINK</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva">EVA HUD</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship">SHIP TRIAGE</button>
+        </div>
+        <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch A.S.T.R.A. between automatic and custom appearance modes">A.S.T.R.A.: <span class="text-cyan">AUTO</span></button>
+        <button id="voiceToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono">VOICE: <span class="text-cyan">ON</span></button>
+      </div>
+    </header>
+
+    <!-- TOP-MOUNTED A.S.T.R.A. CUSTOM MODE -->
+    <section id="astraCustomPanel" class="custom-panel p-3 mb-3 hidden-view">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
+        <div><div class="eyebrow">COMPANION SETTINGS / CUSTOM MODE</div><div class="text-xs text-white font-semibold mt-1">Configure A.S.T.R.A. appearance</div></div>
+        <span class="text-[9px] mono text-cyan">LOCAL DISPLAY ONLY</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+        <div><div class="soft-label mb-2">TACTICAL PALETTE</div><div class="flex flex-wrap gap-1.5"><button class="custom-option active" data-palette="cobalt">COBALT</button><button class="custom-option" data-palette="solaris">SOLARIS</button><button class="custom-option" data-palette="valkyrie">VALKYRIE</button></div></div>
+        <div><div class="soft-label mb-2">FACIAL EXPRESSION</div><div class="flex flex-wrap gap-1.5"><button class="custom-option active" data-expression="nominal">NOMINAL</button><button class="custom-option" data-expression="reminder">REMINDER</button><button class="custom-option" data-expression="caution">CAUTION</button><button class="custom-option" data-expression="critical">CRITICAL</button></div></div>
+        <div class="flex items-center gap-2 rounded-lg border border-line/60 bg-[#07111d] px-3 py-2"><canvas id="previewSprite" width="36" height="36" class="w-[52px] h-[52px]" style="image-rendering:pixelated"></canvas><div class="min-w-[86px]"><div class="soft-label">CURRENT STATE</div><div id="companionState" class="text-[10px] mono text-cyan mt-1">NOMINAL / COBALT</div></div></div>
+      </div>
+      <p class="text-[9px] text-slate-500 mt-2">AUTO follows system alerts. CUSTOM lets you choose the palette and expression; switch back to AUTO to restore automatic reactions.</p>
+    </section>
+
+    <!-- LOCAL EDGE MESH ARCHITECTURE -->
+    <details class="panel architecture-details rounded-xl p-3 sm:p-3 mb-3 overflow-hidden">
+      <summary>
+        <div class="eyebrow">SHIP-TO-SUIT LOCAL MESH / EDGE ARCHITECTURE</div>
+        <div class="flex items-center gap-2 text-[9px] mono text-emerald-300"><span class="dot bg-emerald-400 text-emerald-400"></span> LOCAL LINK NOMINAL <span class="text-slate-500">· DETAILS +</span></div>
+      </summary>
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
+        <div class="rounded-lg border border-cyan/25 bg-cyan/[.045] p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-cyan/10 border border-cyan/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#00F0FF" stroke-width="1.4"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M7 9h3m-3 3h7m3-3h.01"/></svg></div>
+          <div class="min-w-0"><div class="text-white font-bold text-sm">SHIP AI CORE SERVER</div><div class="text-[10px] mono text-slate-400">EDGE NODE / FLIGHT SURGEON CACHE</div><div class="text-[9px] mono text-cyan mt-1">NODE: ARGO-01 · 0.4 ms local hop</div></div>
+        </div>
+        <div class="flex md:flex-col items-center justify-center gap-2 py-1">
+          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
+          <div class="flex items-center gap-2 text-[9px] mono text-cyan"><span class="pulse">◀</span><span class="border border-cyan/30 rounded px-2 py-1 bg-cyan/[.06]">SUB-GHz MESH · 915 MHz</span><span class="pulse">▶</span></div>
+          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-pink via-cyan to-cyan/20"></div>
+          <div class="md:hidden w-full h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
+        </div>
+        <div class="rounded-lg border border-pink/25 bg-pink/[.045] p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-pink/10 border border-pink/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#FF2A85" stroke-width="1.4"><path d="M12 2a8 8 0 0 0-8 8v5a3 3 0 0 0 3 3h2v-7H6a6 6 0 0 1 12 0h-3v7h2a3 3 0 0 0 3-3v-5a8 8 0 0 0-8-8Z"/><path d="M9 21h6"/></svg></div>
+          <div class="min-w-0"><div id="endpointTitle" class="text-white font-bold text-sm">HABITAT CREW DISPLAY</div><div class="text-[10px] mono text-slate-400">ASTRONAUT ENDPOINT / TELEMETRY</div><div id="endpointMode" class="text-[9px] mono text-pink mt-1">MODE: IVA · LOCAL LINK ENCRYPTED</div></div>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[9px] mono text-slate-500"><span>● STORE-AND-FORWARD ENABLED</span><span>● ZERO EARTH-RELAY DEPENDENCY</span><span>● LOCAL DECISION SUPPORT</span><span>● PACKET LOSS <span class="text-emerald-300">0.0%</span></span><span id="modeArchitectureHint">● HABITAT / IVA MONITORING ACTIVE</span></div>
+    </details>
+
+    <!-- SIMULATION SAFETY BANNER -->
+    <div class="rounded-lg border border-amber/25 bg-amber/[.035] px-3 py-1.5 mb-3 flex gap-2 items-center">
+      <span class="text-amber mt-0.5">⚠</span><p class="text-[9px] text-amber-100/80 leading-relaxed"><strong class="tracking-wide">SIMULATION ONLY.</strong> All data and outputs are fictional demonstration values, not validated aerospace or medical guidance.</p>
+    </div>
+
+    <!-- COMPACT TOP CONTROL STRIP / SCENARIOS + MANUAL TRIM -->
+    <section class="panel rounded-xl p-3 mb-3" id="quickControlPanel">
+      <div class="flex flex-wrap items-center gap-2 pb-2 mb-2 border-b border-line/50">
+        <span class="soft-label">OPERATING ZONE</span>
+        <button id="habitatMode" class="mode-chip active" type="button" aria-pressed="true">▣ HABITAT / IVA</button>
+        <button id="evaMode" class="mode-chip" type="button" aria-pressed="false">↗ EVA / EXTERIOR</button>
+        <span id="locationStatus" class="mode-status">PRESSURISED HABITAT · CONTINUOUS MONITOR</span>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="sensorToggle" class="btn active rounded-lg px-3 py-2 text-[10px] mono">LIVE SENSORS: ON</button>
+          <button class="toolbar-scenario active" data-scenario="nominal">✓ Nominal Profile</button>
+          <button class="toolbar-scenario" data-scenario="solar">☼ Solar Radiation Spike</button>
+          <button class="toolbar-scenario" data-scenario="exertion">ϟ Heavy Exertion</button>
+          <button class="toolbar-scenario" data-scenario="leak">⚠ Pressure / Suit Leak</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="sensorStatus" class="chip rounded-md px-2 py-1.5 text-[9px] mono"><span class="text-emerald-300">● LIVE</span> / 1 Hz</span>
+          <button id="manualToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-expanded="false" title="Show adjustment sliders beneath each matching parameter">MANUAL OVERRIDE ▾</button>
+          <button id="resetSensors" class="btn rounded-lg px-3 py-2 text-[10px] mono">RESET</button>
+        </div>
+      </div>
+      
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <div class="flex-1 min-w-[230px] rounded-lg border border-line/65 bg-[#060e19] px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden"><span class="text-[9px] mono text-emerald-300">[BUS // 1Hz]</span><span id="jsonPacket" class="mono text-[9px] sm:text-[10px] text-cyan/90 whitespace-nowrap overflow-x-auto bus-scroll flex-1">{"psi":4.30,"o2":96,"co2":98,"hr":78,"rad_msv_h":0.08,"r_val":8}</span><span class="text-[8px] mono text-slate-500">SEQ <span id="packetSeq">000001</span></span></div>
+        <button id="exitButton" class="btn warn rounded-md px-3 py-2 text-[9px] mono">↗ CABIN EXIT</button>
+        <button id="reentryButton" class="btn rounded-md px-3 py-2 text-[9px] mono opacity-40" disabled>↙ AIRLOCK RE-ENTRY</button>
+      </div>
+    </section>
+
+    <main class="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5" id="mainGrid">
+      <!-- EVA / VISOR PANEL -->
+      <section id="evaPanel" class="space-y-5 min-w-0">
+        <div class="panel rounded-xl overflow-hidden">
+          <div class="panel-head p-4 flex flex-wrap items-center justify-between gap-3">
+            <div><div class="eyebrow" id="evaPanelEyebrow">01 / HABITAT TELEMETRY</div><h2 class="text-white font-bold tracking-wide mt-1" id="evaContextTitle">HABITAT // LIVE SENSOR BUS</h2></div>
+            <div class="text-[9px] mono text-slate-500">VISOR PROFILE / EVA-07</div>
+          </div>
+          <div class="p-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3" id="metricsGrid">
+              <article class="metric sensor-card rounded-xl p-3" id="card-psi">
+                <div class="status-line"><span class="eyebrow">SUIT PRESSURE</span><span class="text-cyan text-[10px]">◉</span></div>
+                <div class="value text-cyan mt-3"><span id="psiValue">4.30</span><small class="text-sm ml-1 text-slate-400">PSI</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">CABIN-DELTA / INTERNAL</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="psi"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sPsi">SUIT PSI</label><output id="sPsiOut">4.30 PSI</output></div><input aria-label="Manual suit pressure override" id="sPsi" max="5.5" min="2.5" step="0.01" type="range" value="4.3"/></div></div></article>
+              <article class="metric sensor-card rounded-xl p-3" id="card-o2">
+                <div class="status-line"><span class="eyebrow">PRIMARY O₂ RESERVE</span><span class="text-emerald-300 text-[10px]">◉</span></div>
+                <div class="value text-emerald-300 mt-3"><span id="o2Value">96</span><small class="text-sm ml-1 text-slate-400">%</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">EST. <span id="o2Time">05h 46m</span> REMAINING</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="o2"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sO2">O₂ RESERVE</label><output id="sO2Out">96%</output></div><input aria-label="Manual oxygen reserve override" id="sO2" max="100" min="0" step="1" type="range" value="96"/></div></div></article>
+              <article class="metric sensor-card rounded-xl p-3" id="card-co2">
+                <div class="status-line"><span class="eyebrow">CO₂ SCRUBBER</span><span class="text-cyan text-[10px]">◉</span></div>
+                <div class="value text-cyan mt-3"><span id="co2Value">98</span><small class="text-sm ml-1 text-slate-400">%</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">REGEN / ABSORPTION EFF.</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="co2"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sCo2">CO₂ SCRUBBER</label><output id="sCo2Out">98%</output></div><input aria-label="Manual carbon dioxide scrubber override" id="sCo2" max="100" min="0" step="1" type="range" value="98"/></div></div></article>
+              <article class="metric sensor-card rounded-xl p-3" id="card-hr">
+                <div class="status-line"><span class="eyebrow">HEART RATE</span><span class="text-pink text-[10px]">♥</span></div>
+                <div class="value text-pink mt-3"><span id="hrValue">78</span><small class="text-sm ml-1 text-slate-400">BPM</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">BIOMETRIC / OPTICAL</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="hr"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sHr">HEART RATE</label><output id="sHrOut">78 bpm</output></div><input aria-label="Manual heart rate override" id="sHr" max="180" min="40" step="1" type="range" value="78"/></div></div></article>
+              <article class="metric sensor-card rounded-xl p-3" id="card-temp">
+                <div class="status-line"><span class="eyebrow">CORE TEMP</span><span class="text-amber text-[10px]">◉</span></div>
+                <div class="value text-amber mt-3"><span id="tempValue">37.0</span><small class="text-sm ml-1 text-slate-400">°C</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">THERMAL REGULATION</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="temp"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sTemp">CORE TEMP</label><output id="sTempOut">37.0°C</output></div><input aria-label="Manual core temperature override" id="sTemp" max="40" min="34" step="0.1" type="range" value="37"/></div></div></article>
+              <article class="metric sensor-card rounded-xl p-3" id="card-work">
+                <div class="status-line"><span class="eyebrow">METABOLIC LOAD</span><span class="text-amber text-[10px]">◉</span></div>
+                <div class="value text-amber mt-3"><span id="workValue">165</span><small class="text-sm ml-1 text-slate-400">W</small></div>
+                <div class="text-[9px] mono text-slate-500 mt-2">ESTIMATED WORK RATE</div>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="work"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sWork">METABOLIC LOAD</label><output id="sWorkOut">165 W</output></div><input aria-label="Manual workload override" id="sWork" max="500" min="50" step="5" type="range" value="165"/></div></div></article>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_.95fr] gap-3 mt-3">
+              <div class="rounded-xl border border-line/80 bg-[#07111d] p-3">
+                <div class="flex justify-between items-center gap-2"><div class="eyebrow">DYNAMIC DCS RISK INDEX</div><span class="text-[9px] mono text-slate-500">R-VALUE / DEMO HEURISTIC</span></div>
+                <div class="flex items-end gap-3 mt-2"><div id="rValue" class="text-4xl font-bold mono text-emerald-300 neon-text">08</div><div class="pb-1"><div id="rLabel" class="text-[11px] font-bold text-emerald-300 tracking-wider">NOMINAL</div><div class="text-[9px] text-slate-500 mono">0–100 SIMULATION SCALE</div></div></div>
+                <div class="track mt-3"><div id="rBar" class="fill bg-emerald-400" style="width:8%"></div></div>
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                  <div><div class="eyebrow">N₂ BUBBLE SAFETY MARGIN</div><div class="text-lg mono text-cyan mt-1"><span id="n2Value">92</span><span class="text-xs text-slate-500">%</span></div><div class="track mt-1"><div id="n2Bar" class="fill bg-cyan" style="width:92%"></div></div></div>
+                  <div><div class="eyebrow">SIM. STABILIZATION EST.</div><div class="text-lg mono text-amber mt-1" id="repressTime">00:08</div><div class="text-[9px] text-slate-500 mt-1">Not a treatment schedule</div></div>
+                </div>
+                <p class="text-[9px] text-slate-500 mt-3 leading-relaxed">R-value is an illustrative interface heuristic only. It is not a validated Conkin score or decompression-sickness prediction.</p>
+              </div>
+              <div class="rounded-xl border border-line/80 bg-[#07111d] p-3">
+                <div class="flex items-center justify-between"><div class="eyebrow">RADIATION / SHELTER WINDOW</div><span id="radState" class="text-[9px] mono text-emerald-300">FLUX NOMINAL</span></div>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                  <div><div class="text-[9px] text-slate-500 mono">EXTERNAL FLUX</div><div class="text-2xl mono text-amber"><span id="radValue">0.08</span><small class="text-xs text-slate-500"> mSv/h</small></div></div>
+                  <div><div class="text-[9px] text-slate-500 mono">CUMULATIVE EVA DOSE</div><div class="text-2xl mono text-amber"><span id="doseValue">0.000</span><small class="text-xs text-slate-500"> mSv</small></div></div>
+                </div>
+                <div class="sensor-tune hidden-view mt-3" data-sensor-tune="rad"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sRad">RADIATION FLUX</label><output id="sRadOut">0.08 mSv/h</output></div><input aria-label="Manual external radiation flux override" id="sRad" max="3" min="0" step="0.01" type="range" value="0.08"/></div></div><div class="mt-3 p-2.5 rounded-lg border border-amber/20 bg-amber/[.045]">
+                  <div class="flex items-center justify-between gap-2"><span class="eyebrow" id="timerTitle">HABITAT WATCH / IVA</span><span id="timerState" class="text-[9px] mono text-slate-500">CABIN SECURE</span></div>
+                  <div id="safeTimer" class="text-3xl sm:text-4xl mono font-bold tracking-tight text-cyan mt-1">00:00:00</div>
+                  <div id="timerFootnote" class="text-[9px] mono text-slate-500 mt-1">CONTINUOUS CABIN MONITOR · SIMULATION CLOCK 1.0×</div>
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+
+            <!-- EXTENDED CREW / ASSAY / RADIATION / HABITAT SYSTEMS -->
+            <section class="rounded-xl border border-line/75 bg-[#07111d] p-3 mt-3" id="crewSystemsPanel">
+              <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <div><div class="eyebrow">02 / CREW & HABITAT SYSTEMS</div><div class="text-xs text-white font-semibold mt-1">Extended sensor suite</div></div>
+                <span class="text-[8px] mono text-slate-500">SIMULATED MODULES · READ-ONLY STREAM</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mb-3" role="tablist" aria-label="Sensor system modules">
+                <button class="module-tab active" data-module="vitals" role="tab" aria-selected="true">VITALS</button>
+                <button class="module-tab" data-module="sleep" role="tab" aria-selected="false">SLEEP</button>
+                <button class="module-tab" data-module="assays" role="tab" aria-selected="false">LIQUID BIOPSY / PHENOTYPE</button>
+                <button class="module-tab" data-module="radiation" role="tab" aria-selected="false">RADIATION</button>
+                <button class="module-tab" data-module="habitat" role="tab" aria-selected="false">ROOM CONDITIONS</button>
+              </div>
+              <div id="module-vitals" class="module-pane active" role="tabpanel">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div class="telemetry-mini"><div class="soft-label">SpO₂ · SIM</div><div class="mini-value text-emerald-300"><span id="spo2Value">98</span><small class="text-xs text-slate-500">%</small></div><div class="text-[8px] mono text-slate-600 mt-1">OPTICAL OXIMETRY</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">HRV · RMSSD</div><div class="mini-value text-cyan"><span id="hrvValue">64</span><small class="text-xs text-slate-500"> ms</small></div><div class="text-[8px] mono text-slate-600 mt-1">BEAT-TO-BEAT VARIATION</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">GSR · SKIN RESPONSE</div><div class="mini-value text-pink"><span id="gsrValue">2.6</span><small class="text-xs text-slate-500"> µS</small></div><div class="text-[8px] mono text-slate-600 mt-1">ELECTRODERMAL ACTIVITY</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">CABIN CO₂</div><div class="mini-value text-amber"><span id="co2ppmValue">650</span><small class="text-xs text-slate-500"> ppm</small></div><div class="text-[8px] mono text-slate-600 mt-1">ENVIRONMENTAL SENSOR</div></div>
+                </div>
+                <p class="text-[9px] text-slate-600 mt-2">These are independent mock channels. They do not assess fitness, diagnose a condition, or replace approved onboard monitoring.</p>
+              </div>
+              <div id="module-sleep" class="module-pane" role="tabpanel">
+                <div class="grid grid-cols-1 md:grid-cols-[1.1fr_.9fr] gap-3">
+                  <div class="rounded-lg border border-line/60 bg-[#081522] p-3">
+                    <div class="soft-label mb-2">CREW SLEEP ROUTINE / LOCAL TIME</div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <label class="text-[9px] mono text-slate-400">LIGHTS-OUT<input id="sleepStart" type="time" value="22:30" class="block w-full mt-1 rounded border border-line bg-[#050e18] px-2 py-2 text-xs text-slate-200"></label>
+                      <label class="text-[9px] mono text-slate-400">WAKE WINDOW<input id="sleepEnd" type="time" value="06:30" class="block w-full mt-1 rounded border border-line bg-[#050e18] px-2 py-2 text-xs text-slate-200"></label>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between gap-2"><label for="sleepTarget" class="soft-label">PLANNED SLEEP WINDOW</label><output id="sleepTargetOut" class="text-[10px] mono text-cyan">8.0 h</output></div>
+                    <input id="sleepTarget" type="range" min="5" max="12" step="0.5" value="8" class="w-full mt-1">
+                    <div id="sleepScheduleSummary" class="text-[9px] mono text-slate-500 mt-2">22:30 → 06:30 · 8.0 h scheduled</div>
+                  </div>
+                  <div class="telemetry-mini flex flex-col justify-center"><div class="soft-label">RECORDED SLEEP SAMPLE</div><div class="mini-value text-cyan mt-1"><span id="sleepHoursValue">7.6</span><small class="text-xs text-slate-500"> h</small></div><div class="text-[9px] mono text-slate-500 mt-2">LAST SIMULATED REST PERIOD</div><div class="track mt-2"><div id="sleepBar" class="fill bg-cyan" style="width:95%"></div></div><div class="text-[8px] text-slate-600 mt-2">Schedule is user-configured demo data, not a sleep recommendation.</div></div>
+                </div>
+              </div>
+              <div id="module-assays" class="module-pane" role="tabpanel">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div class="telemetry-mini"><div class="soft-label">LIQUID BIOPSY / cfDNA SAMPLE</div><div class="flex items-end gap-2 mt-1"><div class="mini-value text-cyan"><span id="cfDnaValue">0.84</span></div><span class="text-[9px] mono text-slate-500 mb-1">RELATIVE ASSAY UNITS</span></div><div class="text-[8px] mono text-emerald-300 mt-2">SAMPLE RECEIVED · QC PASS (SIM)</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">PHENOTYPE / REFERENCE PROFILE</div><label for="phenotypePreset" class="text-[9px] text-slate-400 block mt-2">DISPLAY PROFILE</label><select id="phenotypePreset" class="w-full mt-1 rounded border border-line bg-[#050e18] px-2 py-2 text-[10px] mono text-slate-200"><option value="reference">Reference profile</option><option value="profile-a">Sample profile A</option><option value="profile-b">Sample profile B</option><option value="profile-c">Sample profile C</option></select><div id="phenotypeState" class="text-[8px] mono text-slate-500 mt-2">REFERENCE CONFIGURATION · NO CLASSIFICATION</div></div>
+                </div>
+                <p class="text-[9px] text-slate-600 mt-2">The cfDNA value and profile selector are placeholders for interface testing only. No genetic, cancer, disease, or personal-trait interpretation is performed.</p>
+              </div>
+              <div id="module-radiation" class="module-pane" role="tabpanel">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div class="telemetry-mini"><div class="soft-label">PROTON FLUX</div><div class="mini-value text-amber"><span id="protonFluxValue">2.4</span><small class="text-xs text-slate-500"> k</small></div><div class="text-[8px] mono text-slate-600 mt-1">PARTICLES / CM² / S · SIM</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">NEUTRON MONITOR</div><div class="mini-value text-amber"><span id="neutronFluxValue">0.04</span></div><div class="text-[8px] mono text-slate-600 mt-1">RELATIVE COUNTER · SIM</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">HIGH-ENERGY EVENT</div><div id="radiationEventValue" class="text-sm mono text-emerald-300 mt-2">QUIET</div><div class="text-[8px] mono text-slate-600 mt-1">EVENT CLASSIFIER</div></div>
+                  <div class="telemetry-mini"><div class="soft-label">SENSOR HEALTH</div><div class="text-sm mono text-cyan mt-2">3 / 3 ONLINE</div><div class="text-[8px] mono text-slate-600 mt-1">DOSE + PARTICLE CHANNELS</div></div>
+                </div>
+                <p class="text-[9px] text-slate-600 mt-2">Radiation outputs are illustrative sensor placeholders. No exposure threshold or safe-work duration is established by this dashboard.</p>
+              </div>
+              <div id="module-habitat" class="module-pane" role="tabpanel">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div class="telemetry-mini"><div class="soft-label">CABIN TEMP</div><div class="mini-value text-amber"><span id="cabinTempValue">21.4</span><small class="text-xs text-slate-500"> °C</small></div></div>
+                  <div class="telemetry-mini"><div class="soft-label">RELATIVE HUMIDITY</div><div class="mini-value text-cyan"><span id="humidityValue">42</span><small class="text-xs text-slate-500"> %</small></div></div>
+                  <div class="telemetry-mini"><div class="soft-label">PARTICULATES PM2.5</div><div class="mini-value text-pink"><span id="pm25Value">4.2</span><small class="text-xs text-slate-500"> µg/m³</small></div></div>
+                  <div class="telemetry-mini"><div class="soft-label">VOC INDEX</div><div class="mini-value text-cyan"><span id="vocValue">0.12</span></div></div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line/55 bg-[#081522] p-2"><span class="soft-label">ROOM CONDITIONS SUMMARY</span><span id="roomSummary" class="text-[9px] mono text-emerald-300">ENVIRONMENTAL STREAM NOMINAL · SIM</span></div>
+              </div>
+            </section>
+
+
+      </section>
+
+      <!-- SHIP TRIAGE PANEL -->
+      <section id="triagePanel" class="space-y-5 min-w-0">
+        <div class="panel rounded-xl overflow-hidden">
+          <div class="panel-head p-4 flex items-center justify-between gap-3">
+            <div><div class="eyebrow" id="triageContextLabel">03 / SHIP SERVER · CREW REVIEW</div><h2 class="text-white font-bold mt-1">CREW HEALTH REVIEW</h2></div>
+            <span class="chip rounded px-2 py-1 text-[9px] mono text-cyan">OFFLINE CACHE</span>
+          </div>
+          <div class="p-4">
+            <div class="rounded-lg border border-pink/20 bg-pink/[.045] p-3 mb-4">
+              <div class="flex items-center justify-between gap-2"><span class="eyebrow">RECORDED EVA SNAPSHOT</span><span id="snapshotState" class="text-[9px] mono text-emerald-300">STREAM LINKED</span></div>
+              <div class="grid grid-cols-4 gap-2 mt-3">
+                <div><div class="text-[9px] text-slate-500 mono">R-VALUE</div><div id="triageR" class="text-lg mono text-cyan">08</div></div>
+                <div><div class="text-[9px] text-slate-500 mono">PRESSURE</div><div id="triagePsi" class="text-lg mono text-cyan">4.30</div></div>
+                <div><div class="text-[9px] text-slate-500 mono">PEAK HR</div><div id="triageHr" class="text-lg mono text-pink">78</div></div>
+                <div><div class="text-[9px] text-slate-500 mono">O₂ LEFT</div><div id="triageO2" class="text-lg mono text-emerald-300">96%</div></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-[.9fr_1.1fr] gap-4">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2"><div class="eyebrow">INTERACTIVE BODY MAP / MICRO-ZONES</div><div class="flex gap-1"><button type="button" class="body-orientation active" data-body-view="front">FRONT</button><button type="button" class="body-orientation" data-body-view="back">BACK</button></div></div>
+                <div class="rounded-lg border border-line/70 bg-[#07111d] p-2 flex items-center justify-center min-h-[390px]">
+                  <div id="bodyMap" class="w-full max-w-[270px]" aria-label="Interactive front body map with separately selectable anatomical areas"></div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
+                <p class="text-[9px] text-slate-500 mt-2">Select an individual joint, limb segment, torso area, or small head region. Front/back changes the torso zones while keeping the limbs selectable.</p>
+              </div>
+              <div class="min-w-0">
+                <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">LOCALIZED SYMPTOM INPUT</div><span id="selectedZoneLabel" class="text-[9px] mono text-cyan">FOREHEAD SELECTED</span></div>
+                <div id="symptomButtons" class="grid grid-cols-2 gap-2"></div>
+                <div class="pain-control mt-3">
+                  <div class="flex items-center justify-between gap-2"><label for="painLevel" class="eyebrow">PAIN INTENSITY / SELECTED AREA</label><output id="painLevelOutput" class="text-sm mono text-pink">0 / 10</output></div>
+                  <input id="painLevel" type="range" min="0" max="10" step="1" value="0" aria-label="Pain intensity for selected anatomical zone" class="mt-2">
+                  <div class="flex justify-between text-[8px] mono text-slate-600"><span>NONE</span><span>MODERATE</span><span>SEVERE</span></div>
+                </div>
+                <div class="mt-3"><label for="onsetSelect" class="eyebrow block mb-1">SYMPTOM ONSET</label><select id="onsetSelect" class="w-full rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option>During EVA</option><option>Immediately after EVA</option><option>Delayed after EVA</option><option>Present before EVA</option><option>Unknown / not recorded</option></select></div>
+                <div class="mt-3"><div class="eyebrow mb-2">REPORTED LOCATIONS & SYMPTOMS</div><div id="reportedSymptoms" class="min-h-12 rounded-lg border border-line/70 bg-[#07111d] p-2 flex flex-wrap gap-1.5"><span class="text-[10px] text-slate-600">No symptoms reported.</span></div></div>
+                <div class="mt-3"><label for="triageText" class="eyebrow block mb-2">FREE-TEXT CREW REPORT</label><textarea id="triageText" rows="3" class="w-full rounded-lg border border-line bg-[#07111d] p-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan/70" placeholder="Add detail such as which limb, exact point of pain, whether symptoms spread, and what changed..."></textarea><button id="analyzeButton" class="btn active rounded-md px-3 py-2 mt-2 text-[10px] mono w-full">RUN OFFLINE TRIAGE SIMULATION ↗</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel rounded-xl overflow-hidden">
+          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">ASTRA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
+          <div class="p-4">
+            <div id="triageOutput" class="rounded-lg border border-line/70 bg-[#07111d] p-3 min-h-[128px]">
+              <div class="flex gap-2 items-center text-cyan"><span class="text-lg">✦</span><span class="text-xs font-bold tracking-wider">READY FOR CREW REPORT</span></div>
+              <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">Choose a body zone, select any reported symptoms, then run the offline simulation. This interface can surface patterns for training; it cannot diagnose decompression sickness.</p>
+            </div>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div class="chip rounded-lg p-3"><div class="eyebrow">ENGINE CONTEXT</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Compares reported zones and keywords with the demo R-value and recorded suit pressure context.</div></div>
+              <div class="chip rounded-lg p-3"><div class="eyebrow">SAFETY ROUTING</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Suspected DCS or neurological/cardiopulmonary warning signs require immediate mission medical escalation.</div></div>
+            </div>
+          </div>
+        </div>
+
+
+      </section>
+    </main>
+
+    <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>A.S.T.R.A. // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
+  </div>
+
+  <!-- FLOATING CAP-16 -->
+  <img id="astraSpriteSource" alt="" hidden src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAIAAABuYg/PAAAJd0lEQVR42n1W3Y/d1XVde5+P3+/eO+O52MYfQMqH7RBsPAZqaghKmoAQUqU+pupL3yqlUiO1Up/6P1RVn1NFaqW+pFWlPEQJSWmbFhMKrT+GmRgKtklAYMbWeMZz7/19nHP23n24M4Nxm+7H38feWvustc6iamHcN7pQD5qYAHbKZJDcA4ihdjGU1F29ehXzMsavKbXinDt58qSIZLGSGoLBCAAbFxfU9RTqJSHUSwviYwGTaRBFFjZdW7vCDC3pwQfvJ0AEzuH27bbLyQhkAObdQIYsRUTqGKpq8PgTJ7tmZkVS3/gYyeBASiAeLDkDgKyExWGMESlfWV0b1VXqmgePHkhdqWpHBjVSwvrNzQLaG7Zb7EOASUkZUBfqUkpw/sSJYyklhqZmSwHviAgQwmg8hvepa0nUMXcpG/k2I0QvAAhEIMDHWJIoMF8oQWOsZ52oMoOMRIsRCbErZj5WOWcmFoESKAzHAIzILS1Jn5Dlg/ffNzMDmB0AQzEzGDtWgFUxh6QENhA0Zf3Jv54fDBdz6l7+5m8HZ6ZC7JzjnLrlJ0/17ayfbRuBjYhBzsB9+eDKe9evXSPbWZFKkZSg5giOYfBFYHCAo7s2WNc1s+sLG1U/+ulrqSg7TwRVrYLf3LjRNttEAOADVxXL1uEvoRreqMPhSesRGutGA6eFjD0AhQIGiGMG1ACA5lslUCnFAFMFyIcqVDWx9rmtCgy+BS4AzwAO6nvftO7A6PXzbOGrZ7+Gyc3rq5ec+C6HQHIPv4V0TgcjkJGSOYNIcWzFGgBm1vdtjMqgHLwzW3r0dPivn//ngcVHoIQHHj508f0j1w2q24/EA+2H777yip/kN1evVtTs8kDvHmnEAGiuIUgIoVOYKZuDeWLLefOZ5XMdKbrZgWsfPnp96fvnUACP4cGNEB9J25n8hncjrfrNlCQHBtvnQw4eHHvADJt3piXrnCBzmfdZQPAENXn11de8D19/8fmMfqix0cFmvXCiwx//+IN+MRKOPIDRb4zfeLPKWH/pm9i6MZDZypW1klwIO2v0nlNK0ftSiqqyj3fB3fEU53zbtoPhQpfK+Tff+saLZ2vUp0+cuRPq+96+xN4eysUPU/bN9SPdemZe737pum0bDL0WqgzmCAaglMKAGBk5IwITADK3Zx8Acs51HUB9kj6r+HaQXN/EaUg3j8qGFn90a0JhfGjP90Jdq9nq6qqZYU4wIjhW1Qr+1JknQYZd83BKAJSs4vD26juTyWQwqNhARErMpgAIWF5e7vvOgQB4/PoiR0xOi519+jdJ+08v/Iu3nrAjagKMzECp8PHjD8SlQ9MuXbi8RqBgvYLtHkcDKIwPERERxVBfXFmZvxYRZjbPT506HUp/dfVisCmjfPFfJhRnQuZaNzIzcdXjz3ztrZU1Kcm5ud8DwFNnllNKALwRGUCAEtRszrFQV33f1/A1l1pnA9n0lnVXXrZr+EYwmNMytDvMPG0nizyrkKbOk837zYlkAJh5Z430eQFASqmu66e+fPzKxfPcbgCSaMAogNiuUwWTQlyoElaGaJHF0ejdy2899uRjP7v838xxLkVSIyJmBuApRACiJkQFBCiM4fzTJ4//6tIb0bft6NF9p15AmtHC/tvn/8GXLXP7su9JB2Qt4O5/6iU3qk1iX9H6z3507a2fPnTm9H+88/4O7QAlbxCQsYiI3GtLZmZmfW7yrL09Wvr2X//d5sbHf/RX38OgMj9QYlaXHBkpYH/+3b9d+eja2ifv/uFffs+qqpB3SvTFbruHvLe7u2lDRERca+XjDfJXlh7bBlYXHm77tqgzKgAbmRHElc/GD30C3AI+OXCKF2JhYtg93f6/YfMvoost6cJWOTDtj33lhcU0HZZUOSZkcbkuKsRCwM1bLz7x8ldPv+LubNhswlTMq32xlTEREd8Nxe4qAE6HiDjSf/aDb/+un3724z/5FjP1JoAz0sIA2Av/zZ/9wSiv79v61Q//9FvUdk5ZKNzdB7vm5ndh/R/4NCuc1W77o5//vRZUlRdMC0IoIEV26pUq4fVLP5m0qIxnlavIISeYv+fA5s3nT+eYaG5aRjAwAKGG1SlhEQ08qzBKyhTI8yD1k2I2fqCfbNZZh9FFSV5DAZhA1P/vAwPAqqqqZmYmRI7YiMgRmZIRE+B2hA7PgHOnzz5/6rlvzHiY4qETZ17AcMFoJ08ylFEAYgOT7bHBzOZTPO+IAWwwM5ESQgAZ+yB+GARpthkGIzJo6uBc4dhqfeK5V2pmMnMkzoozBxBBDWw+KhwAkJLBTFXynJ8UDxzdi2XVaCHnfmXlclYg9+eeOX39wutDNILAEHMBuXej/U3TVNb1ihyXMLl135ALVfP7QIiPLZ97+71P0ry74ezZs33TzonIdxFQrQiJSM6DQeWqaHFBXCxFjUCAiJmmPL1duQIXR0EWfNq/bxEWM0UjEAxguKpX3gvqpU/eOewdBKBmZkpSEhGrWGm6IiWWKOBNKUv1OKVUeXGDsRiVkrwVscpRmaaGuFIr5KOqFnhmDqQCw5z3jiiLaSEiv3NPmhGxc05VQwjOuQhs0eThJ3/LJWfBLQ703TdeHfkuNbPBYCDEOtDQ+uHiwTLbPHb6pWm1IH0CQLEq0SjN7xJArO17H9jMKN53eI4xhnplba2qqj4lVX322Wcns3WngaViJxldkbB/GFfe+Kd9QcmUFylsDY6de2lDpipBuZhJJldVwwp84fJlAyshd/3z555L3cwgfk/kc4I2bUsAM08nE1Ag46ytUKqwZOa3hbMbJTZCGVp1y8+6gUg79DWl1py5KAZpc/RmpiLsXV3XXdfx3DX2MkgVBxdXLs8TxvLycrd1h4b7jG2xHjbbvWrz2JcfT0ViXWdRg4vZwHFiEgN9evUSa+08GTWACao6VMa4/M4KM585vZy6ZicW7CBTCnU1H5ZSUtXg2qQRhx9efP31Q619/Hu/f5iKZYMZoyibJlGSIfOj3//hP+8PX5k17738O/HWp6atcnAgV0cAkotJBuBd2fNK01kzV7gHxuNxGDx46gf/+Ivh0fs/wJKl9YyOyv1+mJpZ74t3wQJPW4ijxWsbZ7a+NMPo+L+9dvXlrx+f6Udbt6zvrZTdZMkACEv79wKTs88NTVUX477miadzVYepz7Z9PDfTVp777l98fORQletG20Ps//0731m6+ct88OTtThAr8AQfroSNG9XSeDpr7xuPN7e2iAhKRvw/kBfDiOzRP8EAAAAASUVORK5CYII=">
+  <div id="companion" class="companion" style="left:calc(100vw - 312px);top:145px;">
+    <div class="companion-layout">
+      <div class="companion-card">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● CAP-16 <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
+        <div id="companionMessage" class="text-[9px] leading-[1.45] text-slate-200 mt-1.5">Link established with Ship Core AI Server. All EVA parameters nominal. Cabin-exit radiation and DCS exposure timers are actively tracking.</div>
+        <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
+      </div>
+      <div class="sprite-frame">
+        <div class="sprite-stage"><canvas id="floatingSprite" width="36" height="36" class="companion-sprite"></canvas><canvas id="floatingEmote" width="18" height="24" class="floating-emote float"></canvas></div>
+        <div class="sprite-caption">A.S.T.R.A.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const round = (v, n=1) => Number(v.toFixed(n));
+  const state = {
+    psi:4.30, o2:96, co2:98, hr:78, temp:37.0, work:165, rad:0.08,
+    r:8, n2:92, dose:0, safeSeconds:1800, timerActive:false, sensorsOn:true, operatingMode:'habitat', habitatSeconds:0,
+    voiceOn:true, exited:false, seq:1, elapsed:0, scenario:'nominal',
+    palette:'cobalt', expression:'nominal', selectedZone:'forehead', bodyView:'front', symptoms:new Map(), painLevels:{},
+    peakHr:78, triageRan:false, lastWarning:'', alertState:'nominal', overrides:new Set(),
+    companionMode:'auto', activeModule:'vitals',
+    spo2:98, hrv:64, gsr:2.6, co2ppm:650, sleepHours:7.6, cfDna:0.84,
+    protonFlux:2.4, neutronFlux:0.04, cabinTemp:21.4, humidity:42, pm25:4.2, voc:0.12
+  };
+  const baseline = {psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:0.08};
+  const sliders = {psi:'sPsi',o2:'sO2',co2:'sCo2',hr:'sHr',temp:'sTemp',work:'sWork',rad:'sRad'};
+  const outputs = {psi:'sPsiOut',o2:'sO2Out',co2:'sCo2Out',hr:'sHrOut',temp:'sTempOut',work:'sWorkOut',rad:'sRadOut'};
+  const zoneMeta = {
+    forehead:{label:'Forehead',kind:'head'}, temple_right:{label:'Right temple',kind:'head'}, temple_left:{label:'Left temple',kind:'head'}, jaw:{label:'Jaw',kind:'head'}, neck:{label:'Neck',kind:'joint'},
+    shoulder_right:{label:'Right shoulder',kind:'joint'}, shoulder_left:{label:'Left shoulder',kind:'joint'},
+    chest_upper_right:{label:'Upper chest · right',kind:'torso'}, chest_upper_left:{label:'Upper chest · left',kind:'torso'}, chest_lower_right:{label:'Lower chest · right',kind:'torso'}, chest_lower_left:{label:'Lower chest · left',kind:'torso'},
+    abdomen_upper_right:{label:'Upper abdomen · right',kind:'torso'}, abdomen_upper_left:{label:'Upper abdomen · left',kind:'torso'}, abdomen_lower_right:{label:'Lower abdomen · right',kind:'torso'}, abdomen_lower_left:{label:'Lower abdomen · left',kind:'torso'},
+    upper_back:{label:'Upper back',kind:'back'}, mid_back:{label:'Mid back',kind:'back'}, lower_back:{label:'Lower back',kind:'back'},
+    upper_arm_right:{label:'Right upper arm',kind:'limb'}, elbow_right:{label:'Right elbow',kind:'joint'}, forearm_right:{label:'Right forearm',kind:'limb'}, wrist_right:{label:'Right wrist',kind:'joint'}, hand_right:{label:'Right hand',kind:'limb'},
+    upper_arm_left:{label:'Left upper arm',kind:'limb'}, elbow_left:{label:'Left elbow',kind:'joint'}, forearm_left:{label:'Left forearm',kind:'limb'}, wrist_left:{label:'Left wrist',kind:'joint'}, hand_left:{label:'Left hand',kind:'limb'},
+    hip_right:{label:'Right hip',kind:'joint'}, thigh_right:{label:'Right thigh',kind:'limb'}, knee_right:{label:'Right knee',kind:'joint'}, shin_right:{label:'Right shin',kind:'limb'}, ankle_right:{label:'Right ankle',kind:'joint'}, foot_right:{label:'Right foot',kind:'limb'},
+    hip_left:{label:'Left hip',kind:'joint'}, thigh_left:{label:'Left thigh',kind:'limb'}, knee_left:{label:'Left knee',kind:'joint'}, shin_left:{label:'Left shin',kind:'limb'}, ankle_left:{label:'Left ankle',kind:'joint'}, foot_left:{label:'Left foot',kind:'limb'}
+  };
+  const symptomSets = {
+    head:['Pain / headache','Pressure','Dizziness','Visual changes','Light sensitivity','Numbness / tingling','Confusion'],
+    joint:['Pain / aching','Joint stiffness','Tenderness','Swelling','Reduced range of motion','Weakness','Tingling / numbness'],
+    limb:['Pain / aching','Muscle soreness','Tingling / pins and needles','Numbness','Weakness','Swelling','Reduced movement / grip','Skin color / temperature change'],
+    torso:['Pain / tightness','Pressure','Tenderness','Shortness of breath','Persistent cough','Nausea','Tingling / numbness'],
+    back:['Pain / aching','Stiffness','Tenderness','Muscle spasm','Tingling / numbness','Weakness','Reduced movement']
+  };
+
+  const palettes = {
+    cobalt:{outline:'#9bd9ee',suit:'#2e6d95',shade:'#163b5d',accent:'#00f0ff',visor:'#071827',skin:'#f2c6a0',hair:'#20334d'},
+    solaris:{outline:'#ffe3a0',suit:'#b87925',shade:'#6c421e',accent:'#ffb800',visor:'#261b16',skin:'#f3c49a',hair:'#58301c'},
+    valkyrie:{outline:'#ffd0e7',suit:'#b34e83',shade:'#5d2853',accent:'#ff2a85',visor:'#251225',skin:'#f1c1b8',hair:'#552047'}
+  };
+
+  function calcRisk(){
+    // Intentionally fictional interface heuristic. Not a validated medical index.
+    const pressureFactor = Math.abs(state.psi - 4.3) * 13;
+    const hrFactor = Math.max(0, state.hr - 85) * 0.38;
+    const workFactor = Math.max(0, state.work - 170) * 0.055;
+    const resourceFactor = Math.max(0, 70 - state.o2) * 0.12;
+    state.r = Math.round(clamp(6 + pressureFactor + hrFactor + workFactor + resourceFactor, 0, 100));
+    state.n2 = Math.round(clamp(100 - state.r * 0.78, 0, 100));
+    const seconds = Math.round(5 + state.r * 1.4);
+    $('repressTime').textContent = `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+  }
+  function formatDuration(sec){ const s=Math.max(0,Math.floor(sec)); return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+  function formatClock(sec){ const s=Math.max(0,Math.floor(sec)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),r=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }
+  function o2Remaining(){
+    // Fictional capacity estimate: full reserve = six hours at baseline workload.
+    const rate = Math.max(.55, state.work / 165);
+    const mins = Math.max(0, Math.round((state.o2/100)*360*1/rate));
+    return `${String(Math.floor(mins/60)).padStart(2,'0')}h ${String(mins%60).padStart(2,'0')}m`;
+  }
+  function setText(id, value){ $(id).textContent = value; }
+  function setAlertLevel(level, message, target){
+    const rank={nominal:0,reminder:1,caution:2,critical:3};
+    if(rank[level] >= rank[state.alertState] || level==='nominal'){
+      state.alertState=level;
+      if(state.companionMode==='auto') state.expression=level;
+      updateCompanion();
+      if(message) companionWarn(message,target);
+    }
+  }
+  function syncLocationMode(){
+    const habitat=state.operatingMode==='habitat';
+    $('habitatMode').classList.toggle('active',habitat);
+    $('evaMode').classList.toggle('active',!habitat);
+    $('habitatMode').setAttribute('aria-pressed',String(habitat));
+    $('evaMode').setAttribute('aria-pressed',String(!habitat));
+    $('locationStatus').textContent=habitat?'PRESSURISED HABITAT · CONTINUOUS MONITOR':(state.exited?'EXTERIOR EVA · OUTSIDE CLOCK ACTIVE':'EVA MODE · AIRLOCK READY');
+    $('exitButton').classList.toggle('hidden-view',habitat||state.exited);
+    $('reentryButton').classList.toggle('hidden-view',habitat||!state.exited);
+    $('exitButton').disabled=habitat||state.exited;
+    $('reentryButton').disabled=habitat||!state.exited;
+    $('exitButton').classList.toggle('opacity-40',habitat||state.exited);
+    $('reentryButton').classList.toggle('opacity-40',habitat||!state.exited);
+    setText('evaPanelEyebrow',habitat?'01 / HABITAT TELEMETRY':'01 / EVA SUIT TELEMETRY');
+    setText('evaContextTitle',habitat?'HABITAT // LIVE SENSOR BUS':'EVA VISOR // LIVE SENSOR BUS');
+    setText('triageContextLabel',habitat?'03 / SHIP SERVER · IN-MISSION CREW REVIEW':'03 / SHIP SERVER · EVA CREW REVIEW');
+    setText('endpointTitle',habitat?'HABITAT CREW DISPLAY':'EVA HELMET VISOR HUD');
+    setText('endpointMode',habitat?'MODE: IVA · LOCAL LINK ENCRYPTED':'SUIT: EVA-07 · LINK ENCRYPTED');
+    setText('modeArchitectureHint',habitat?'● HABITAT / IVA MONITORING ACTIVE':'● EVA / EXTERIOR MONITORING ACTIVE');
+    setText('timerTitle',habitat?'HABITAT WATCH / IVA':'MAX SAFE OUTSIDE TIME');
+    setText('timerFootnote',habitat?'ILLUSTRATIVE SHIELDED DOSE MODEL · WATCH CLOCK 1.0×':'DEMO SORTIE BUDGET · REAL-TIME 1.0× · NOT A FLIGHT LIMIT');
+  }
+
+  function render(){
+    calcRisk();
+    setText('psiValue',state.psi.toFixed(2)); setText('o2Value',Math.round(state.o2)); setText('co2Value',Math.round(state.co2));
+    setText('hrValue',Math.round(state.hr)); setText('tempValue',state.temp.toFixed(1)); setText('workValue',Math.round(state.work));
+    setText('o2Time',o2Remaining()); setText('rValue',String(state.r).padStart(2,'0')); setText('n2Value',state.n2);
+    $('rBar').style.width=state.r+'%'; $('n2Bar').style.width=state.n2+'%';
+    const rColor=state.r>=65?'#ff2a4b':state.r>=35?'#ffb800':'#34d399';
+    $('rBar').style.background=rColor; $('rValue').style.color=rColor;
+    const label=state.r>=65?'CRITICAL':state.r>=35?'ELEVATED':'NOMINAL';
+    setText('rLabel',label); $('rLabel').style.color=rColor;
+    setText('radValue',state.rad.toFixed(2)); setText('doseValue',state.dose.toFixed(3));
+    if(state.operatingMode==='habitat'){
+      setText('safeTimer',formatClock(state.habitatSeconds));
+      setText('timerState',state.rad>=1?'RADIATION EVENT':'MONITORING ACTIVE');
+      $('safeTimer').style.color=state.rad>=1?'#ff2a4b':'#00f0ff';
+    } else {
+      setText('safeTimer',formatDuration(state.safeSeconds));
+      setText('timerState',state.exited?(state.safeSeconds<=165?'RETURN PRIORITY':'EVA ACTIVE'):(state.safeSeconds<=165?'AIRLOCK READY / BUDGET COMPRESSED':'AIRLOCK READY'));
+      $('safeTimer').style.color=state.safeSeconds<=165?'#ff2a4b':'#ffb800';
+    }
+    setText('radState',state.rad>=1?'SPIKE DETECTED':state.rad>=.3?'FLUX ELEVATED':'FLUX NOMINAL');
+    $('radState').style.color=state.rad>=1?'#ff2a4b':state.rad>=.3?'#ffb800':'#34d399';
+    setText('packetSeq',String(state.seq).padStart(6,'0'));
+    $('jsonPacket').textContent=JSON.stringify({psi:round(state.psi,2),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
+    setText('triageR',String(state.r).padStart(2,'0')); setText('triagePsi',state.psi.toFixed(2)); setText('triageHr',Math.round(state.peakHr)); setText('triageO2',Math.round(state.o2)+'%');
+    setText('snapshotState',state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD');
+    setText('spo2Value',state.spo2.toFixed(1)); setText('hrvValue',Math.round(state.hrv)); setText('gsrValue',state.gsr.toFixed(2)); setText('co2ppmValue',Math.round(state.co2ppm));
+    setText('sleepHoursValue',state.sleepHours.toFixed(1)); $('sleepBar').style.width=clamp(state.sleepHours/12*100,0,100)+'%';
+    setText('cfDnaValue',state.cfDna.toFixed(2)); setText('protonFluxValue',state.protonFlux.toFixed(2)); setText('neutronFluxValue',state.neutronFlux.toFixed(3));
+    setText('radiationEventValue',state.rad>=1?'ELEVATED EVENT':'QUIET'); $('radiationEventValue').style.color=state.rad>=1?'#ff2a4b':'#34d399';
+    setText('cabinTempValue',state.cabinTemp.toFixed(1)); setText('humidityValue',Math.round(state.humidity)); setText('pm25Value',state.pm25.toFixed(1)); setText('vocValue',state.voc.toFixed(2));
+    const roomOk=state.co2ppm<1200 && state.pm25<15 && state.voc<0.8;
+    setText('roomSummary',roomOk?'ROOM STREAM WITHIN DEMO BANDS':'ROOM SENSOR REVIEW · SIM'); $('roomSummary').style.color=roomOk?'#34d399':'#ffb800';
+    Object.keys(sliders).forEach(k=>{
+      const input=$(sliders[k]); if(document.activeElement!==input) input.value=state[k];
+      const val=k==='psi'?state[k].toFixed(2):k==='temp'?state[k].toFixed(1):k==='rad'?state[k].toFixed(2):Math.round(state[k]);
+      const suffix={psi:' PSI',o2:'%',co2:'%',hr:' bpm',temp:'°C',work:' W',rad:' mSv/h'}[k];
+      setText(outputs[k],val+suffix);
+    });
+    document.querySelectorAll('.metric').forEach(el=>el.classList.remove('alerting'));
+    if(state.psi<3.7||state.psi>4.8) $('card-psi').classList.add('alerting');
+    if(state.o2<30) $('card-o2').classList.add('alerting');
+    if(state.co2<65) $('card-co2').classList.add('alerting');
+    if(state.hr>130) $('card-hr').classList.add('alerting');
+    if(state.temp>38.3||state.temp<35.5) $('card-temp').classList.add('alerting');
+    if(state.work>350) $('card-work').classList.add('alerting');
+  }
+  function speak(message){ if(!state.voiceOn || !('speechSynthesis' in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(message); u.rate=1.04; u.pitch=1.08; speechSynthesis.speak(u); }catch(e){} }
+  function companionWarn(message,target){
+    $('companionMessage').textContent=message;
+    $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
+    teleportCompanion(target || 'card-psi'); speak(message);
+  }
+  function teleportCompanion(targetId){
+    const el=$(targetId); const comp=$('companion');
+    const rect=el?el.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
+    const width=comp.offsetWidth||304, height=comp.offsetHeight||150;
+    let left=rect.left+rect.width-width*.42;
+    let top=rect.top-height-12;
+    left=clamp(left,8,Math.max(8,window.innerWidth-width-8));
+    if(top<8) top=clamp(rect.bottom+12,8,Math.max(8,window.innerHeight-height-8));
+    top=clamp(top,8,Math.max(8,window.innerHeight-height-8));
+    comp.style.left=left+'px'; comp.style.top=top+'px';
+  }
+
+  // The reference character is embedded in this HTML and rendered into a 36x36 pixel canvas.
+  const characterImage = $('astraSpriteSource');
+  const paletteFilters = {
+    cobalt:'none',
+    solaris:'sepia(.72) saturate(1.45) hue-rotate(330deg)',
+    valkyrie:'hue-rotate(285deg) saturate(1.28)'
+  };
+  function drawFaceExpression(ctx){
+    if(state.expression==='nominal') return; // Preserve the exact reference smile for nominal state.
+    const skin='#f2dfcc', dark='#101b25', white='#eafaff', blue='#4cb7e4';
+    ctx.fillStyle=skin;
+    ctx.fillRect(11,17,6,5); ctx.fillRect(21,17,6,5); ctx.fillRect(16,24,6,4);
+    if(state.expression==='reminder'){
+      // Bright, wide-eyed reminder expression with a small surprised mouth.
+      ctx.fillStyle=dark; ctx.fillRect(11,17,6,1); ctx.fillRect(21,17,6,1);
+      ctx.fillStyle=white; ctx.fillRect(12,19,4,3); ctx.fillRect(22,19,4,3);
+      ctx.fillStyle=blue; ctx.fillRect(13,20,2,2); ctx.fillRect(23,20,2,2);
+      ctx.fillStyle=dark; ctx.fillRect(18,25,2,3); ctx.fillRect(17,26,4,1);
+    } else if(state.expression==='caution'){
+      // Worried brows, smaller eyes and a tight, uncertain mouth.
+      ctx.fillStyle=dark; ctx.fillRect(11,18,2,1); ctx.fillRect(13,17,3,1); ctx.fillRect(22,17,3,1); ctx.fillRect(25,18,2,1);
+      ctx.fillStyle=white; ctx.fillRect(12,19,4,2); ctx.fillRect(22,19,4,2);
+      ctx.fillStyle=blue; ctx.fillRect(13,20,2,1); ctx.fillRect(23,20,2,1);
+      ctx.fillStyle=dark; ctx.fillRect(17,26,4,1); ctx.fillRect(18,27,2,1);
+      ctx.fillStyle='#58bfff'; ctx.fillRect(27,23,1,2); ctx.fillRect(28,25,1,2);
+    } else {
+      // Critical expression: lowered brows, red alert eyes and a tense mouth.
+      ctx.fillStyle=dark; ctx.fillRect(11,17,3,1); ctx.fillRect(14,18,2,1); ctx.fillRect(21,18,2,1); ctx.fillRect(23,17,3,1);
+      ctx.fillStyle='#ff2a4b'; ctx.fillRect(12,19,4,2); ctx.fillRect(22,19,4,2);
+      ctx.fillStyle='#fff0f4'; ctx.fillRect(13,19,1,1); ctx.fillRect(23,19,1,1);
+      ctx.fillStyle=dark; ctx.fillRect(16,25,6,2); ctx.fillRect(17,27,4,1);
+      ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
+    }
+  }
+  function drawSprite(canvas){
+    if(!canvas || !characterImage || !characterImage.complete || !characterImage.naturalWidth) return;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,36,36); ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(characterImage,0,0,36,36);
+    drawFaceExpression(ctx);
+    canvas.style.filter=paletteFilters[state.palette]||'none';
+  }
+  function drawEmote(canvas){
+    const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.imageSmoothingEnabled=false;
+    const paletteAccent={cobalt:'#00f0ff',solaris:'#ffb800',valkyrie:'#ff2a85'}[state.palette]||'#00f0ff';
+    const color=state.expression==='critical'?'#ff2a4b':state.expression==='caution'?'#5bb8ff':state.expression==='reminder'?'#ffcf42':paletteAccent;
+    ctx.fillStyle=color;
+    if(state.expression==='nominal'){
+      // Four-point pixel sparkle, separate from the 36x36 character canvas.
+      ctx.fillRect(8,0,2,8);ctx.fillRect(4,8,10,2);ctx.fillRect(8,10,2,8);ctx.fillRect(0,8,4,2);ctx.fillRect(14,8,4,2);
+    } else if(state.expression==='reminder'){
+      ctx.fillRect(6,0,6,16);ctx.fillRect(6,20,6,4);
+    } else if(state.expression==='caution'){
+      ctx.fillRect(6,0,6,4);ctx.fillRect(2,4,14,7);ctx.fillRect(4,11,10,7);ctx.fillRect(7,18,4,4);
+    } else {
+      // Angular four-way urgency / vein glyph.
+      ctx.fillRect(7,0,4,6);ctx.fillRect(2,5,8,4);ctx.fillRect(0,9,7,5);ctx.fillRect(5,14,7,5);ctx.fillRect(11,7,7,5);ctx.fillRect(14,2,4,7);ctx.fillRect(8,10,5,5);
+    }
+  }
+  function updateCompanion(){
+    if($('companionState')) $('companionState').textContent=state.expression.toUpperCase()+' / '+state.palette.toUpperCase();
+    const modeButton=$('astraModeToggle');
+    if(modeButton){modeButton.innerHTML='A.S.T.R.A.: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
+    const customPanel=$('astraCustomPanel'); if(customPanel) customPanel.classList.toggle('hidden-view',state.companionMode!=='custom');
+    setText('companionExpressionLabel',state.expression.toUpperCase());
+    setText('companionPaletteLabel',state.palette.toUpperCase());
+    const emotes={nominal:'✦',reminder:'❗',caution:'💧',critical:'💢'};
+    const e=emotes[state.expression]; $('emote').textContent=e;
+    drawSprite($('previewSprite')); drawSprite($('floatingSprite')); drawEmote($('floatingEmote'));
+    document.querySelectorAll('[data-palette]').forEach(b=>b.classList.toggle('active',b.dataset.palette===state.palette));
+    document.querySelectorAll('[data-expression]').forEach(b=>b.classList.toggle('active',b.dataset.expression===state.expression));
+  }
+
+  function applyScenario(name){
+    state.scenario=name;
+    state.overrides.clear();
+    Object.assign(state, baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
+    if(name==='nominal'){
+      Object.assign(state,{psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:.08,
+        spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,
+        cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
+      if(!state.exited) state.safeSeconds=1800; state.alertState='nominal'; if(state.companionMode==='auto') state.expression='nominal';
+      companionWarn('Nominal mission profile loaded. Telemetry stable.','metricsGrid');
+    } else if(name==='solar'){
+      Object.assign(state,{rad:1.85,hr:91,work:195,protonFlux:6.8,neutronFlux:.12});
+      state.safeSeconds=Math.min(state.safeSeconds,165); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
+      companionWarn('Solar flux spike! Return-to-shelter priority: 02:45 demo budget.','radValue');
+    } else if(name==='exertion'){
+      Object.assign(state,{hr:148,work:410,temp:37.9,gsr:4.8,hrv:38,spo2:96.5}); state.alertState='caution'; if(state.companionMode==='auto') state.expression='caution';
+      companionWarn('High workload detected. Reduce simulated exertion and review crew status.','card-work');
+    } else if(name==='leak'){
+      Object.assign(state,{psi:3.25,o2:82,hr:106}); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
+      companionWarn('Suit pressure anomaly! Treat this as a simulated suit-integrity emergency.','card-psi');
+    }
+    state.peakHr=Math.max(state.peakHr,state.hr);
+    updateCompanion(); syncButtons(); render();
+  }
+  function syncButtons(){
+    document.querySelectorAll('[data-scenario]').forEach(b=>b.classList.toggle('active',b.dataset.scenario===state.scenario));
+  }
+  function setModule(name){
+    state.activeModule=name;
+    document.querySelectorAll('[data-module]').forEach(b=>{const active=b.dataset.module===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});
+    document.querySelectorAll('.module-pane').forEach(p=>p.classList.toggle('active',p.id==='module-'+name));
+  }
+  function updateSleepSchedule(){
+    const target=Number($('sleepTarget').value); setText('sleepTargetOut',target.toFixed(1)+' h');
+    setText('sleepScheduleSummary',$('sleepStart').value+' → '+$('sleepEnd').value+' · '+target.toFixed(1)+' h planned');
+  }
+
+  function tickSensors(){
+    if(!state.sensorsOn) return;
+    const free = (key) => !state.overrides.has(key);
+    if(state.scenario==='nominal'){
+      if(free('psi')) state.psi=clamp(state.psi+(Math.random()-.5)*.025,4.20,4.40);
+      if(free('o2')) state.o2=clamp(state.o2-.004,0,100);
+      if(free('co2')) state.co2=clamp(state.co2-.01,0,100);
+      if(free('hr')) state.hr=clamp(state.hr+(Math.random()-.5)*2,60,105);
+      if(free('temp')) state.temp=clamp(state.temp+(Math.random()-.5)*.025,36.5,37.6);
+      if(free('work')) state.work=clamp(state.work+(Math.random()-.5)*5,120,220);
+      if(free('rad')) state.rad=clamp(state.rad+(Math.random()-.5)*.015,.04,.14);
+    } else if(state.scenario==='solar'){
+      if(free('rad')) state.rad=clamp(state.rad+(Math.random()-.5)*.09,1.55,2.2);
+      if(free('hr')) state.hr=clamp(state.hr+(Math.random()-.5)*2,85,105);
+    } else if(state.scenario==='exertion'){
+      if(free('hr')) state.hr=clamp(state.hr+(Math.random()-.5)*3,135,158);
+      if(free('work')) state.work=clamp(state.work+(Math.random()-.5)*8,380,445);
+      if(free('temp')) state.temp=clamp(state.temp+.006,37.6,38.2);
+      if(free('o2')) state.o2=clamp(state.o2-.012,0,100);
+    } else if(state.scenario==='leak'){
+      if(free('psi')) state.psi=clamp(state.psi-.003,2.8,3.3);
+      if(free('o2')) state.o2=clamp(state.o2-.018,0,100);
+      if(free('hr')) state.hr=clamp(state.hr+(Math.random()-.5)*2,100,118);
+    }
+    // Additional simulated channels: optical, autonomic, assay, radiation and cabin sensors.
+    // In the nominal state, values gently settle toward their demo baselines after a scenario clears.
+    const nominalState=state.scenario==='nominal';
+    const solarState=state.scenario==='solar';
+    const exertionState=state.scenario==='exertion';
+    const settle=(value,target,rate,jitter)=>value+(target-value)*rate+(Math.random()-.5)*jitter;
+    state.spo2=clamp(settle(state.spo2,98,nominalState?.12:.025,.12)-(state.hr>140?.01:0),94,99.5);
+    state.hrv=clamp(settle(state.hrv,exertionState?38:64,nominalState?.12:.025,1.2)-(state.work>350?.08:0),22,105);
+    state.gsr=clamp(settle(state.gsr,exertionState?4.8:2.6,nominalState?.12:.025,.10)+(state.work>350?.025:0),0.6,8.5);
+    state.co2ppm=clamp(settle(state.co2ppm,650,nominalState?.08:.018,8)+(state.co2<80?1.5:0),450,1800);
+    state.cfDna=clamp(settle(state.cfDna,.84,.08,.003),0.65,1.15);
+    state.protonFlux=clamp(settle(state.protonFlux,solarState?6.8:2.4,nominalState?.14:.02,solarState?.18:.025)+(state.rad>=1?.04:0),.2,9.5);
+    state.neutronFlux=clamp(settle(state.neutronFlux,solarState?.12:.04,nominalState?.14:.02,solarState?.008:.002),.005,.25);
+    state.cabinTemp=clamp(settle(state.cabinTemp,21.4,.08,.04),19,25);
+    state.humidity=clamp(settle(state.humidity,42,.08,.25),25,65);
+    state.pm25=clamp(settle(state.pm25,4.2,.08,.08),0.5,25);
+    state.voc=clamp(settle(state.voc,.12,.08,.003),0.02,1.2);
+    state.peakHr=Math.max(state.peakHr,state.hr);
+    state.seq++; render(); detectAnomaly();
+  }
+  function detectAnomaly(){
+    let level='nominal', message='', target='metricsGrid', key='';
+    if(state.rad>=1.0){level='critical';message='Radiation flux is elevated in this simulated scenario. Check the shelter-window display.';target='radValue';key='solar';}
+    else if(state.psi<3.65 || state.o2<72){level='critical';message='Suit resource or pressure anomaly detected in the simulation. Review the visor telemetry.';target='card-psi';key='integrity';}
+    else if(state.hr>135 || state.work>350 || state.temp>38.1){level='caution';message='High workload pattern detected. Review the simulated crew status.';target='card-work';key='work';}
+    else if(state.o2<88 || state.co2<75 || state.spo2<92 || state.co2ppm>1200){level='reminder';message='A monitored channel has moved outside its nominal demo range. Check the readings.';target='metricsGrid';key='resource';}
+
+    if(level!=='nominal'){
+      const rank={nominal:0,reminder:1,caution:2,critical:3};
+      if(rank[level]>=rank[state.alertState]) state.alertState=level;
+      if(state.companionMode==='auto') state.expression=state.alertState;
+      if(state.lastWarning!==key){state.lastWarning=key;companionWarn(message,target);}
+    } else {
+      const timerClear=!(state.exited && state.safeSeconds<=165);
+      const recovered=timerClear && Math.abs(state.psi-4.30)<=0.16 && state.o2>=92 && state.co2>=92 && state.hr<115 && state.temp<37.7 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
+      if(recovered){
+        const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
+        state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal';
+        if(!state.exited) state.safeSeconds=1800;
+        if(state.companionMode==='auto') state.expression='nominal';
+        syncButtons();
+        if(wasAlert && state.companionMode==='auto'){
+          $('companionMessage').textContent='Telemetry has returned to the nominal demo range. Cap-16 is cooling down.';
+          updateCompanion();
+        }
+      }
+    }
+    updateCompanion();
+  }
+
+  function sensorTimerTick(){
+    state.elapsed++;
+    if(state.operatingMode==='habitat'){
+      state.habitatSeconds++;
+      // Illustrative shielding attenuation for the cabin-dose display only; not a physical prediction.
+      state.dose += (state.rad * 0.12) / 3600;
+    } else if(state.exited && state.timerActive){
+      state.safeSeconds=Math.max(0,state.safeSeconds-1);
+      state.dose += state.rad/3600;
+      if(state.safeSeconds===165 && state.lastWarning!=='shelter'){
+        state.lastWarning='shelter';
+        setAlertLevel('critical','Shelter window compressed. Return to the simulated airlock now.','safeTimer');
+      }
+      if(state.safeSeconds===0 && state.lastWarning!=='expired'){
+        state.lastWarning='expired';
+        setAlertLevel('critical','Demo outside-time budget expired. EVA simulation hold.','safeTimer');
+      }
+    }
+    const h=Math.floor(state.elapsed/3600),m=Math.floor((state.elapsed%3600)/60),s=state.elapsed%60;
+    setText('clock',`MISSION ELAPSED ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+    render();
+  }
+
+  function setView(view){
+    const eva=$('evaPanel'),triage=$('triagePanel');
+    eva.classList.toggle('hidden-view',view==='ship'); triage.classList.toggle('hidden-view',view==='eva');
+    document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+    $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
+    if(view==='ship') teleportCompanion('triagePanel'); else teleportCompanion('metricsGrid');
+  }
+
+  function zoneShape(id, markup, type='zone'){
+    return markup.replace('class="zone"',`class="${type}"`).replace('data-zone=""',`data-zone="${id}"`);
+  }
+  function circleZone(id,x,y,rx,ry=rx){ return `<ellipse class="zone" data-zone="${id}" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`; }
+  function rectZone(id,x,y,w,h,rad=3){ return `<rect class="zone" data-zone="${id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rad}"/>`; }
+  function lineZone(id,d,width=13){ return `<path class="zone-limb" data-zone="${id}" d="${d}" style="stroke-width:${width}px"/>`; }
+  function renderBodyMap(){
+    const front=state.bodyView==='front';
+    const torsoZones=front
+      ? [
+          rectZone('chest_upper_right',104,91,25,24,5),rectZone('chest_upper_left',131,91,25,24,5),
+          rectZone('chest_lower_right',104,117,25,22,4),rectZone('chest_lower_left',131,117,25,22,4),
+          rectZone('abdomen_upper_right',105,142,24,20,4),rectZone('abdomen_upper_left',131,142,24,20,4),
+          rectZone('abdomen_lower_right',106,164,23,18,4),rectZone('abdomen_lower_left',131,164,23,18,4)
+        ].join('')
+      : [
+          rectZone('upper_back',104,91,52,28,5),rectZone('mid_back',104,121,52,29,5),rectZone('lower_back',106,152,48,30,5)
+        ].join('');
+    const upperLimbs=[
+      lineZone('upper_arm_right','M91 83 L75 130',14),circleZone('elbow_right',72,141,8),lineZone('forearm_right','M69 151 L59 194',12),circleZone('wrist_right',57,201,7),circleZone('hand_right',53,218,9,11),
+      lineZone('upper_arm_left','M169 83 L185 130',14),circleZone('elbow_left',188,141,8),lineZone('forearm_left','M191 151 L201 194',12),circleZone('wrist_left',203,201,7),circleZone('hand_left',207,218,9,11)
+    ].join('');
+    const lowerLimbs=[
+      circleZone('hip_right',113,184,13,10),lineZone('thigh_right','M112 195 L105 247',16),circleZone('knee_right',104,255,9),lineZone('shin_right','M103 266 L96 325',14),circleZone('ankle_right',95,334,7),rectZone('foot_right',78,340,28,13,5),
+      circleZone('hip_left',147,184,13,10),lineZone('thigh_left','M148 195 L155 247',16),circleZone('knee_left',156,255,9),lineZone('shin_left','M157 266 L164 325',14),circleZone('ankle_left',165,334,7),rectZone('foot_left',154,340,28,13,5)
+    ].join('');
+    const headZones=[circleZone('forehead',130,28,13,8),circleZone('temple_right',112,39,7,8),circleZone('temple_left',148,39,7,8),rectZone('jaw',117,46,26,11,5),rectZone('neck',119,58,22,17,4)];
+    const shoulders=[circleZone('shoulder_right',94,81,12,10),circleZone('shoulder_left',166,81,12,10)];
+    $('bodyMap').innerHTML=`<svg viewBox="0 0 260 365" class="w-full h-auto" role="img" aria-label="${front?'Front':'Back'} anatomical body map with individual selectable pain zones">
+      <g class="body-base">
+        <circle cx="130" cy="34" r="24"/><rect x="118" y="55" width="24" height="24" rx="7"/>
+        <path d="M96 76 Q130 67 164 76 L176 111 171 180 Q168 194 153 201 L107 201 Q92 194 89 180 L84 111Z"/>
+        <path d="M96 82 Q82 85 77 103 L58 193 Q55 207 51 222 L64 228 84 167 104 105Z"/>
+        <path d="M164 82 Q178 85 183 103 L202 193 Q205 207 209 222 L196 228 176 167 156 105Z"/>
+        <path d="M105 190 Q130 198 155 190 L161 247 169 333 150 341 140 265 130 219 120 265 110 341 91 333 99 247Z"/>
+        <path d="M51 218 Q43 231 47 243 L59 248 66 230Z M209 218 Q217 231 213 243 L201 248 194 230Z"/>
+        <path d="M91 338 L111 338 109 350 74 352 74 346Z M149 338 L169 338 186 346 186 352 151 350Z"/>
+      </g>
+      <path class="body-guide" d="M130 62V196 M84 109H176"/>
+      ${headZones.join('')}${shoulders.join('')}${torsoZones}${upperLimbs}${lowerLimbs}
+      <g class="zone-label"><text x="130" y="9">${front?'FRONT VIEW':'BACK VIEW'}</text><text x="43" y="105">R</text><text x="217" y="105">L</text><text x="130" y="360">R / L = CREW SIDES</text></g>
+    </svg>`;
+    $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
+      el.classList.toggle('selected',el.dataset.zone===state.selectedZone);
+      el.addEventListener('click',()=>{state.selectedZone=el.dataset.zone;renderSymptoms();renderBodyMap();});
+      el.setAttribute('role','button'); el.setAttribute('tabindex','0');
+      el.setAttribute('aria-label',zoneMeta[el.dataset.zone]?.label||el.dataset.zone);
+      el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
+    });
+    document.querySelectorAll('[data-body-view]').forEach(b=>b.classList.toggle('active',b.dataset.bodyView===state.bodyView));
+  }
+  function selectedSymptomSet(){
+    if(!state.symptoms.has(state.selectedZone)) state.symptoms.set(state.selectedZone,new Set());
+    return state.symptoms.get(state.selectedZone);
+  }
+  function renderSymptoms(){
+    const meta=zoneMeta[state.selectedZone]||{label:state.selectedZone,kind:'limb'};
+    $('selectedZoneLabel').textContent=meta.label.toUpperCase()+' SELECTED';
+    $('symptomButtons').innerHTML='';
+    const chosen=selectedSymptomSet();
+    (symptomSets[meta.kind]||symptomSets.limb).forEach(sym=>{
+      const b=document.createElement('button'); b.type='button'; b.className='symptom-btn'+(chosen.has(sym)?' selected':''); b.textContent=(chosen.has(sym)?'✓ ':'＋ ')+sym;
+      b.addEventListener('click',()=>{chosen.has(sym)?chosen.delete(sym):chosen.add(sym);if(!chosen.size)state.symptoms.delete(state.selectedZone);renderSymptoms();renderReported();});
+      $('symptomButtons').appendChild(b);
+    });
+    const pain=Number(state.painLevels[state.selectedZone]||0);
+    $('painLevel').value=pain; $('painLevelOutput').textContent=`${pain} / 10`;
+    $('painLevelOutput').style.color=pain>=7?'#ff2a4b':pain>=4?'#ffb800':'#ff2a85';
+  }
+  function renderReported(){
+    const box=$('reportedSymptoms'); box.innerHTML='';
+    const items=[];
+    for(const [zone,set] of state.symptoms.entries()) for(const sym of set) items.push({zone,text:sym});
+    for(const [zone,value] of Object.entries(state.painLevels)) if(Number(value)>0) items.push({zone,text:`Pain intensity ${value}/10`});
+    if(!items.length){box.innerHTML='<span class="text-[10px] text-slate-600">No symptoms reported.</span>';return;}
+    items.forEach(item=>{
+      const chip=document.createElement('span');chip.className='symptom-chip';
+      chip.textContent=`${zoneMeta[item.zone]?.label||item.zone}: ${item.text}`;box.appendChild(chip);
+    });
+  }
+  function runTriage(){
+    const report=$('triageText').value.toLowerCase();
+    const entries=[];
+    for(const [zone,set] of state.symptoms.entries()) for(const sym of set) entries.push({zone,text:sym});
+    const painEntries=Object.entries(state.painLevels).filter(([,v])=>Number(v)>0).map(([zone,v])=>({zone,text:`pain ${v}/10`}));
+    const allEntries=[...entries,...painEntries];
+    const symptomText=allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone} ${x.text}`).join(' ').toLowerCase()+' '+report;
+    const neuroWords=['confusion','numbness','tingling','weakness','visual','vision','dizziness','difficulty walking','shortness of breath','breathing difficulty','persistent cough','coordination'];
+    const typeIWords=['pain','ache','aching','joint','itch','skin change','swelling','stiffness','tenderness','soreness'];
+    const neuro=neuroWords.some(w=>symptomText.includes(w));
+    const maxPain=Math.max(0,...Object.values(state.painLevels).map(Number));
+    const typeI=typeIWords.some(w=>symptomText.includes(w)) || maxPain>=4;
+    const any=allEntries.length>0 || report.trim().length>0;
+    const locations=[...new Set(allEntries.map(x=>zoneMeta[x.zone]?.label||x.zone))];
+    let level='low',title='NO HIGH-PRIORITY PATTERN FLAGGED',body='',actions=[];
+    if(!any){
+      level='none';title='NO CREW REPORT ENTERED';body='No symptoms or pain scores were entered. This is not evidence that a crew member is medically clear.';
+    } else if(neuro || state.r>=65 || state.psi<3.6){
+      level='critical'; title='URGENT NEUROLOGIC / CARDIOPULMONARY REVIEW FLAG';
+      body='The training rules detected neurological or cardiopulmonary keywords, a high simulated R-value, or a pressure anomaly. The signal cannot identify a cause or diagnose DCS; route the crew report to mission medical oversight.';
+      actions=['Record exact body locations, symptom onset, progression, and the EVA timeline.','Immediately notify the designated flight surgeon / mission medical authority for assessment under the mission plan.','Do not use this prototype to select oxygen delivery, recompression settings, chamber schedules, or fitness-for-duty decisions.'];
+    } else if(typeI || state.r>=35){
+      level='caution';title='MUSCULOSKELETAL / SKIN PATTERN — REVIEW REQUIRED';
+      body='The training rules found pain, joint, limb, or skin-related terms and/or an elevated simulated score. Suit/glove mechanics can overlap with medical symptoms; this interface cannot distinguish them reliably.';
+      actions=['Record the affected side and small body region, pain score, onset, and whether symptoms are changing.','Escalate persistent, worsening, or unusual symptoms to the flight surgeon using approved mission procedures.','Do not dismiss reported limb or joint pain as ordinary suit fatigue based on this score.'];
+    } else {
+      level='low';title='NON-SPECIFIC REPORT — KEEP UNDER REVIEW';
+      body='The inputs do not match the training rules for a higher-priority flag. A low result is not a diagnosis and does not rule out decompression sickness or another medical problem.';
+      actions=['Keep the location, onset, and symptom description in the crew record.','Escalate persistent, worsening, or concerning symptoms through the mission medical workflow.'];
+    }
+    const badge=$('triageBadge');
+    const styles={critical:'bg-alert/10 text-rose-300 border-alert/35',caution:'bg-amber/10 text-amber-200 border-amber/35',low:'bg-emerald-400/10 text-emerald-300 border-emerald-400/25',none:'bg-slate-400/10 text-slate-300 border-slate-400/25'};
+    badge.className='rounded px-2 py-1 text-[9px] mono border '+styles[level]; badge.textContent=level==='critical'?'URGENT ESCALATION':level==='caution'?'REVIEW REQUIRED':level==='low'?'LOW SIGNAL':'NO INPUT';
+    const out=$('triageOutput'); out.className='rounded-lg border p-3 min-h-[128px] '+(level==='critical'?'border-alert/40 bg-alert/[.055]':level==='caution'?'border-amber/35 bg-amber/[.04]':'border-line/70 bg-[#07111d]');
+    const locationLine=locations.length?`<p class="text-[10px] mono text-cyan mt-2">LOCATIONS: ${locations.map(s=>s.replace(/[&<>"']/g,'')).join(' · ')}</p>`:'';
+    const onsetLine=`<p class="text-[9px] mono text-slate-500 mt-1">ONSET: ${$('onsetSelect').value}</p>`;
+    out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SIMULATION ROUTING / NOT A TREATMENT PROTOCOL</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
+    state.triageRan=true;
+    if(level==='critical')setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');
+    else if(level==='caution')setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');
+    else if(level==='low'){if(state.companionMode==='auto') state.expression='reminder';updateCompanion();}
+  }
+
+  // Wire view controls.
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  $('voiceToggle').addEventListener('click',()=>{state.voiceOn=!state.voiceOn;$('voiceToggle').innerHTML='VOICE: <span class="'+(state.voiceOn?'text-cyan':'text-slate-500')+'">'+(state.voiceOn?'ON':'OFF')+'</span>';if(!state.voiceOn&&'speechSynthesis'in window)speechSynthesis.cancel();});
+  $('astraModeToggle').addEventListener('click',()=>{
+    state.companionMode=state.companionMode==='auto'?'custom':'auto';
+    if(state.companionMode==='auto') state.expression=state.alertState;
+    updateCompanion();
+  });
+  $('sensorToggle').addEventListener('click',()=>{state.sensorsOn=!state.sensorsOn;$('sensorToggle').textContent='LIVE SENSORS: '+(state.sensorsOn?'ON':'OFF');$('sensorToggle').classList.toggle('active',state.sensorsOn);$('sensorStatus').innerHTML=state.sensorsOn?'<span class="text-emerald-300">● LIVE</span> / 1 Hz':'<span class="text-amber">● HOLD</span> / LAST PACKET';$('snapshotState').textContent=state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD';});
+  $('manualToggle').setAttribute('aria-expanded','false');
+  $('manualToggle').addEventListener('click',()=>{
+    const sliders=[...document.querySelectorAll('.sensor-tune')];
+    const shouldOpen=sliders.some(el=>el.classList.contains('hidden-view'));
+    sliders.forEach(el=>el.classList.toggle('hidden-view',!shouldOpen));
+    $('manualToggle').textContent=shouldOpen?'MANUAL OVERRIDE ▴':'MANUAL OVERRIDE ▾';
+    $('manualToggle').classList.toggle('active',shouldOpen);
+    $('manualToggle').setAttribute('aria-expanded',String(shouldOpen));
+  });
+  document.querySelectorAll('[data-module]').forEach(b=>b.addEventListener('click',()=>setModule(b.dataset.module)));
+  ['sleepStart','sleepEnd','sleepTarget'].forEach(id=>$(id).addEventListener('input',updateSleepSchedule));
+  $('phenotypePreset').addEventListener('change',()=>{const labels={reference:'REFERENCE CONFIGURATION · NO CLASSIFICATION','profile-a':'SAMPLE PROFILE A · DISPLAY ONLY','profile-b':'SAMPLE PROFILE B · DISPLAY ONLY','profile-c':'SAMPLE PROFILE C · DISPLAY ONLY'};setText('phenotypeState',labels[$('phenotypePreset').value]);});
+  document.querySelectorAll('[data-scenario]').forEach(b=>b.addEventListener('click',()=>{state.lastWarning='';applyScenario(b.dataset.scenario);}));
+  Object.keys(sliders).forEach(k=>$(sliders[k]).addEventListener('input',e=>{
+    state[k]=Number(e.target.value);
+    const tol={psi:.03,o2:1,co2:1,hr:1,temp:.05,work:5,rad:.015}[k]||0;
+    if(Math.abs(state[k]-baseline[k])<=tol) state.overrides.delete(k); else state.overrides.add(k);
+    state.peakHr=Math.max(state.peakHr,state.hr);
+    render(); detectAnomaly(); syncButtons();
+  }));
+  $('resetSensors').addEventListener('click',()=>{
+    Object.assign(state,baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
+    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    syncButtons();syncLocationMode();updateCompanion();render();
+  });
+  $('habitatMode').addEventListener('click',()=>{
+    if(state.exited){
+      setAlertLevel('reminder','Simulate airlock re-entry before switching back to habitat monitoring.','safeTimer');
+      return;
+    }
+    state.operatingMode='habitat'; state.timerActive=false; syncLocationMode(); render();
+  });
+  $('evaMode').addEventListener('click',()=>{
+    if(state.exited){ state.operatingMode='eva'; syncLocationMode(); render(); return; }
+    state.operatingMode='eva'; state.timerActive=false; syncLocationMode(); render();
+  });
+  $('exitButton').addEventListener('click',()=>{
+    if(state.exited||state.operatingMode!=='eva')return;
+    state.exited=true; state.timerActive=true;
+    if(state.rad>=1)state.safeSeconds=Math.min(state.safeSeconds,165);
+    syncLocationMode(); render(); speak('Cabin exit simulated. Outside-time clock active.');
+  });
+  $('reentryButton').addEventListener('click',()=>{
+    state.exited=false; state.timerActive=false; state.operatingMode='habitat';
+    state.safeSeconds=1800; state.lastWarning='';
+    syncLocationMode(); render();
+    speak('Airlock re-entry simulated. Habitat watch resumed and sortie budget reset.');
+  });
+  document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(state.bodyView==='back' && !['upper_back','mid_back','lower_back'].includes(state.selectedZone)) state.selectedZone='upper_back';if(state.bodyView==='front' && ['upper_back','mid_back','lower_back'].includes(state.selectedZone)) state.selectedZone='chest_upper_left';renderBodyMap();renderSymptoms();}));
+  $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
+  $('analyzeButton').addEventListener('click',runTriage);
+  document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{state.palette=b.dataset.palette;updateCompanion();}));
+  document.querySelectorAll('[data-expression]').forEach(b=>b.addEventListener('click',()=>{state.expression=b.dataset.expression;updateCompanion();}));
+  window.addEventListener('resize',()=>teleportCompanion(state.expression==='critical'?'card-psi':'metricsGrid'));
+
+  // Redraw once the embedded reference sprite is decoded.
+  if(characterImage && !characterImage.complete) characterImage.addEventListener('load',updateCompanion,{once:true});
+  else if(characterImage && characterImage.naturalWidth) updateCompanion();
+  // Initial UI and deterministic one-second clocks.
+  renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
+  setInterval(tickSensors,1000);
+  setInterval(sensorTimerTick,1000);
+  setTimeout(()=>teleportCompanion('metricsGrid'),350);
+})();
+</script>
+</body>
+</html>
