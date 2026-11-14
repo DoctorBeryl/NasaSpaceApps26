@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — Diagnostic Tools</title>
+  <meta name="description" content="The eight AstraSight health diagnostic tools, with a demo for each one." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">Diagnostic suite</span>
+      <h1>See each tool <span class="grad-text">at work.</span></h1>
+      <p class="lead">Pick a diagnostic to see its simulated signal, how it works, and the voice command that opens it. Each demo frame is a placeholder for real footage. Add a video file and it plays automatically.</p>
+    </div>
+  </header>
+
+  <main class="container tools-layout">
+    <nav class="tool-list" id="tool-list" aria-label="Diagnostic tools"></nav>
+
+    <div class="stage">
+      <div class="stage-head">
+        <div>
+          <span class="eyebrow" id="st-sensor">Sensor</span>
+          <h2 id="st-name">Tool</h2>
+          <p class="dim" id="st-blurb" style="max-width:640px"></p>
+        </div>
+        <a class="btn btn-ghost" id="st-try" href="interface.html">Try in interface →</a>
+      </div>
+
+      <div class="demo-frame" id="demo-frame">
+        <canvas id="demo-canvas"></canvas>
+        <video id="demo-video" muted loop playsinline hidden></video>
+        <div class="demo-overlay">
+          <div class="demo-top">
+            <span class="chip"><span class="dot pulse"></span><span id="st-live">LIVE SIMULATION</span></span>
+            <span class="placeholder-badge" id="ph-badge"><span>▣ DEMO FOOTAGE PLACEHOLDER · <span id="ph-file">media/cardio.mp4</span></span></span>
+          </div>
+          <div class="demo-readout"><strong id="st-value">--</strong><span id="st-unit"></span></div>
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <button class="btn btn-ghost" id="btn-play">❚❚ Pause</button>
+        <button class="btn btn-ghost" id="btn-anomaly">⚠ Simulate anomaly</button>
+        <button class="btn btn-ghost" id="btn-speak">🔊 Hear VEGA</button>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec"><span>Sensor</span><b id="sp-sensor"></b></div>
+        <div class="spec"><span>Sample rate</span><b id="sp-sample"></b></div>
+        <div class="spec"><span>Latency</span><b id="sp-latency"></b></div>
+        <div class="spec"><span>Normal range</span><b id="sp-range"></b></div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 style="margin-bottom:18px">How it works</h3>
+          <ol class="steps" id="st-steps"></ol>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:12px">Voice command</h3>
+          <p class="dim" style="font-size:14.5px;margin-bottom:14px">Say this to VEGA to bring this tool forward on the side panel:</p>
+          <div class="cmd-line" id="st-cmd"></div>
+          <h3 style="margin:26px 0 12px">Demo status</h3>
+          <ul class="check-list" style="margin-top:0">
+            <li><span><strong>Signal simulation</strong>: live and procedurally generated</span></li>
+            <li><span><strong>Hardware footage</strong>: placeholder slot, add a video to <span class="mono">media/</span></span></li>
+            <li><span><strong>Clinical validation</strong>: not yet started (concept only)</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/vega.js"></script>
+  <script src="js/tools.js"></script>
+</body>
+</html>

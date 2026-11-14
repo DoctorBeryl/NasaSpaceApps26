@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — Health Optics for Space</title>
+  <meta name="description" content="AstraSight: smart glasses with an in-lens health diagnostic HUD and VEGA, a voice AI built for astronaut health monitoring." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">Space Health Challenge · Mission Concept</span>
+        <h1>Your health,<br /><span class="grad-text">in your line of sight.</span></h1>
+        <p class="lead">AstraSight is a pair of smart glasses for astronauts. It runs eight diagnostic tools from sensors built into the frame, shows the results on a side panel in the lens, and lets the wearer control everything by voice through <strong>VEGA</strong>, an onboard health AI.</p>
+        <div class="hero-cta">
+          <a href="interface.html" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            Launch the interface
+          </a>
+          <a href="tools.html" class="btn btn-ghost">Explore diagnostics →</a>
+        </div>
+        <div class="hero-stats">
+          <div><strong>8</strong><span>Diagnostic tools</span></div>
+          <div><strong>&lt; 2s</strong><span>Voice response</span></div>
+          <div><strong>100%</strong><span>On-device AI</span></div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="orbit"></div>
+        <div class="orbit o2"></div>
+        <div class="glasses-wrap">
+          <svg viewBox="0 0 520 240" fill="none">
+            <defs>
+              <linearGradient id="frame" x1="0" y1="0" x2="520" y2="0" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#5ef2ff" /><stop offset=".5" stop-color="#8f7cff" /><stop offset="1" stop-color="#ff6ad5" />
+              </linearGradient>
+              <linearGradient id="lens" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#5ef2ff" stop-opacity=".18" /><stop offset="1" stop-color="#8f7cff" stop-opacity=".05" />
+              </linearGradient>
+            </defs>
+            <!-- temples -->
+            <path d="M20 92 L-4 84" stroke="url(#frame)" stroke-width="10" stroke-linecap="round" opacity=".5" />
+            <path d="M500 92 L524 84" stroke="url(#frame)" stroke-width="10" stroke-linecap="round" opacity=".5" />
+            <!-- lenses -->
+            <rect x="24" y="56" width="208" height="140" rx="58" fill="url(#lens)" stroke="url(#frame)" stroke-width="7" />
+            <rect x="288" y="56" width="208" height="140" rx="58" fill="url(#lens)" stroke="url(#frame)" stroke-width="7" />
+            <!-- bridge -->
+            <path d="M232 98 C 248 80, 272 80, 288 98" stroke="url(#frame)" stroke-width="7" stroke-linecap="round" />
+            <!-- top bar -->
+            <path d="M40 60 H480" stroke="url(#frame)" stroke-width="3" opacity=".35" />
+            <!-- HUD inside right lens -->
+            <g opacity=".95">
+              <rect x="400" y="80" width="72" height="92" rx="12" fill="#0a1226" fill-opacity=".7" stroke="#5ef2ff" stroke-opacity=".6" />
+              <rect x="410" y="92" width="52" height="6" rx="3" fill="#5ef2ff" opacity=".8" />
+              <rect x="410" y="106" width="36" height="5" rx="2.5" fill="#8f7cff" opacity=".7" />
+              <path d="M410 128 l8 0 4 -8 6 16 5 -10 3 2 h16" stroke="#4dffb0" stroke-width="2" fill="none" />
+              <rect x="410" y="146" width="44" height="5" rx="2.5" fill="#5ef2ff" opacity=".5" />
+              <rect x="410" y="158" width="28" height="5" rx="2.5" fill="#ff6ad5" opacity=".6" />
+            </g>
+            <!-- reticle in left lens -->
+            <circle cx="128" cy="126" r="22" stroke="#5ef2ff" stroke-opacity=".55" stroke-dasharray="4 6" />
+            <circle cx="128" cy="126" r="3" fill="#5ef2ff" />
+            <!-- sensors -->
+            <circle cx="40" cy="92" r="4" fill="#4dffb0" /><circle cx="480" cy="92" r="4" fill="#4dffb0" />
+            <circle cx="252" cy="104" r="3" fill="#ffc65c" /><circle cx="268" cy="104" r="3" fill="#ffc65c" />
+            <!-- glare -->
+            <path d="M60 80 Q 90 66 120 70" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" />
+            <path d="M324 80 Q 354 66 384 70" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="float-tag t1"><span class="dot pulse"></span>Heart <b>72 bpm</b></div>
+        <div class="float-tag t2"><span class="dot"></span>SpO₂ <b>97.6%</b></div>
+        <div class="float-tag t3"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span>“VEGA, run a full scan”</div>
+        <div class="float-tag t4"><span class="dot warn"></span>Dose <b>0.62 mSv</b></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>Cardiac rhythm</span><span>Blood oxygen</span><span>Respiration</span><span>Ocular neuro scan</span><span>Cognitive load</span><span>Core thermal</span><span>Radiation dose</span><span>Stress / HRV</span>
+      <span>Cardiac rhythm</span><span>Blood oxygen</span><span>Respiration</span><span>Ocular neuro scan</span><span>Cognitive load</span><span>Core thermal</span><span>Radiation dose</span><span>Stress / HRV</span>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL FEATURE -->
+  <section>
+    <div class="container split">
+      <div class="reveal">
+        <span class="eyebrow">The side panel</span>
+        <h2>A HUD that stays<br /><span class="grad-text">out of your way.</span></h2>
+        <p class="lead">Health data sits in a translucent side panel at the edge of your vision. The center of view stays clear for the task you're doing, and VEGA brings a reading forward only when it matters.</p>
+        <ul class="check-list">
+          <li><span><strong>Glanceable vitals</strong> with live sparklines and color-coded status.</span></li>
+          <li><span><strong>Dock left or right</strong>, or hide the panel completely by voice.</span></li>
+          <li><span><strong>Priority alerts</strong> take over the view only for critical readings.</span></li>
+          <li><span><strong>Command log</strong> keeps a record of every interaction for the flight surgeon.</span></li>
+        </ul>
+        <div class="hero-cta"><a href="interface.html" class="btn btn-primary">Try the live interface →</a></div>
+      </div>
+      <div class="reveal">
+        <div class="hud-preview">
+          <div class="scene"></div>
+          <div class="reticle"></div>
+          <div class="mini-panel">
+            <div class="mono" style="font-size:10px;letter-spacing:.16em;color:var(--text-faint)">VEGA // VITALS</div>
+            <div class="mini-row"><span>Heart</span><b id="mini-hr">72</b></div>
+            <div class="mini-row"><span>SpO₂</span><b>97.6</b></div>
+            <div class="mini-row"><span>Resp</span><b>15</b></div>
+            <div class="mini-row"><span>Temp</span><b>36.8</b></div>
+            <div class="mini-row"><span>Dose</span><b>0.62</b></div>
+          </div>
+          <div class="mini-voice"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="dim">“Move panel left”</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section>
+    <div class="container">
+      <div class="section-head center reveal">
+        <span class="eyebrow">Diagnostic suite</span>
+        <h2>Eight tools. <span class="grad-text">One frame.</span></h2>
+        <p class="lead">Each tool uses sensors already built into the glasses. Pick one to see how it works and watch its demo.</p>
+      </div>
+      <div class="grid grid-4" id="tool-grid"></div>
+    </div>
+  </section>
+
+  <!-- AI BAND -->
+  <section>
+    <div class="container">
+      <div class="ai-band reveal">
+        <div class="split">
+          <div>
+            <span class="eyebrow">Meet VEGA</span>
+            <h2>Vital Evaluation &amp;<br /><span class="grad-text">Guidance Assistant</span></h2>
+            <p class="lead">VEGA is a compact language model trained on space-medicine protocols. It runs entirely on the glasses, so it keeps working through communication blackouts with Earth. It understands natural speech, sends each request to the right diagnostic tool, and answers out loud.</p>
+            <div class="convo">
+              <div class="bubble user"><span class="who">Crew</span>VEGA, I feel a bit lightheaded.</div>
+              <div class="bubble ai"><span class="who">VEGA</span>Your SpO₂ is 97% and steady, but your heart rate is 14 bpm above your baseline. Cabin CO₂ is slightly high. I'd suggest a short break and some water. Want me to start a breathing exercise?</div>
+            </div>
+            <div class="hero-cta"><a href="vega.html" class="btn btn-ghost">Inside the model →</a></div>
+          </div>
+          <div><div class="ai-orb"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section>
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>From sensor to sentence.</h2>
+      </div>
+      <div class="grid grid-3">
+        <div class="card reveal"><div class="tool-icon">ICON_SENSE</div><h3 style="margin:18px 0 8px">Sense</h3><p class="dim">Optical, thermal, pressure and IR eye-tracking sensors in the frame sample the wearer's body continuously.</p></div>
+        <div class="card reveal"><div class="tool-icon">ICON_THINK</div><h3 style="margin:18px 0 8px">Interpret</h3><p class="dim">VEGA compares each reading against the crew member's own baseline and the habitat's telemetry.</p></div>
+        <div class="card reveal"><div class="tool-icon">ICON_SPEAK</div><h3 style="margin:18px 0 8px">Respond</h3><p class="dim">Results show up on the side panel and VEGA speaks them through bone conduction. Nobody has to tap anything.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    // Tool grid
+    document.getElementById("tool-grid").innerHTML = TOOLS.map((t) => `
+      <a href="tools.html#${t.id}" class="card hover tool-card reveal">
+        <div class="tool-icon">${ICONS[t.icon]}</div>
+        <h3>${t.name}</h3>
+        <p>${t.blurb.split(" — ")[0].split(". ")[0]}.</p>
+        <div class="meta"><span>${t.sensor}</span><span class="arrow">→</span></div>
+      </a>`).join("");
+
+    // How-it-works icons
+    document.querySelectorAll(".tool-icon").forEach((el) => {
+      el.innerHTML = el.innerHTML.replace("ICON_SENSE", ICONS.wave).replace("ICON_THINK", ICONS.brain).replace("ICON_SPEAK", ICONS.mic);
+    });
+
+    // Live mini heart rate
+    setInterval(() => {
+      const el = document.getElementById("mini-hr");
+      if (el) el.textContent = Math.round(70 + Math.random() * 5);
+    }, 1400);
+  </script>
+</body>
+</html>
