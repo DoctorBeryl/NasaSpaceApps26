@@ -57,6 +57,7 @@ Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome
 | `login.html` + `js/login.js` | Sign-in: choose face scan (face-api.js in the browser; only 128-number descriptors go to the server; "stored locally, demo only" notice) or Firebase email and password |
 | `js/auth.js` | `window.AstraAuth`: session, `requireAuth()`, profile storage (Firestore `users/{uid}`, localStorage fallback), nav name chip, `[data-auth-name]` |
 | `server/auth.js` | `/api/auth/*`: face matching, templates in gitignored `server/data/faces.json`, Firebase custom tokens signed with `crypto`, `userFromRequest()` ID-token check. Firebase settings come from `.env`; without them it runs in local mode. See [docs/AUTH.md](docs/AUTH.md) |
+| `css/arcade.css` | Arcade skin matching `report.html` (flat neon cyan/pink/amber/green, pixel grid and scanlines, corner-bracket panels, Press Start 2P accents). Loaded after `styles.css` (and `companion.css`) on `index.html` and `tools.html` only; it overrides the `:root` tokens, so other pages are unaffected |
 | `css/styles.css` | Design tokens in `:root` (dark space theme: cyan, violet, magenta, plus ok/warn/crit) and all components |
 
 Script load order matters: `data.js` → `common.js` → `auth.js` → `vega.js` → page script.

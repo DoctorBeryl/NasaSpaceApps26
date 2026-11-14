@@ -180,6 +180,9 @@
     </button>`;
   document.body.appendChild(root);
 
+  // Static sprites elsewhere on the page: <canvas data-vega-sprite="nominal" width="36" height="36">
+  document.querySelectorAll("canvas[data-vega-sprite]").forEach((c) => draw(c.getContext("2d"), c.dataset.vegaSprite || "nominal", 0, false));
+
   const $ = (s) => root.querySelector(s);
   const ctx = $("canvas").getContext("2d");
   const bubble = $(".vb-bubble"), msgEl = $(".vb-msg"), nameForm = $(".vb-name"), openLink = $(".vb-open");
