@@ -177,6 +177,23 @@
     @keyframes tuneIn { from { opacity:.35; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
     .sensor-tune[hidden] { display:none; }
     @media (prefers-reduced-motion:reduce) { .sensor-tune { animation:none; } }
+    .limit-scale { position:relative; height:22px; margin:1px 0 0; }
+    .limit-band { position:absolute; left:7px; right:7px; top:2px; height:3px; border-radius:2px; opacity:.75; }
+    .limit-mark { position:absolute; top:0; width:2px; height:8px; margin-left:-1px; background:#ff2a4b; box-shadow:0 0 4px rgba(255,42,75,.7); }
+    .limit-label { position:absolute; top:9px; transform:translateX(-50%); white-space:nowrap; font:600 7.5px 'JetBrains Mono',monospace; color:#ff7a8f; letter-spacing:.04em; }
+    .limit-label.l { transform:translateX(-15%); } .limit-label.r { transform:translateX(-85%); }
+    .limit-safe { font:500 7.5px 'JetBrains Mono',monospace; color:#6f8ea3; letter-spacing:.03em; margin-top:1px; }
+    .manual-knob[data-zone="warn"] { border-color:rgba(255,184,0,.45); }
+    .manual-knob[data-zone="crit"] { border-color:rgba(255,42,75,.6); background:rgba(255,42,75,.06); }
+    .eva-clocks { display:flex; flex-wrap:wrap; gap:12px; }
+    .eva-clock { flex:1 1 240px; min-width:0; border:1px solid rgba(0,240,255,.28); background:rgba(0,240,255,.035); }
+    .eva-clock-num { font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700; font-size:clamp(28px,6vw,40px); line-height:1.1; margin-top:4px; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+    .eva-emergency { border-color:rgba(255,184,0,.45); background:rgba(255,184,0,.06); animation:evaIn .35s ease-out; }
+    .eva-emergency.crit { border-color:rgba(255,42,75,.6); background:rgba(255,42,75,.08); box-shadow:0 0 18px rgba(255,42,75,.18); }
+    .eva-emergency.crit .eva-clock-num { animation:pulse 1s infinite; }
+    .eva-emergency.cleared { border-color:rgba(52,211,153,.45); background:rgba(52,211,153,.06); }
+    @keyframes evaIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:none; } }
+    @media (prefers-reduced-motion:reduce) { .eva-emergency, .eva-emergency.crit .eva-clock-num { animation:none; } }
 
     /* Reference-matched raster: fine horizontal phosphor lines, small pixel grid and stepped corners. */
     body {
@@ -341,6 +358,22 @@
             <div class="text-[9px] mono text-slate-500">VISOR PROFILE / EVA-07</div>
           </div>
           <div class="p-4">
+            <!-- EVA CLOCKS: time outside, plus a countdown that appears only when a reading needs action. EVA mode only. -->
+            <div id="evaClocks" class="eva-clocks hidden-view mb-3">
+              <div class="eva-clock rounded-xl p-3" id="outsideClockCard">
+                <div class="flex justify-between items-center gap-2"><span class="eyebrow">TIME OUTSIDE HABITAT</span><span id="outsideState" class="text-[9px] mono text-slate-500">AT AIRLOCK</span></div>
+                <div id="outsideClock" class="eva-clock-num text-cyan">00:00:00</div>
+                <div id="outsideFoot" class="text-[9px] mono text-slate-500 mt-1">Starts when you press CABIN EXIT.</div>
+              </div>
+              <div class="eva-clock eva-emergency rounded-xl p-3 hidden-view" id="emergencyCard">
+                <div class="flex justify-between items-center gap-2"><span class="eyebrow" id="emergencyLabel" aria-live="assertive">EMERGENCY</span><span id="emergencyState" class="text-[9px] mono">COUNTING DOWN</span></div>
+                <div id="emergencyClock" class="eva-clock-num">00:00</div>
+                <div class="track mt-1"><div id="emergencyBar" class="fill" style="width:100%"></div></div>
+                <div id="emergencyAction" class="text-[10px] text-slate-200 mt-2 leading-snug"></div>
+                <div id="emergencyReason" class="text-[9px] mono text-slate-500 mt-1"></div>
+                <div id="emergencyOthers" class="text-[9px] mono text-slate-400 mt-1"></div>
+              </div>
+            </div>
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3" id="metricsGrid">
               <article class="metric sensor-card rounded-xl p-3" id="card-psi">
                 <div class="status-line"><span class="eyebrow">SUIT PRESSURE</span><span class="text-cyan text-[10px]">◉</span></div>
@@ -361,7 +394,7 @@
                 <div class="status-line"><span class="eyebrow">HEART RATE</span><span class="text-pink text-[10px]">♥</span></div>
                 <div class="value text-pink mt-3"><span id="hrValue">78</span><small class="text-sm ml-1 text-slate-400">BPM</small></div>
                 <div class="text-[9px] mono text-slate-500 mt-2">BIOMETRIC / OPTICAL</div>
-              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="hr"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sHr">HEART RATE</label><output id="sHrOut">78 bpm</output></div><input aria-label="Manual heart rate override" id="sHr" max="180" min="40" step="1" type="range" value="78"/></div></div></article>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="hr"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sHr">HEART RATE</label><output id="sHrOut">78 bpm</output></div><input aria-label="Manual heart rate override" id="sHr" max="190" min="30" step="1" type="range" value="78"/></div></div></article>
               <article class="metric sensor-card rounded-xl p-3" id="card-temp">
                 <div class="status-line"><span class="eyebrow">CORE TEMP</span><span class="text-amber text-[10px]">◉</span></div>
                 <div class="value text-amber mt-3"><span id="tempValue">37.0</span><small class="text-sm ml-1 text-slate-400">°C</small></div>
@@ -600,6 +633,7 @@ const ReportLink = (() => {
   const state = {
     psi:4.30, o2:96, co2:98, hr:78, temp:37.0, work:165, rad:0.08,
     r:8, n2:92, dose:0, safeSeconds:1800, timerActive:false, sensorsOn:true, operatingMode:'habitat', habitatSeconds:0,
+    outsideSeconds:0, lastOutside:0, exitAt:'', view:'dual',
     voiceOn:true, exited:false, seq:1, elapsed:0, scenario:'nominal',
     palette:'cobalt', expression:'nominal', selectedZone:'forehead', bodyView:'front', symptoms:new Map(), painLevels:{},
     peakHr:78, triageRan:false, lastWarning:'', alertState:'nominal', overrides:new Set(),
@@ -608,6 +642,65 @@ const ReportLink = (() => {
     protonFlux:2.4, neutronFlux:0.04, cabinTemp:21.4, humidity:42, pm25:4.2, voc:0.12
   };
   const baseline = {psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:0.08};
+  // Safe lines for each manual-override reading: lo/hi = [warn, hazard]. Past "warn" VEGA flags it (amber);
+  // past "hazard" it's an emergency (red), and in EVA mode the countdown starts. A reading with no lo or hi
+  // can't be dangerous on that side (a full O₂ tank or a quiet radiation sensor is fine).
+  // Body temp and low heart rate match js/data.js (thermal, cardio); the rest are demo lines, not flight rules.
+  const LIMITS = {
+    psi:  {name:'Suit pressure', unit:' PSI',   dp:2, lo:[4.0,3.65],  hi:[4.6,4.8], suit:true},
+    o2:   {name:'O₂ reserve',    unit:'%',      dp:0, lo:[88,72]},
+    co2:  {name:'CO₂ scrubber',  unit:'%',      dp:0, lo:[80,65]},
+    hr:   {name:'Heart rate',    unit:' bpm',   dp:0, lo:[50,40],     hi:[135,165]},
+    temp: {name:'Core temp',     unit:' °C',    dp:1, lo:[35.5,35.0], hi:[38.1,39.0]},
+    work: {name:'Metabolic load',unit:' W',     dp:0, hi:[350,450]},
+    rad:  {name:'Radiation',     unit:' mSv/h', dp:2, hi:[0.3,1.0]},
+  };
+  // {zone:'ok'|'warn'|'crit', side:'low'|'high'|''}. Suit pressure isn't tracked in the habitat.
+  function zoneOf(k){
+    const L=LIMITS[k], v=state[k];
+    if(L.suit && state.operatingMode==='habitat') return {zone:'ok',side:''};
+    if(L.lo && v<L.lo[1]) return {zone:'crit',side:'low'};
+    if(L.hi && v>=L.hi[1]) return {zone:'crit',side:'high'};
+    if(L.lo && v<L.lo[0]) return {zone:'warn',side:'low'};
+    if(L.hi && v>L.hi[0]) return {zone:'warn',side:'high'};
+    return {zone:'ok',side:''};
+  }
+  // Manual-override sliders: a coloured band (red hazard / amber warn / green safe) with markers at the
+  // low and high hazard lines, so you can see how far a reading can go before it becomes an emergency.
+  function buildLimitScales(){
+    Object.keys(LIMITS).forEach(k=>{
+      const input=$(sliders[k]); if(!input||input.dataset.scaled) return;
+      input.dataset.scaled='1';
+      const L=LIMITS[k], min=Number(input.min), max=Number(input.max);
+      const pct=v=>clamp((v-min)/(max-min)*100,0,100);
+      const pos=v=>`calc(7px + (100% - 14px) * ${pct(v)/100})`;
+      const stops=[], R='#ff2a4b', A='#ffb800', G='#34d399';
+      let at=0; const seg=(to,c)=>{const t=pct(to); stops.push(`${c} ${at}%`,`${c} ${t}%`); at=t;};
+      if(L.lo){ seg(L.lo[1],R); seg(L.lo[0],A); }
+      if(L.hi){ seg(L.hi[0],G); seg(L.hi[1],A); seg(max,R); } else seg(max,G);
+      const fmt=v=>Number(v).toFixed(L.dp);
+      const marks=[...(L.lo?[[L.lo[1],'MIN']]:[]),...(L.hi?[[L.hi[1],'MAX']]:[])];
+      const scale=document.createElement('div');
+      scale.className='limit-scale'; scale.setAttribute('aria-hidden','true');
+      scale.innerHTML=`<div class="limit-band" style="background:linear-gradient(90deg,${stops.join(',')})"></div>`
+        +marks.map(([v,t])=>`<span class="limit-mark" style="left:${pos(v)}"></span><span class="limit-label ${pct(v)>80?'r':pct(v)<20?'l':''}" style="left:${pos(v)}">${t} ${fmt(v)}</span>`).join('');
+      input.insertAdjacentElement('afterend',scale);
+      const safe=document.createElement('div');
+      safe.className='limit-safe';
+      safe.textContent='SAFE '+(L.lo?fmt(L.lo[0]):fmt(min))+'–'+(L.hi?fmt(L.hi[0]):fmt(max))+L.unit.trim().replace(/^/,' ')
+        +' · HAZARD '+[L.lo?'<'+fmt(L.lo[1]):'',L.hi?'≥'+fmt(L.hi[1]):''].filter(Boolean).join(' / ');
+      scale.insertAdjacentElement('afterend',safe);
+      input.setAttribute('aria-description',safe.textContent);
+    });
+  }
+  function renderLimitOutputs(){
+    Object.keys(LIMITS).forEach(k=>{
+      const out=$(outputs[k]); if(!out) return;
+      const zz=zoneOf(k);
+      out.style.color=zz.zone==='crit'?'#ff2a4b':zz.zone==='warn'?'#ffb800':'';
+      const knob=out.closest('.manual-knob'); if(knob) knob.dataset.zone=zz.zone;
+    });
+  }
   const sliders = {psi:'sPsi',o2:'sO2',co2:'sCo2',hr:'sHr',temp:'sTemp',work:'sWork',rad:'sRad'};
   const outputs = {psi:'sPsiOut',o2:'sO2Out',co2:'sCo2Out',hr:'sHrOut',temp:'sTempOut',work:'sWorkOut',rad:'sRadOut'};
   // ---------- Body map: front and back views, each split into anatomical areas ----------
@@ -759,6 +852,128 @@ const ReportLink = (() => {
     return `${String(Math.floor(mins/60)).padStart(2,'0')}h ${String(mins%60).padStart(2,'0')}m`;
   }
   function setText(id, value){ $(id).textContent = value; }
+
+  // ---------- EVA clocks ----------
+  // "Time outside" counts up from CABIN EXIT. The emergency countdown appears (EVA mode only) when a reading
+  // crosses a hazard line, and shows the time left to act. Each budget comes from the live reading: a worse
+  // reading means less time, and the countdown only ever gets shorter while the hazard lasts.
+  // Illustrative demo budgets, not flight rules.
+  const HAZARDS=[
+    {key:'rad',label:'SOLAR FLARE',say:'Solar flare',act:'reach the storm shelter',
+      test:()=>crossed('rad','high'), reason:()=>`Radiation ${state.rad.toFixed(2)} mSv/h`,
+      budget:()=>clamp(Math.round(300/state.rad),60,240)},
+    {key:'psi',label:'SUIT PRESSURE LOSS',say:'Suit pressure is dropping',act:'get back to the airlock',
+      test:()=>crossed('psi','low'), reason:()=>`Suit pressure ${state.psi.toFixed(2)} PSI · hazard below ${LIMITS.psi.lo[1]}`,
+      budget:()=>clamp(Math.round((state.psi-2.5)/1.15*900),120,900)},
+    {key:'psiHigh',label:'SUIT OVERPRESSURE',say:'Suit pressure is too high',act:'get back to the airlock',
+      test:()=>crossed('psi','high'), reason:()=>`Suit pressure ${state.psi.toFixed(2)} PSI · hazard at ${LIMITS.psi.hi[1]} and above`,
+      budget:()=>clamp(Math.round((5.5-state.psi)/.7*900),120,900)},
+    {key:'o2',label:'LOW O₂ RESERVE',say:'Oxygen reserve is low',act:'get back to the airlock',
+      test:()=>crossed('o2','low'), reason:()=>`O₂ reserve ${Math.round(state.o2)}%`,
+      // Time until 10% is left, at the same consumption model as the O₂ card, capped at 30 minutes.
+      budget:()=>clamp(Math.round((state.o2-10)/100*360*60/Math.max(.55,state.work/165)),120,1800)},
+    {key:'co2',label:'CO₂ SCRUBBER FAILING',say:'The CO2 scrubber is failing',act:'head back to the airlock',
+      test:()=>crossed('co2','low'), reason:()=>`Scrubber efficiency ${Math.round(state.co2)}%`,
+      budget:()=>clamp(Math.round((state.co2-30)/35*1200),180,1200)},
+    {key:'heat',label:'CORE TEMP HIGH',say:'Your core temperature is too high',act:'stop work, cool down and head back',
+      test:()=>crossed('temp','high'), reason:()=>`Core temp ${state.temp.toFixed(1)} °C · hazard at ${LIMITS.temp.hi[1]} and above`,
+      budget:()=>clamp(Math.round((40.5-state.temp)/1.5*900),120,900)},
+    {key:'cold',label:'CORE TEMP LOW',say:'Your core temperature is too low',act:'turn up the suit heating and head back',
+      test:()=>crossed('temp','low'), reason:()=>`Core temp ${state.temp.toFixed(1)} °C · hazard below ${LIMITS.temp.lo[1]}`,
+      budget:()=>clamp(Math.round((state.temp-33.5)/1.5*900),120,900)},
+  ];
+  const crossed=(k,side)=>{const zz=zoneOf(k);return zz.zone==='crit'&&zz.side===side;};
+  const emergencies=new Map();   // key -> {h, budget, remaining, announced, warned60, expired, lastTrue}
+  let emergencyCleared=null;     // {label, until}: shows "cleared" for a few seconds
+  const capFirst=(t)=>t.charAt(0).toUpperCase()+t.slice(1);
+  function spokenTime(sec){
+    sec=Math.max(0,Math.round(sec));
+    if(sec<60) return `${Math.max(5,Math.round(sec/5)*5)} seconds`;
+    let m=Math.floor(sec/60), s=Math.round((sec%60)/10)*10; if(s===60){m++;s=0;}
+    return `${m} minute${m>1?'s':''}${s?` ${s} seconds`:''}`;
+  }
+  const byUrgency=(list)=>[...list].sort((a,b)=>a.remaining-b.remaining);
+  function emergencyLine(e){
+    return state.exited
+      ? `${e.h.say}. You have ${spokenTime(e.remaining)} to ${e.h.act}. The countdown is on your visor.`
+      : `${e.h.say}. Don't leave the airlock yet. If you go out, you'll have ${spokenTime(e.remaining)} to ${e.h.act}.`;
+  }
+  function updateEmergencies(){
+    if(state.operatingMode!=='eva'){ emergencies.clear(); return; }
+    const now=Date.now();
+    for(const h of HAZARDS){
+      const e=emergencies.get(h.key);
+      if(h.test()){
+        const est=h.budget();
+        if(!e){ emergencies.set(h.key,{h,budget:est,remaining:est,announced:false,warned60:est<=60,expired:false,lastTrue:now}); emergencyCleared=null; }
+        else { e.lastTrue=now; if(!e.expired && est<Math.min(e.remaining-3,e.remaining*.95)) e.remaining=est; }   // shorten only on a real worsening, not sensor noise
+        if(h.key==='rad') state.safeSeconds=Math.min(state.safeSeconds,emergencies.get('rad').remaining);
+      } else if(e && now-e.lastTrue>2000){   // short grace period so a slider dragged across the line doesn't flicker
+        emergencies.delete(h.key);
+        if(!emergencies.size) emergencyCleared={label:h.label,until:now+5000};
+      }
+    }
+  }
+  function announcePendingEmergencies(){
+    const pending=[...emergencies.values()].filter(e=>!e.announced);
+    if(!pending.length) return;
+    pending.forEach(e=>e.announced=true);
+    const e=byUrgency(pending)[0];
+    companionWarn(emergencyLine(e),'evaClocks','critical');
+  }
+  function tickEmergencies(){
+    if(state.operatingMode!=='eva'||!state.exited) return;   // paused at the airlock
+    for(const e of byUrgency(emergencies.values())){
+      if(e.expired) continue;
+      e.remaining=Math.max(0,e.remaining-1);
+      if(e.h.key==='rad') state.safeSeconds=Math.min(state.safeSeconds,e.remaining);   // keep the shelter window in step
+      if(!e.warned60 && e.remaining<=60 && e.remaining>0){
+        e.warned60=true;
+        const msg=`One minute left to ${e.h.act}.`;
+        $('companionMessage').textContent=msg; speak(msg,'critical');
+      }
+      if(e.remaining===0){
+        e.expired=true;
+        companionWarn(`Time's up on the ${e.h.label.toLowerCase().replace('o₂','O₂').replace('co₂','CO₂')} countdown. ${capFirst(e.h.act)} now. Tell me when you're there.`,'evaClocks','critical');
+      }
+    }
+  }
+  function renderEvaClocks(){
+    const show=state.operatingMode==='eva'||state.view==='eva';
+    $('evaClocks').classList.toggle('hidden-view',!show);
+    if(!show) return;
+    const eva=state.operatingMode==='eva';
+    setText('outsideClock',formatClock(state.exited?state.outsideSeconds:0));
+    $('outsideClock').style.color=state.exited?'#00f0ff':'#64748b';
+    setText('outsideState',!eva?'IN HABITAT':state.exited?'OUTSIDE · RUNNING':'AT AIRLOCK');
+    $('outsideState').style.color=state.exited?'#34d399':'';
+    setText('outsideFoot',!eva?'Choose EVA / EXTERIOR, then CABIN EXIT, to start this clock.'
+      :state.exited?`Left the habitat at ${state.exitAt||'--:--'} · emergency countdown ${emergencies.size?'active':'on standby'}.`
+      :state.lastOutside?`Last EVA lasted ${formatClock(state.lastOutside)}. Starts again at CABIN EXIT.`:'Starts when you press CABIN EXIT.');
+
+    const card=$('emergencyCard');
+    const list=byUrgency(emergencies.values());
+    if(!list.length){
+      if(eva && emergencyCleared && Date.now()<emergencyCleared.until){
+        card.classList.remove('hidden-view','crit'); card.classList.add('cleared');
+        setText('emergencyLabel','COUNTDOWN CLEARED'); setText('emergencyState','READING BACK IN RANGE'); $('emergencyState').style.color='#34d399';
+        setText('emergencyClock','--:--'); $('emergencyClock').style.color='#34d399';
+        $('emergencyBar').style.width='0%';
+        setText('emergencyAction',`${emergencyCleared.label}: the reading is back in range.`); setText('emergencyReason',''); setText('emergencyOthers','');
+      } else { emergencyCleared=null; card.classList.add('hidden-view'); }
+      return;
+    }
+    const e=list[0], crit=e.remaining<=60||e.remaining/e.budget<=.5, color=crit?'#ff2a4b':'#ffb800';
+    card.classList.remove('hidden-view','cleared'); card.classList.toggle('crit',crit);
+    setText('emergencyLabel','⚠ '+e.h.label);
+    setText('emergencyState',!state.exited?'PAUSED · AT AIRLOCK':e.expired?'TIME UP':'COUNTING DOWN'); $('emergencyState').style.color=color;
+    setText('emergencyClock',formatDuration(e.remaining)); $('emergencyClock').style.color=color;
+    $('emergencyBar').style.width=clamp(e.remaining/e.budget*100,0,100)+'%'; $('emergencyBar').style.background=color;
+    setText('emergencyAction',!state.exited?`Don't leave the airlock. If you go out, you have this long to ${e.h.act}.`
+      :e.expired?`${capFirst(e.h.act)} now.`:`${capFirst(e.h.act)} before this reaches zero.`);
+    setText('emergencyReason',`${e.h.reason()} · demo budget, not a flight rule`);
+    setText('emergencyOthers',list.length>1?'ALSO: '+list.slice(1).map(x=>`${x.h.label} ${formatDuration(x.remaining)}`).join(' · '):'');
+  }
   function setAlertLevel(level, message, target){
     const rank={nominal:0,reminder:1,caution:2,critical:3};
     if(rank[level] >= rank[state.alertState] || level==='nominal'){
@@ -781,6 +996,7 @@ const ReportLink = (() => {
     $('reentryButton').disabled=habitat||!state.exited;
     $('exitButton').classList.toggle('opacity-40',habitat||state.exited);
     $('reentryButton').classList.toggle('opacity-40',habitat||!state.exited);
+    $('card-psi').classList.toggle('hidden-view',habitat);   // no suit on inside the habitat
     setText('evaPanelEyebrow',habitat?'01 / HABITAT TELEMETRY':'01 / EVA SUIT TELEMETRY');
     setText('evaContextTitle',habitat?'HABITAT // LIVE SENSOR BUS':'EVA VISOR // LIVE SENSOR BUS');
     setText('triageContextLabel',habitat?'03 / SHIP SERVER · IN-MISSION CREW REVIEW':'03 / SHIP SERVER · EVA CREW REVIEW');
@@ -814,7 +1030,7 @@ const ReportLink = (() => {
     setText('radState',state.rad>=1?'SPIKE DETECTED':state.rad>=.3?'FLUX ELEVATED':'FLUX NOMINAL');
     $('radState').style.color=state.rad>=1?'#ff2a4b':state.rad>=.3?'#ffb800':'#34d399';
     setText('packetSeq',String(state.seq).padStart(6,'0'));
-    $('jsonPacket').textContent=JSON.stringify({psi:round(state.psi,2),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
+    $('jsonPacket').textContent=JSON.stringify({...(state.operatingMode==='habitat'?{}:{psi:round(state.psi,2)}),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
     setText('triageR',String(state.r).padStart(2,'0')); setText('triagePsi',state.psi.toFixed(2)); setText('triageHr',Math.round(state.peakHr)); setText('triageO2',Math.round(state.o2)+'%');
     setText('snapshotState',state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD');
     setText('spo2Value',state.spo2.toFixed(1)); setText('hrvValue',Math.round(state.hrv)); setText('gsrValue',state.gsr.toFixed(2)); setText('co2ppmValue',Math.round(state.co2ppm));
@@ -831,12 +1047,9 @@ const ReportLink = (() => {
       setText(outputs[k],val+suffix);
     });
     document.querySelectorAll('.metric').forEach(el=>el.classList.remove('alerting'));
-    if(state.psi<3.7||state.psi>4.8) $('card-psi').classList.add('alerting');
-    if(state.o2<30) $('card-o2').classList.add('alerting');
-    if(state.co2<65) $('card-co2').classList.add('alerting');
-    if(state.hr>130) $('card-hr').classList.add('alerting');
-    if(state.temp>38.3||state.temp<35.5) $('card-temp').classList.add('alerting');
-    if(state.work>350) $('card-work').classList.add('alerting');
+    ['psi','o2','co2','hr','temp','work'].forEach(k=>{ if(zoneOf(k).zone==='crit') $('card-'+k).classList.add('alerting'); });
+    renderLimitOutputs();
+    renderEvaClocks();
   }
   // VEGA's voice (ElevenLabs via server.js when configured, else the browser voice). Tone follows the mood.
   function speak(message, mood='nominal'){
@@ -848,9 +1061,14 @@ const ReportLink = (() => {
     try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(said); u.rate={urgent:1.12,caution:1.05,calm:1.02}[tone]; u.pitch={urgent:.92,caution:1,calm:1.05}[tone]; speechSynthesis.speak(u); }catch(e){}
   }
   const esc=(t)=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review'};
+  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review',evaClocks:'EVA countdown'};
   function companionWarn(message,target,mood){
     mood=mood||state.expression||'nominal';
+    if(mood!=='nominal' && state.operatingMode==='eva'){   // say the new EVA countdown in the same breath as the hazard
+      updateEmergencies();
+      const pending=[...emergencies.values()].filter(e=>!e.announced);
+      if(pending.length){ pending.forEach(e=>e.announced=true); message+=' '+emergencyLine(byUrgency(pending)[0]); }
+    }
     $('companionMessage').textContent=message;
     $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
     teleportCompanion(target || 'card-psi');
@@ -958,15 +1176,21 @@ const ReportLink = (() => {
       Object.assign(state,{rad:1.85,hr:91,work:195,protonFlux:6.8,neutronFlux:.12});
       state.safeSeconds=Math.min(state.safeSeconds,165); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
       state.lastWarning='solar';
-      companionWarn('Solar flux spike! Return-to-shelter priority: 02:45 demo budget.','radValue','critical');
+      companionWarn('Solar flux spike! Return-to-shelter priority.','radValue','critical');
     } else if(name==='exertion'){
       Object.assign(state,{hr:148,work:410,temp:37.9,gsr:4.8,hrv:38,spo2:96.5}); state.alertState='caution'; if(state.companionMode==='auto') state.expression='caution';
       state.lastWarning='work';
       companionWarn('High workload detected. Reduce simulated exertion and review crew status.','card-work','caution');
     } else if(name==='leak'){
-      Object.assign(state,{psi:3.25,o2:82,hr:106}); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
-      state.lastWarning='integrity';
-      companionWarn('Suit pressure anomaly! Treat this as a simulated suit-integrity emergency.','card-psi','critical');
+      Object.assign(state,{psi:3.25,o2:82,hr:106});
+      if(state.operatingMode==='habitat'){
+        state.alertState='reminder'; if(state.companionMode==='auto') state.expression='reminder'; state.lastWarning='resource';
+        companionWarn('Suit leak scenario loaded. Suit pressure is only tracked in EVA mode; switch to EVA / EXTERIOR to see it. In here, the suit O₂ reserve is dropping.','card-o2','reminder');
+      } else {
+        state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
+        state.lastWarning='integrity';
+        companionWarn('Suit pressure anomaly! Treat this as a simulated suit-integrity emergency.','card-psi','critical');
+      }
     }
     state.peakHr=Math.max(state.peakHr,state.hr);
     updateCompanion(); syncButtons(); render();
@@ -1029,11 +1253,26 @@ const ReportLink = (() => {
     state.seq++; render(); detectAnomaly();
   }
   function detectAnomaly(){
+    updateEmergencies();
     let level='nominal', message='', target='metricsGrid', key='';
-    if(state.rad>=1.0){level='critical';message='Radiation flux is elevated in this simulated scenario. Check the shelter-window display.';target='radValue';key='solar';}
-    else if(state.psi<3.65 || state.o2<72){level='critical';message='Suit resource or pressure anomaly detected in the simulation. Review the visor telemetry.';target='card-psi';key='integrity';}
-    else if(state.hr>135 || state.work>350 || state.temp>38.1){level='caution';message='High workload pattern detected. Review the simulated crew status.';target='card-work';key='work';}
-    else if(state.o2<88 || state.co2<75 || state.spo2<92 || state.co2ppm>1200){level='reminder';message='A monitored channel has moved outside its nominal demo range. Check the readings.';target='metricsGrid';key='resource';}
+    const z={}; Object.keys(LIMITS).forEach(k=>z[k]=zoneOf(k));
+    const crit=(k,side)=>z[k].zone==='crit'&&(!side||z[k].side===side), warn=(k,side)=>z[k].zone==='warn'&&(!side||z[k].side===side);
+    const CRIT_MSG={
+      'psi-high':'Suit pressure is above the safe line. Check the suit regulator in this simulation.',
+      'co2-low':'The CO₂ scrubber is below the safe line. CO₂ will build up in the suit.',
+      'hr-low':'Heart rate is very low. Stop what you are doing and contact the flight surgeon.',
+      'hr-high':"Heart rate is very high. Stop work and rest. If it doesn't come down, contact the flight surgeon.",
+      'temp-low':'Core temperature is too low. Turn up the heating and contact the flight surgeon.',
+      'temp-high':'Core temperature is too high. Stop work and cool down. If it keeps rising, contact the flight surgeon.',
+      'work-high':'Metabolic load is above the safe line. Stop work and rest.'
+    };
+    const critKey=['psi-high','co2-low','temp-low','temp-high','hr-low','hr-high','work-high'].find(k=>{const [m,side]=k.split('-');return crit(m,side);});
+    if(crit('rad')){level='critical';message='Radiation flux is elevated in this simulated scenario. Check the shelter-window display.';target='radValue';key='solar';}
+    else if(crit('psi','low') || crit('o2')){level='critical';message='Suit resource or pressure anomaly detected in the simulation. Review the visor telemetry.';target=state.operatingMode==='habitat'?'card-o2':'card-psi';key='integrity';}
+    else if(critKey){const m=critKey.split('-')[0];level='critical';message=CRIT_MSG[critKey];target='card-'+m;key=critKey;}
+    else if(warn('hr','high') || warn('work') || warn('temp','high')){level='caution';message='High workload pattern detected. Review the simulated crew status.';target='card-work';key='work';}
+    else if(warn('temp','low') || warn('hr','low')){const cold=warn('temp','low');level='caution';message=cold?'Core temperature is below normal. Turn up the heating and keep an eye on it.':'Heart rate is lower than normal. Stop and check how you feel.';target=cold?'card-temp':'card-hr';key=cold?'cold':'slowhr';}
+    else if(warn('o2') || warn('co2') || warn('psi') || warn('rad') || state.spo2<92 || state.co2ppm>1200){level='reminder';message='A monitored channel has moved outside its nominal demo range. Check the readings.';target='metricsGrid';key='resource';}
 
     if(level!=='nominal'){
       const rank={nominal:0,reminder:1,caution:2,critical:3};
@@ -1042,7 +1281,8 @@ const ReportLink = (() => {
       if(state.lastWarning!==key){state.lastWarning=key;companionWarn(message,target,level);}
     } else {
       const timerClear=!(state.exited && state.safeSeconds<=165);
-      const recovered=timerClear && Math.abs(state.psi-4.30)<=0.16 && state.o2>=92 && state.co2>=92 && state.hr<115 && state.temp<37.7 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
+      const psiOk=state.operatingMode==='habitat' || Math.abs(state.psi-4.30)<=0.16;
+      const recovered=timerClear && psiOk && state.o2>=92 && state.co2>=92 && state.hr<115 && state.hr>55 && state.temp<37.7 && state.temp>36.0 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
       if(recovered){
         const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
         state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert) ReportLink.clear();
@@ -1055,6 +1295,7 @@ const ReportLink = (() => {
         }
       }
     }
+    announcePendingEmergencies();
     updateCompanion();
   }
 
@@ -1065,6 +1306,7 @@ const ReportLink = (() => {
       // Illustrative shielding attenuation for the cabin-dose display only; not a physical prediction.
       state.dose += (state.rad * 0.12) / 3600;
     } else if(state.exited && state.timerActive){
+      state.outsideSeconds++;
       state.safeSeconds=Math.max(0,state.safeSeconds-1);
       state.dose += state.rad/3600;
       if(state.safeSeconds===165 && state.lastWarning!=='shelter'){
@@ -1075,6 +1317,7 @@ const ReportLink = (() => {
         state.lastWarning='expired';
         setAlertLevel('critical','Demo outside-time budget expired. EVA simulation hold.','safeTimer');
       }
+      tickEmergencies();
     }
     const h=Math.floor(state.elapsed/3600),m=Math.floor((state.elapsed%3600)/60),s=state.elapsed%60;
     setText('clock',`MISSION ELAPSED ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
@@ -1082,6 +1325,7 @@ const ReportLink = (() => {
   }
 
   function setView(view){
+    state.view=view; renderEvaClocks();
     const eva=$('evaPanel'),triage=$('triagePanel');
     eva.classList.toggle('hidden-view',view==='ship'); triage.classList.toggle('hidden-view',view==='eva');
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
@@ -1217,7 +1461,9 @@ const ReportLink = (() => {
         'Operating zone':state.operatingMode==='habitat'?'Habitat / IVA':(state.exited?'EVA, outside':'EVA, at the airlock'),
         'Suit pressure':state.psi.toFixed(2)+' PSI','Primary O2 reserve':Math.round(state.o2)+' %','CO2 scrubber':Math.round(state.co2)+' %',
         'Peak heart rate':Math.round(state.peakHr)+' bpm','Metabolic load':Math.round(state.work)+' W','Radiation flux':state.rad.toFixed(2)+' mSv/h',
-        'DCS R-value (demo heuristic, 0-100)':state.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag
+        'DCS R-value (demo heuristic, 0-100)':state.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag,
+        'Time outside habitat':state.exited?formatClock(state.outsideSeconds):(state.lastOutside?'last EVA '+formatClock(state.lastOutside):'not outside'),
+        'Active EVA countdowns':emergencies.size?byUrgency(emergencies.values()).map(e=>`${e.h.label} ${formatDuration(e.remaining)} left to ${e.h.act}`).join('; '):'none'
       };
       const r=await fetch('/api/ai/chat',{method:'POST',headers,signal:vegaReq.signal,body:JSON.stringify({
         messages:[{role:'user',content:summary}],
@@ -1266,6 +1512,7 @@ const ReportLink = (() => {
   $('resetSensors').addEventListener('click',()=>{
     Object.assign(state,baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
     state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';ReportLink.clear();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    state.outsideSeconds=0;state.lastOutside=0;emergencies.clear();emergencyCleared=null;
     syncButtons();syncLocationMode();updateCompanion();render();
   });
   $('habitatMode').addEventListener('click',()=>{
@@ -1273,7 +1520,7 @@ const ReportLink = (() => {
       $('companionMessage').textContent='Simulate airlock re-entry before switching back to habitat monitoring.'; teleportCompanion('safeTimer');
       return;
     }
-    state.operatingMode='habitat'; state.timerActive=false; syncLocationMode(); render();
+    state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render();
   });
   $('evaMode').addEventListener('click',()=>{
     if(state.exited){ state.operatingMode='eva'; syncLocationMode(); render(); return; }
@@ -1281,13 +1528,17 @@ const ReportLink = (() => {
   });
   $('exitButton').addEventListener('click',()=>{
     if(state.exited||state.operatingMode!=='eva')return;
-    state.exited=true; state.timerActive=true;
+    state.exited=true; state.timerActive=true; state.outsideSeconds=0;
+    state.exitAt=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
     if(state.rad>=1)state.safeSeconds=Math.min(state.safeSeconds,165);
-    syncLocationMode(); render(); speak('Cabin exit simulated. Outside-time clock active.');
+    updateEmergencies(); const urgent=byUrgency(emergencies.values())[0];
+    if(urgent) urgent.announced=true;
+    syncLocationMode(); render(); speak('Cabin exit simulated. Outside-time clock active.'+(urgent?' '+emergencyLine(urgent):''), urgent?'critical':'nominal');
   });
   $('reentryButton').addEventListener('click',()=>{
+    state.lastOutside=state.outsideSeconds;
     state.exited=false; state.timerActive=false; state.operatingMode='habitat';
-    state.safeSeconds=1800; state.lastWarning='';
+    state.safeSeconds=1800; state.lastWarning=''; emergencies.clear(); emergencyCleared=null;
     syncLocationMode(); render();
     speak('Airlock re-entry simulated. Habitat watch resumed and sortie budget reset.');
   });
@@ -1302,7 +1553,7 @@ const ReportLink = (() => {
   if(characterImage && !characterImage.complete) characterImage.addEventListener('load',updateCompanion,{once:true});
   else if(characterImage && characterImage.naturalWidth) updateCompanion();
   // Initial UI and deterministic one-second clocks.
-  renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
+  buildLimitScales();renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
   setInterval(tickSensors,1000);
   setInterval(sensorTimerTick,1000);
   setTimeout(()=>teleportCompanion('metricsGrid'),350);
