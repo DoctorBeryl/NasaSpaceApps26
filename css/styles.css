@@ -817,7 +817,11 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
   background: var(--surface-solid); border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
   box-shadow: var(--shadow); pointer-events: none;
 }
-.g3d-callout .mono { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
+.g3d-callout[data-target="right"] { --c: var(--cyan); }
+.g3d-callout[data-target="knob"] { --c: var(--magenta); }
+.g3d-callout[data-target="left"] { --c: var(--warn); }
+.g3d-callout { border-color: color-mix(in srgb, var(--c, var(--cyan)) 55%, transparent); box-shadow: var(--shadow), 0 0 18px color-mix(in srgb, var(--c, var(--cyan)) 16%, transparent); }
+.g3d-callout .mono { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c, var(--cyan)); }
 .g3d-callout b { display: block; margin: 4px 0 2px; font-weight: 600; }
 .g3d-callout p { margin: 0; font-size: 13px; color: var(--text-dim); }
 .g3d-callout.pos-tl { top: 24px; left: 24px; }

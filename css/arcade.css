@@ -153,9 +153,8 @@ footer { border-top-color: rgba(0, 240, 255, .18); }
 .mini-row:nth-child(3) b { color: var(--pink); } .mini-row:nth-child(5) b { color: var(--amber); } .mini-row:nth-child(6) b { color: var(--ok); }
 .hud-preview .mini-voice { border-radius: 8px; border-color: rgba(255, 42, 133, .45); background: rgba(5, 10, 20, .9); }
 
-.g3d-callout { border-radius: 10px; }
-.g3d-callout:nth-of-type(2) .mono { color: var(--pink); }
-.g3d-callout:nth-of-type(3) .mono { color: var(--amber); }
+.g3d-callout { border-radius: 10px; border-color: color-mix(in srgb, var(--c, var(--cyan)) 55%, transparent); }
+.g3d-callout b { color: color-mix(in srgb, var(--c, var(--cyan)) 35%, #eaf6ff); }
 
 /* ---------- home: VEGA band ---------- */
 .ai-band { border-radius: 14px; border-color: rgba(255, 42, 133, .42); --acc: var(--pink); }
