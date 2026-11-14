@@ -3,6 +3,8 @@
    - Serves the static site
    - POST /api/tts  { text }  -> audio/mpeg from ElevenLabs
      The API key stays here (read from .env), never in the browser.
+   - POST /api/stt  <audio blob> -> { text } from ElevenLabs Scribe (voice-input
+     fallback when the browser's speech service fails with "network")
    - POST /api/chat { messages, context } -> { reply } from a local Ollama model
      The system prompt is fixed here, so the page can't replace it.
    - /api/ai/*  VEGA on Qwen 2.5 via local Ollama (server/ai.js,
@@ -85,6 +87,24 @@ const VOICE_TONES = {
   urgent:  { stability: 0.75, similarity_boost: 0.8,  speed: 1.1 },
 };
 
+/* fetch() to ElevenLabs with one retry on network-level failures ("fetch failed": DNS blip,
+   dropped keep-alive socket, Wi-Fi hiccup). HTTP errors are returned as-is, not retried. */
+async function elevenFetch(url, opts) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, { ...opts, signal: AbortSignal.timeout(20000) });
+    } catch (e) {
+      if (attempt >= 2) throw e;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+}
+// Node's "fetch failed" hides the reason in e.cause (ENOTFOUND, ECONNRESET, ETIMEDOUT, ...).
+const why = (e) => {
+  const c = e && e.cause;
+  return `${e.message}${c ? ` (${c.code || c.message}${c.errors ? ": " + c.errors.map((x) => x.code).join(", ") : ""})` : ""}`;
+};
+
 async function tts(req, res) {
   if (!KEY) return send(res, 503, "ELEVENLABS_API_KEY not set");
   let raw = "";
@@ -95,7 +115,7 @@ async function tts(req, res) {
   if (!text) return send(res, 400, "No text");
 
   try {
-    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOICE)}?output_format=mp3_44100_128`, {
+    const r = await elevenFetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOICE)}?output_format=mp3_44100_128`, {
       method: "POST",
       headers: { "xi-api-key": KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
       body: JSON.stringify({ text, model_id: MODEL, voice_settings: settings }),
@@ -109,8 +129,36 @@ async function tts(req, res) {
     res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": buf.length, "Cache-Control": "no-store" });
     res.end(buf);
   } catch (e) {
-    console.error("[tts]", e.message);
+    console.error("[tts]", why(e), "- VEGA falls back to the browser voice");
     send(res, 502, "TTS failed");
+  }
+}
+
+/* Speech-to-text fallback for browsers whose Web Speech API can't reach its cloud service
+   (error "network": offline, VPN/firewall, Brave, Chromium builds). The page records audio
+   with MediaRecorder and posts the raw blob here; ElevenLabs Scribe transcribes it. */
+const STT_MODEL = process.env.ELEVENLABS_STT_MODEL_ID || "scribe_v1";
+async function stt(req, res) {
+  if (!KEY) return send(res, 503, "ELEVENLABS_API_KEY not set");
+  const chunks = []; let size = 0;
+  for await (const c of req) { size += c.length; if (size > 10 * 1024 * 1024) return send(res, 413, "Too long"); chunks.push(c); }
+  if (!size) return send(res, 400, "No audio");
+  const type = String(req.headers["content-type"] || "audio/webm").split(";")[0];
+  const form = new FormData();
+  form.append("model_id", STT_MODEL);
+  form.append("language_code", "en");
+  form.append("file", new Blob([Buffer.concat(chunks)], { type }), type.includes("ogg") ? "speech.ogg" : type.includes("mp4") ? "speech.mp4" : "speech.webm");
+  try {
+    const r = await elevenFetch("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: { "xi-api-key": KEY }, body: form });
+    if (!r.ok) {
+      console.error(`[stt] ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
+      return send(res, 502, "STT failed");
+    }
+    const text = String((await r.json()).text || "").replace(/\s*\([^)]*\)\s*/g, " ").trim(); // drop "(background noise)" tags
+    send(res, 200, JSON.stringify({ text }), "application/json");
+  } catch (e) {
+    console.error("[stt]", why(e));
+    send(res, 502, "STT failed");
   }
 }
 
@@ -185,22 +233,24 @@ function serveStatic(req, res) {
 
 http.createServer((req, res) => {
   const url = req.url.split("?")[0];
-  if (ai.handle(req, res)) return;
-  if (auth.handle(req, res)) return;
-  if (url === "/api/tts" || url === "/api/chat") {
-    // Let pages served by another local static server (npx serve, Live Server) use these proxies.
-    // Localhost origins only, so other websites can't spend the ElevenLabs key or the local model.
+  if (url.startsWith("/api/")) {
+    // Let pages served by another local static server (npx serve, Live Server) use the API.
+    // Localhost origins only, so other websites can't spend the ElevenLabs key, the local model, or sign in.
     const origin = req.headers.origin || "";
     if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
       res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
       res.setHeader("Vary", "Origin");
     }
     if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
   }
+  if (ai.handle(req, res)) return;
+  if (auth.handle(req, res)) return;
   if (url === "/api/tts" && req.method === "POST") return tts(req, res);
   if (url === "/api/tts" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
+  if (url === "/api/stt" && req.method === "POST") return stt(req, res);
+  if (url === "/api/stt" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
   if (url === "/api/chat" && req.method === "POST") return chat(req, res);
   if (url === "/api/chat" && req.method === "GET") {
     return ollamaUp().then((up) => send(res, up ? 200 : 503, JSON.stringify({ enabled: up, model: OLLAMA_MODEL }), "application/json"));

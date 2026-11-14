@@ -421,7 +421,9 @@
     onError: (err) => {
       const msg = err === "not-allowed" || err === "service-not-allowed"
         ? "Microphone access was blocked. Allow mic access, or serve the site from localhost. You can still type commands."
-        : err === "no-speech" ? "I didn't hear anything. Tap the mic and try again." : `Voice error: ${err}. You can type commands instead.`;
+        : err === "no-speech" ? "I didn't hear anything. Tap the mic and try again."
+        : err === "network" ? "Voice error: the browser's speech service is unreachable, and server transcription isn't available (run node server.js with ELEVENLABS_API_KEY set). You can type commands instead."
+        : `Voice error: ${err}. You can type commands instead.`;
       respond(msg, { speak: false });
     },
   });
@@ -485,5 +487,7 @@
   addEventListener("resize", renderVitals);
 
   log("sys", "AstraSight lens online. 8 diagnostic sensors connected.");
-  setTimeout(() => respond("Good morning, Commander. All diagnostics are online. Say “VEGA, help” to hear what I can do.", { speak: false }), 900);
+  // Greet the signed-in crew member by name; plain "Good morning." when nobody is signed in.
+  const greet = (u) => respond(`Good morning${u && u.name ? ", " + u.name : ""}. All diagnostics are online. Say “VEGA, help” to hear what I can do.`, { speak: false });
+  setTimeout(() => (window.AstraAuth ? AstraAuth.ready.catch(() => null).then(greet) : greet(null)), 900);
 })();
