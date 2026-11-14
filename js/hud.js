@@ -87,15 +87,17 @@
     if (broadcast) VegaAlerts.bus.send({ type: "reset", id: id || null });
   }
 
+  let popupTone = "calm";
   const popup = VegaAlerts.createPopup({
     variant: "hud",
     mount: shell,
     onShow: (t, v, z, g) => {
       log("sys", `${VegaAlerts.ZONE_LABEL[z.zone]}: ${t.name} ${VegaAlerts.fmt(t, v)} ${t.unit}. ${g.title}`);
       cards[t.id].scrollIntoView({ behavior: "smooth", block: "nearest" });
-      VEGA.speak(VegaAlerts.speech(t, v, z, g));
+      popupTone = VEGA.toneFor(z.zone);
+      VEGA.speak(VegaAlerts.speech(t, v, z, g), { tone: popupTone });
     },
-    onPage: (pg) => VEGA.speak(pg.text.replace(/[“”]/g, "")),
+    onPage: (pg) => VEGA.speak(pg.text.replace(/[“”]/g, ""), { tone: popupTone }),
     onReset: (id) => {
       resetReading(id);
       respond(`${toolById(id).name} returned to baseline.`, { speak: false });
@@ -180,14 +182,20 @@
   }
 
   let respTimer;
-  function respond(text, { speak = true } = {}) {
+  /* Worst current zone as a voice tone, so replies sound as serious as the readings are. */
+  function situationTone() {
+    const zones = TOOLS.map((t) => zoneOf(t, state.values[t.id]).zone);
+    return VEGA.toneFor(zones.includes("crit") ? "crit" : zones.includes("warn") ? "warn" : "ok");
+  }
+
+  function respond(text, { speak = true, tone = "calm" } = {}) {
     $("#response-text").textContent = text;
     const r = $("#response");
     r.classList.add("show");
     clearTimeout(respTimer);
     respTimer = setTimeout(() => r.classList.remove("show"), Math.max(5000, text.length * 70));
     log("ai", text);
-    if (speak) VEGA.speak(text);
+    if (speak) VEGA.speak(text, { tone });
   }
 
   let alertTimer;
@@ -276,7 +284,12 @@
   let chatBusy = false;
 
   function hudContext() {
-    const lines = TOOLS.map((t) => `${t.name}: ${fmt(t)} ${t.unit} (normal ${t.range}, ${toolStatus(t, state.values[t.id])})`);
+    // Spell the status out: small models misjudge ranges themselves and ignore a bare "ok".
+    const STATUS = { ok: "NORMAL, fine", warn: "WARNING, too", crit: "CRITICAL, dangerously" };
+    const lines = TOOLS.map((t) => {
+      const z = zoneOf(t, state.values[t.id]);
+      return `${t.name}: ${fmt(t)} ${t.unit} - ${STATUS[z.zone]}${z.side ? " " + z.side : ""} (normal range ${t.range})`;
+    });
     lines.push(`Readiness score: ${$("#score").textContent}`);
     if (state.alert) lines.push(`Active alert: ${toolById(state.alert).name}`);
     const who = typeof Crew !== "undefined" ? Crew.callSign() : "";
@@ -294,7 +307,7 @@
       const reply = await VEGA.ask(chatHistory.slice(-12), hudContext());
       if (!reply) { chatHistory.pop(); return fallback(); }
       chatHistory.push({ role: "assistant", content: reply });
-      respond(reply);
+      respond(reply, { tone: situationTone() });
     } catch (e) {
       chatHistory.pop();
       console.warn("VEGA chat failed:", e.message || e);
@@ -332,7 +345,7 @@
         VEGA.speak(`Running ${tool.name.toLowerCase()} scan.`);
         return scanTool(tool.id, () => setTimeout(() => respond(`Scan complete. ${describe(tool)}`), 300));
       case "full_scan": return fullScan();
-      case "status_report": return respond(statusReport());
+      case "status_report": return respond(statusReport(), { tone: situationTone() });
       case "panel_hide": setVisible(false); return respond("Panel hidden. Say “show panel” to bring it back.");
       case "panel_show": setVisible(true); return respond("Panel restored.");
       case "dock_left": setVisible(true); setDock("left"); return respond("Panel docked left.");
@@ -344,7 +357,7 @@
         setVisible(true); setFocus("spo2"); cards.spo2.classList.add("alert");
         toast("HYPOXIA WARNING · SpO₂ falling · Check suit and cabin O₂");
         log("sys", "Simulated hypoxia event injected");
-        return respond("Warning. Your blood oxygen is dropping. Check your oxygen supply and move to a safe area. Say acknowledge to dismiss.");
+        return respond("Priority alert. Your blood oxygen is down to 88 percent. Check your oxygen supply and move to a safe area now. I'm watching your numbers. Say acknowledge once you're safe.", { tone: "urgent" });
       case "clear_alert":
         if (!state.alert && popup.current) { popup.hide(); return respond("Warning acknowledged. I'll keep watching that reading."); }
         if (!state.alert) return respond("There are no active alerts.");

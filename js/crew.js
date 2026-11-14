@@ -111,7 +111,7 @@ const ShipPA = (() => {
     chime(alert.mood);
     setTimeout(() => {
       const t = spoken(text);
-      if (window.VEGA && VEGA.speak) VEGA.speak(t);
+      if (window.VEGA && VEGA.speak) VEGA.speak(t, { tone: VEGA.toneFor(alert.mood) });
       else if ("speechSynthesis" in window) { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
     }, alert.mood === "critical" ? 600 : 750);
     return entry;

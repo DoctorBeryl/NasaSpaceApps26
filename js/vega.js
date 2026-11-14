@@ -97,11 +97,27 @@ const VEGA = (() => {
   }
   if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 
-  function speakBrowser(text) {
+  /* Delivery by situation. "urgent" is quicker and a touch lower and steadier, so it sounds
+     firm rather than alarmed; a higher, wobblier voice reads as panic. The server keeps its
+     own ElevenLabs settings for each tone. */
+  const TONES = {
+    calm:    { rate: 1.02, pitch: 1.05 },
+    caution: { rate: 1.05, pitch: 1.0 },
+    urgent:  { rate: 1.12, pitch: 0.92 },
+  };
+  /* Map an alert zone or report mood to a tone: crit/critical -> urgent, warn/caution -> caution. */
+  function toneFor(level) {
+    if (level === "crit" || level === "critical" || level === "urgent") return "urgent";
+    if (level === "warn" || level === "caution" || level === "reminder") return "caution";
+    return "calm";
+  }
+
+  function speakBrowser(text, tone) {
     if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
     if (voice) u.voice = voice;
-    u.rate = 1.02; u.pitch = 1.05;
+    const t = TONES[tone] || TONES.calm;
+    u.rate = t.rate; u.pitch = t.pitch;
     speechSynthesis.speak(u);
   }
 
@@ -125,14 +141,15 @@ const VEGA = (() => {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   }
 
-  async function speak(text) {
+  async function speak(text, { tone = "calm" } = {}) {
     if (muted || !text) return;
+    tone = toneFor(tone);
     stopAll();
     const id = seq;
     const url = await ttsUrl;
     if (url) {
       try {
-        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, tone }) });
         if (!r.ok) throw new Error(r.status);
         const blob = await r.blob();
         if (id !== seq || muted) return;          // something newer was said meanwhile
@@ -144,7 +161,7 @@ const VEGA = (() => {
         console.warn("ElevenLabs TTS unavailable, using browser voice:", e.message || e);
       }
     }
-    if (id === seq) speakBrowser(text);
+    if (id === seq) speakBrowser(text, tone);
   }
 
   /* Free-form chat via the local server's /api/chat proxy to Ollama. The server owns the
@@ -200,7 +217,7 @@ const VEGA = (() => {
   }
 
   return {
-    parse, speak, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
+    parse, speak, toneFor, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
     get muted() { return muted; },
     supported: { recognition: !!SR, synthesis: "speechSynthesis" in window },
     TOOL_ALIASES,

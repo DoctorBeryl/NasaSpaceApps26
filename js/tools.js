@@ -85,7 +85,7 @@
 
   const popup = VegaAlerts.createPopup({
     variant: "web",
-    onShow: (t, v, z, g) => VEGA.speak(VegaAlerts.speech(t, v, z, g)),
+    onShow: (t, v, z, g) => VEGA.speak(VegaAlerts.speech(t, v, z, g), { tone: VEGA.toneFor(z.zone) }),
     onReset: (id) => resetReading(id),
   });
 
@@ -267,12 +267,15 @@
   $("#btn-anomaly").onclick = () => setReading(current.id, ANOMALY[current.id]);
   $("#btn-reset").onclick = () => resetReading(current.id);
   $("#btn-speak").onclick = () => {
-    const ok = zone() === "ok";
+    const z = zone();
     const v = `${value.toFixed(current.decimals)} ${current.unit}`;
     VEGA.setMuted(false);
-    VEGA.speak(ok
+    VEGA.speak(z === "ok"
       ? `${current.name}: ${v}. That's within your normal range.`
-      : `Caution. ${current.name} reading is ${v}, outside your normal range. I recommend notifying the flight surgeon.`);
+      : z === "crit"
+        ? `Priority alert. ${current.name} is at ${v}, well outside your normal range. Contact the flight surgeon now. I'm watching your numbers.`
+        : `Heads up. ${current.name} is at ${v}, outside your normal range. Take it easy, and tell the flight surgeon if it doesn't settle.`,
+      { tone: VEGA.toneFor(z) });
   };
 
   addEventListener("resize", resize);

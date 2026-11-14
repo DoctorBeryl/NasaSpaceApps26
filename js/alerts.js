@@ -169,11 +169,15 @@ const VegaAlerts = (() => {
     return { el, check, hide, next: () => go(1), prev: () => go(-1), get current() { return current; } };
   }
 
-  /* Spoken summary for a popup */
+  /* Spoken summary for a popup. Caution stays friendly; danger is short and firm, with the
+     crew member's name first and a steadying close, so it's pressing without sounding alarmed. */
   function speech(t, v, z, g) {
-    const lead = z.zone === "crit" ? "Warning." : "Caution.";
-    const first = z.zone === "crit" ? g.danger : g.steps[0];
-    return `${lead} ${g.title}. ${first.replace(/[“”]/g, "")}`;
+    const name = typeof Crew !== "undefined" && Crew.firstName ? Crew.firstName() : "";
+    const clean = (s) => s.replace(/[“”]/g, "");
+    if (z.zone === "crit") {
+      return `${name ? name + ", priority alert" : "Priority alert"}. ${g.title}. ${clean(g.danger)} Do that first. I'll walk you through the rest.`;
+    }
+    return `Heads up${name ? ", " + name : ""}. ${g.title}. ${clean(g.steps[0])}`;
   }
 
   /* ---------------- cross-tab sync (lens <-> web) ---------------- */

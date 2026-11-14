@@ -56,3 +56,8 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Decisions:** The first friendly prompt made llama3.2 write the off-topic poem anyway and call 112 bpm normal, so the scope and status rules were made explicit.
 **Open / next:** `interface.html` doesn't load `js/crew.js`, so the HUD chat doesn't know the name yet; add the script tag if wanted.
 **Gotchas:** llama3.2 still drifts a little (offering a "space pizza recipe"); a bigger model holds the rules better.
+
+## 2026-11-14: DoctorBeryl (+ Claude): VEGA chat less pushy, welcomes small talk
+**Changed:** Rewrote the `server.js` system prompt: personality first, with example replies for "how are you", "hi", and "thanks"; bans brush-offs like "I'm not here to chat"; only mentions readings when asked or when one is out of range; turns down off-topic tasks lightly ("a bit outside my orbit"). `js/hud.js` now labels each reading in the chat context as `NORMAL, fine`, `WARNING, too high/low`, or `CRITICAL, dangerously high/low`.
+**Decisions:** The earlier "help only with..." opening plus always-present vitals made llama3.2 curt and keep pushing "check your heart rate". With a bare `ok` status it also called 72 bpm "above normal"; the spelled-out labels fixed that in testing.
+**Open / next:** `interface.html` still doesn't load `js/crew.js`, so the HUD chat doesn't know the crew member's name.
