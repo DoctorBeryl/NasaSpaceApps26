@@ -1,0 +1,9 @@
+{
+  "name": "astrasight",
+  "private": true,
+  "description": "AstraSight concept site for NASA Space Apps 2026. No dependencies.",
+  "scripts": {
+    "dev": "node dev.js",
+    "start": "node server.js"
+  }
+}

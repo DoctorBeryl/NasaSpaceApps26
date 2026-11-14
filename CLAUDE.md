@@ -17,9 +17,12 @@ A static site with no build step and no dependencies: plain HTML, CSS, and vanil
 
 ```sh
 node server.js      # Node 18+, then open http://localhost:8000
+npm run dev         # same, plus starts Ollama first if it isn't running (dev.js)
 ```
 
 `server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`, key from the gitignored `.env`; copy `.env.example`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
+
+Free-form questions in the HUD's command box go to a local [Ollama](https://ollama.com) model through `server.js` (`/api/chat`; set `OLLAMA_URL` and `OLLAMA_MODEL` in `.env`, default `llama3.2`, so run `ollama pull llama3.2`). The system prompt is fixed in `server.js` and keeps VEGA on AstraSight features and mission topics; the page sends only the conversation and the current simulated readings. Built-in commands are still handled by the rule-based parser. Without Ollama, questions get the built-in answer or "didn't catch that".
 
 Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome or Edge. Typed commands work everywhere.
 

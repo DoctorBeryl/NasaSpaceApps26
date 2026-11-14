@@ -268,8 +268,42 @@
     }, 4000);
   }
 
+  /* ---------------- free-form chat (Ollama) ---------------- */
+  // Built-in commands stay rule-based. Questions, and anything the parser doesn't
+  // recognize, go to the local model with the current readings as context.
+  const QUESTION = /^\s*(?:hey\s+)?(?:vega[,.!\s]*)?(why|how|what(?:'s| is| are| does| do| should)|when|where|who|which|explain|tell me|should|could|can|is|are|do|does|will|would)\b/i;
+  const chatHistory = [];
+  let chatBusy = false;
+
+  function hudContext() {
+    const lines = TOOLS.map((t) => `${t.name}: ${fmt(t)} ${t.unit} (normal ${t.range}, ${toolStatus(t, state.values[t.id])})`);
+    lines.push(`Readiness score: ${$("#score").textContent}`);
+    if (state.alert) lines.push(`Active alert: ${toolById(state.alert).name}`);
+    const who = typeof Crew !== "undefined" ? Crew.callSign() : "";
+    if (who) lines.push(`Crew member: ${who}`);
+    return lines.join("\n");
+  }
+
+  async function chat(raw, fallback) {
+    if (chatBusy) return respond("One moment, I'm still answering your last question.", { speak: false });
+    chatBusy = true;
+    chatHistory.push({ role: "user", content: raw });
+    $("#response-text").textContent = "Thinking…";
+    $("#response").classList.add("show");
+    try {
+      const reply = await VEGA.ask(chatHistory.slice(-12), hudContext());
+      if (!reply) { chatHistory.pop(); return fallback(); }
+      chatHistory.push({ role: "assistant", content: reply });
+      respond(reply);
+    } catch (e) {
+      chatHistory.pop();
+      console.warn("VEGA chat failed:", e.message || e);
+      fallback();
+    } finally { chatBusy = false; }
+  }
+
   function execute(raw) {
-    if (/(reset|baseline)/i.test(raw)) {
+    if (/\b(reset|baseline)\b/i.test(raw)) {
       log("user", raw);
       resetReading(null);
       return respond("All readings returned to baseline.");
@@ -278,6 +312,16 @@
     log("user", raw);
     const tool = p.slots.tool && toolById(p.slots.tool);
 
+    // Questions about a reading ("why is my heart rate high?") parse as show_tool;
+    // send those to the model too, and fall back to the built-in answer if it's offline.
+    const asks = QUESTION.test(raw) && !["help", "status_report", "full_scan", "scan_tool", "simulate_alert", "clear_alert"].includes(p.intent);
+    if (p.intent === "unknown" || (asks && p.intent === "show_tool")) {
+      return chat(raw, () => runIntent(p, tool));
+    }
+    return runIntent(p, tool);
+  }
+
+  function runIntent(p, tool) {
     switch (p.intent) {
       case "show_tool":
         setVisible(true); setFocus(tool.id);
@@ -327,7 +371,7 @@
       case "help":
         return respond("Try: show my heart rate, run a full scan, status report, move panel left, hide panel, start a breathing exercise, or simulate an emergency.");
       default:
-        return respond("Sorry, I didn't catch that. Try “show my heart rate” or say “help”.");
+        return respond("Sorry, I didn't quite catch that! Try “show my heart rate”, or say “help” and I'll show you what I can do.");
     }
   }
 

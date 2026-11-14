@@ -147,6 +147,31 @@ const VEGA = (() => {
     if (id === seq) speakBrowser(text);
   }
 
+  /* Free-form chat via the local server's /api/chat proxy to Ollama. The server owns the
+     system prompt; the page only sends user/assistant turns plus a live-readings summary.
+     Same origin first, then node server.js on localhost:8000, like the TTS proxy. */
+  const CHAT_FALLBACK = "http://localhost:8000/api/chat";
+  let chatUrlP = null;
+  function chatUrl() {
+    if (!chatUrlP) {
+      chatUrlP = (location.protocol.startsWith("http") ? probe("/api/chat") : Promise.resolve(null))
+        .then((u) => u || (location.origin === "http://localhost:8000" ? null : probe(CHAT_FALLBACK)))
+        .then((u) => {
+          if (!u) { console.warn("VEGA: Ollama chat not available. Start Ollama, pull the model, and run `node server.js`."); chatUrlP = null; }
+          return u;
+        });
+    }
+    return chatUrlP;
+  }
+
+  async function ask(messages, context = "") {
+    const url = await chatUrl();
+    if (!url) return null;
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages, context }) });
+    if (!r.ok) throw new Error(`chat ${r.status}`);
+    return (await r.json()).reply;
+  }
+
   function setMuted(m) { muted = m; if (m) stopAll(); }
 
   function createListener({ onResult, onInterim, onState, onError }) {
@@ -175,7 +200,7 @@ const VEGA = (() => {
   }
 
   return {
-    parse, speak, setMuted, createListener,
+    parse, speak, ask, chatAvailable: () => chatUrl().then(Boolean), setMuted, createListener,
     get muted() { return muted; },
     supported: { recognition: !!SR, synthesis: "speechSynthesis" in window },
     TOOL_ALIASES,

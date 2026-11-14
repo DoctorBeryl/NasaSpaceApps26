@@ -20,6 +20,8 @@ cp .env.example .env     # then put your ELEVENLABS_API_KEY in .env
 node server.js           # http://localhost:8000
 ```
 
+To start Ollama (for VEGA's free-form answers) and the server together, run `npm run dev` (or `node dev.js`) instead. It uses Ollama if it's already running, otherwise starts `ollama serve`, prefixes each process's output, and stops both on Ctrl+C.
+
 The API key is only read by `server.js` and is never sent to the browser. `.env` is git-ignored. Without a key, or with a plain static server (`npx serve .`), VEGA falls back to the browser's built-in voice. Voice input needs a secure origin, so use localhost instead of opening the files directly.
 
 Voice recognition uses the Web Speech API, which works in Chrome and Edge. In any browser you can type commands or click the suggestion chips instead. Press **V** on the interface page to start talking.
