@@ -1097,9 +1097,9 @@
     // Tone follows the mood: urgent is quicker and lower, never higher-pitched, so VEGA sounds firm, not alarmed.
     function speakText(text, mood = 'nominal') {
       if (!voiceEnabled) return;
-      const tone = window.VEGA ? VEGA.toneFor(mood) : 'calm';
-      const said = window.ShipPA ? ShipPA.spoken(text) : text;
-      if (window.VEGA && VEGA.speak) return VEGA.speak(said, { tone });
+      const tone = typeof VEGA !== 'undefined' ? VEGA.toneFor(mood) : 'calm';
+      const said = typeof ShipPA !== 'undefined' ? ShipPA.spoken(text) : text;
+      if (typeof VEGA !== 'undefined') return VEGA.speak(said, { tone });
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(said);

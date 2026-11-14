@@ -111,7 +111,7 @@ const ShipPA = (() => {
     chime(alert.mood);
     setTimeout(() => {
       const t = spoken(text);
-      if (window.VEGA && VEGA.speak) VEGA.speak(t, { tone: VEGA.toneFor(alert.mood) });
+      if (typeof VEGA !== "undefined" && VEGA.speak) VEGA.speak(t, { tone: VEGA.toneFor(alert.mood) });
       else if ("speechSynthesis" in window) { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
     }, alert.mood === "critical" ? 600 : 750);
     return entry;
@@ -120,7 +120,7 @@ const ShipPA = (() => {
   function setEnabled(b) {
     enabled = !!b;
     try { localStorage.setItem(KEY, enabled ? "on" : "off"); } catch { /* ignore */ }
-    if (!enabled && window.VEGA && VEGA.setMuted) { VEGA.setMuted(true); VEGA.setMuted(false); }
+    if (!enabled && typeof VEGA !== "undefined" && VEGA.setMuted) { VEGA.setMuted(true); VEGA.setMuted(false); }
     listeners.forEach((fn) => fn(log));
   }
 
