@@ -237,7 +237,8 @@ async function answer(ai, { questionId, answer: rawAnswer, profile: rawProfile }
           temperature: 0.1,
         });
         for (const k of Object.keys(q.schema)) patch[k] = out[k];
-        ack = str(out.ack, 160) || ack;
+        const said = str(out.ack, 160);
+        if (said.length > 3 && !/^ack\b/i.test(said)) ack = said;   // small models sometimes echo the field name
         followUp = !isFollowUp && str(out.followUp, 200) ? { id: `${q.id}.followup`, topic: q.topic, kind: "text", text: str(out.followUp, 200) } : null;
         source = "model";
       } catch (e) {

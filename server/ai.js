@@ -98,7 +98,7 @@ function cleanContext(ctx) {
     .map(([k, v]) => `- ${String(k).slice(0, 40)}: ${String(v).slice(0, 120)}`);
 }
 
-function systemPrompt(profile, rows, context = []) {
+function systemPrompt(profile, rows, context = [], redFlag = false) {
   const parts = [persona(), "", `Style for this crew member: ${VERBOSITY[profile.verbosity] || VERBOSITY.standard}`];
 
   const facts = onboarding.profileForModel(profile);
@@ -116,6 +116,9 @@ function systemPrompt(profile, rows, context = []) {
 
   if (rows.some((r) => r.zone === "crit")) {
     parts.push("", "IMPORTANT: at least one reading is in the DANGER zone. Start your reply with it, give the first protocol step, and tell them to contact the flight surgeon and the crew medical officer now.");
+  }
+  if (redFlag) {
+    parts.push("", "IMPORTANT: the crew member describes a symptom that can be serious. Start your reply by telling them to stop what they're doing and contact the flight surgeon and the crew medical officer now. Don't suggest waiting, relaxing it away, or re-checking later. Then give one short thing they can do while help comes.");
   }
   return parts.join("\n");
 }
@@ -144,8 +147,9 @@ async function chat(req, res) {
   const lastUser = messages[messages.length - 1].content;
 
   const alerts = rows.filter((r) => r.zone !== "ok");
-  const escalate = rows.some((r) => r.zone === "crit") || RED_FLAGS.test(lastUser);
-  const llmMessages = [{ role: "system", content: systemPrompt(profile, rows, cleanContext(body.context)) }, ...messages];
+  const redFlag = RED_FLAGS.test(lastUser);
+  const escalate = rows.some((r) => r.zone === "crit") || redFlag;
+  const llmMessages = [{ role: "system", content: systemPrompt(profile, rows, cleanContext(body.context), redFlag) }, ...messages];
   const signal = abortOnClose(res);
 
   if (!body.stream) {
@@ -226,10 +230,13 @@ async function brief(req, res) {
       signal: abortOnClose(res),
     });
     if (typeof r.headline === "string" && r.headline.trim()) {
+      const actions = (r.actions || []).filter((a) => typeof a === "string" && a.trim()).map((a) => a.trim().slice(0, 160)).slice(0, 4);
       out = {
-        headline: r.headline.trim().slice(0, 160),
-        notes: Object.fromEntries((r.notes || []).filter((n) => n && typeof n.note === "string").map((n) => [n.id, n.note.trim().slice(0, 120)])),
-        actions: (r.actions || []).filter((a) => typeof a === "string" && a.trim()).map((a) => a.trim().slice(0, 160)).slice(0, 4),
+        // Small models sometimes call a danger reading "nominal", so when anything is flagged
+        // the headline and the minimum actions come from code; the model adds per-reading notes.
+        headline: status === "ok" ? r.headline.trim().slice(0, 160) : fallback.headline,
+        notes: Object.fromEntries((r.notes || []).filter((n) => n && typeof n.note === "string" && n.note.trim()).map((n) => [n.id, n.note.trim().slice(0, 120)])),
+        actions: status === "ok" ? actions : [...new Set([...fallback.actions, ...actions])].slice(0, 5),
       };
       if (escalate && !out.actions.some((a) => MENTIONS_SURGEON.test(a))) out.actions.unshift(ESCALATION_LINE);
       source = "model";

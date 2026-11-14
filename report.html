@@ -70,7 +70,8 @@
     .zone-limb { cursor:pointer; fill:none; stroke:rgba(42,111,139,.92); stroke-width:13; stroke-linecap:round; stroke-linejoin:round; transition:stroke .12s,filter .12s; }
     .zone-limb:hover,.zone-limb.selected { stroke:#00c5d3; filter:drop-shadow(0 0 4px rgba(0,240,255,.5)); }
     .zone-label { fill:#a7dce7; font:7px 'JetBrains Mono',monospace; pointer-events:none; text-anchor:middle; }
-    #bodyMap { width:100%; max-width:270px; }
+    #bodyMap { width:100%; max-width:340px; }
+    #bodyMap .zone { stroke-width:.8; }
     #bodyMap svg { width:100%; height:auto; display:block; }
     .body-base { fill:#10283a; stroke:#426e83; stroke-width:1.5; }
     .body-guide { stroke:#244b62; stroke-width:1; fill:none; stroke-dasharray:2 3; pointer-events:none; }
@@ -490,10 +491,10 @@
               <div>
                 <div class="flex items-center justify-between gap-2 mb-2"><div class="eyebrow">INTERACTIVE BODY MAP / MICRO-ZONES</div><div class="flex gap-1"><button type="button" class="body-orientation active" data-body-view="front">FRONT</button><button type="button" class="body-orientation" data-body-view="back">BACK</button></div></div>
                 <div class="rounded-lg border border-line/70 bg-[#07111d] p-2 flex items-center justify-center min-h-[390px]">
-                  <div id="bodyMap" class="w-full max-w-[270px]" aria-label="Interactive front body map with separately selectable anatomical areas"></div>
+                  <div id="bodyMap" class="w-full max-w-[340px]" aria-label="Interactive front body map with separately selectable anatomical areas"></div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
-                <p class="text-[9px] text-slate-500 mt-2">Select an individual joint, limb segment, torso area, or small head region. Front/back changes the torso zones while keeping the limbs selectable.</p>
+                <p class="text-[9px] text-slate-500 mt-2">Front and back are each split into left and right areas: head, face, eyes, ears, neck, chest, the nine abdominal regions, back and spine, arms, hands, legs and feet. Hover an area to see its name.</p>
               </div>
               <div class="min-w-0">
                 <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">LOCALIZED SYMPTOM INPUT</div><span id="selectedZoneLabel" class="text-[9px] mono text-cyan">FOREHEAD SELECTED</span></div>
@@ -609,23 +610,127 @@ const ReportLink = (() => {
   const baseline = {psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:0.08};
   const sliders = {psi:'sPsi',o2:'sO2',co2:'sCo2',hr:'sHr',temp:'sTemp',work:'sWork',rad:'sRad'};
   const outputs = {psi:'sPsiOut',o2:'sO2Out',co2:'sCo2Out',hr:'sHrOut',temp:'sTempOut',work:'sWorkOut',rad:'sRadOut'};
-  const zoneMeta = {
-    forehead:{label:'Forehead',kind:'head'}, temple_right:{label:'Right temple',kind:'head'}, temple_left:{label:'Left temple',kind:'head'}, jaw:{label:'Jaw',kind:'head'}, neck:{label:'Neck',kind:'joint'},
-    shoulder_right:{label:'Right shoulder',kind:'joint'}, shoulder_left:{label:'Left shoulder',kind:'joint'},
-    chest_upper_right:{label:'Upper chest · right',kind:'torso'}, chest_upper_left:{label:'Upper chest · left',kind:'torso'}, chest_lower_right:{label:'Lower chest · right',kind:'torso'}, chest_lower_left:{label:'Lower chest · left',kind:'torso'},
-    abdomen_upper_right:{label:'Upper abdomen · right',kind:'torso'}, abdomen_upper_left:{label:'Upper abdomen · left',kind:'torso'}, abdomen_lower_right:{label:'Lower abdomen · right',kind:'torso'}, abdomen_lower_left:{label:'Lower abdomen · left',kind:'torso'},
-    upper_back:{label:'Upper back',kind:'back'}, mid_back:{label:'Mid back',kind:'back'}, lower_back:{label:'Lower back',kind:'back'},
-    upper_arm_right:{label:'Right upper arm',kind:'limb'}, elbow_right:{label:'Right elbow',kind:'joint'}, forearm_right:{label:'Right forearm',kind:'limb'}, wrist_right:{label:'Right wrist',kind:'joint'}, hand_right:{label:'Right hand',kind:'limb'},
-    upper_arm_left:{label:'Left upper arm',kind:'limb'}, elbow_left:{label:'Left elbow',kind:'joint'}, forearm_left:{label:'Left forearm',kind:'limb'}, wrist_left:{label:'Left wrist',kind:'joint'}, hand_left:{label:'Left hand',kind:'limb'},
-    hip_right:{label:'Right hip',kind:'joint'}, thigh_right:{label:'Right thigh',kind:'limb'}, knee_right:{label:'Right knee',kind:'joint'}, shin_right:{label:'Right shin',kind:'limb'}, ankle_right:{label:'Right ankle',kind:'joint'}, foot_right:{label:'Right foot',kind:'limb'},
-    hip_left:{label:'Left hip',kind:'joint'}, thigh_left:{label:'Left thigh',kind:'limb'}, knee_left:{label:'Left knee',kind:'joint'}, shin_left:{label:'Left shin',kind:'limb'}, ankle_left:{label:'Left ankle',kind:'joint'}, foot_left:{label:'Left foot',kind:'limb'}
+  // ---------- Body map: front and back views, each split into anatomical areas ----------
+  // Geometry is written for the viewer's left half and mirrored for the other half.
+  // Front view: the viewer's left is the crew member's RIGHT. Back view: it's their LEFT.
+  // e = ellipse [cx,cy,rx,ry], r = rect [x,y,w,h], s = limb segment [x1,y1,x2,y2,width].
+  // side:1 = one zone per side (id gets _right / _left). List order = drawing order (later is on top).
+  const BODY_W=260;
+  const BODY_ZONES={
+    front:[
+      // torso
+      {id:'collarbone',label:'collarbone',kind:'joint',side:1,r:[103,76,24,8]},
+      {id:'chest_upper',label:'upper chest',kind:'chest',side:1,r:[98,87,28,24]},
+      {id:'sternum',label:'Breastbone (sternum)',kind:'chest',r:[127,87,6,48]},
+      {id:'chest_lower',label:'lower chest (ribs)',kind:'chest',side:1,r:[96,113,30,22]},
+      {id:'hypochondriac',label:'upper abdomen, below the ribs',kind:'abdomen',side:1,r:[94,137,22,15]},
+      {id:'epigastric',label:'Upper middle abdomen (epigastric)',kind:'abdomen',r:[117,137,26,15]},
+      {id:'lumbar_abd',label:'side of abdomen',kind:'abdomen',side:1,r:[93,153,23,15]},
+      {id:'umbilical',label:'Around the navel (umbilical)',kind:'abdomen',r:[117,153,26,15]},
+      {id:'iliac',label:'lower abdomen (iliac)',kind:'abdomen',side:1,r:[95,169,21,15]},
+      {id:'suprapubic',label:'Lower middle abdomen (suprapubic)',kind:'abdomen',r:[117,169,26,15]},
+      {id:'groin',label:'groin',kind:'pelvis',side:1,r:[108,186,20,9]},
+      // arms (front)
+      {id:'upper_arm_front',label:'upper arm (front, biceps)',kind:'limb',side:1,s:[90,93,81,130,16]},
+      {id:'forearm_front',label:'forearm (palm side)',kind:'limb',side:1,s:[78,150,67,190,13]},
+      {id:'palm',label:'palm',kind:'hand',side:1,e:[58,214,7,8]},
+      {id:'fingers',label:'fingers',kind:'hand',side:1,e:[53,236,7,9]},
+      // legs (front)
+      {id:'thigh_front',label:'thigh (front)',kind:'limb',side:1,s:[115,200,111,240,20]},
+      {id:'shin',label:'shin',kind:'limb',side:1,s:[109,266,103,322,13]},
+      {id:'foot_top',label:'top of foot',kind:'foot',side:1,r:[90,339,19,12]},
+      {id:'toes',label:'toes',kind:'foot',side:1,r:[75,341,14,10]},
+      // joints
+      {id:'shoulder',label:'shoulder',kind:'joint',side:1,e:[93,82,9,8]},
+      {id:'elbow',label:'elbow',kind:'joint',side:1,e:[79,140,7,7]},
+      {id:'wrist',label:'wrist',kind:'joint',side:1,e:[64,200,6,5]},
+      {id:'hip',label:'hip',kind:'joint',side:1,e:[92,190,6,7]},
+      {id:'knee',label:'knee (kneecap)',kind:'joint',side:1,e:[110,254,9,8]},
+      {id:'ankle',label:'ankle',kind:'joint',side:1,e:[101,332,6,5]},
+      // head, face and neck
+      {id:'forehead',label:'Forehead',kind:'head',e:[130,21,14,6]},
+      {id:'temple',label:'temple',kind:'head',side:1,e:[111,31,4.5,6]},
+      {id:'ear',label:'ear',kind:'ear',side:1,e:[105,41,3,5]},
+      {id:'eye',label:'eye',kind:'eye',side:1,e:[121,34,5,3.5]},
+      {id:'cheek',label:'cheek and sinus',kind:'face',side:1,e:[117,43,4.5,4]},
+      {id:'nose',label:'Nose',kind:'face',e:[130,40,3,4]},
+      {id:'mouth',label:'Mouth and lips',kind:'face',e:[130,48,6,2.6]},
+      {id:'jaw',label:'jaw',kind:'face',side:1,r:[116,51,13,6]},
+      {id:'throat',label:'front of neck',kind:'neck',side:1,r:[119,60,10.5,14]},
+    ],
+    back:[
+      // torso
+      {id:'trapezius',label:'upper back (trapezius)',kind:'back',side:1,r:[103,76,23,9]},
+      {id:'shoulder_blade',label:'shoulder blade',kind:'back',side:1,r:[99,88,26,28]},
+      {id:'spine_upper',label:'Upper spine (thoracic)',kind:'spine',r:[127,80,6,40]},
+      {id:'flank',label:'flank (kidney area)',kind:'back',side:1,r:[88,120,10,40]},
+      {id:'mid_back',label:'mid back',kind:'back',side:1,r:[99,120,27,20]},
+      {id:'spine_mid',label:'Mid spine',kind:'spine',r:[127,122,6,30]},
+      {id:'lower_back',label:'lower back (lumbar)',kind:'back',side:1,r:[99,142,27,24]},
+      {id:'spine_lower',label:'Lower spine (lumbar)',kind:'spine',r:[127,154,6,20]},
+      {id:'buttock',label:'buttock',kind:'pelvis',side:1,r:[97,168,24,28]},
+      {id:'sacrum',label:'Tailbone (sacrum)',kind:'spine',r:[122,176,16,10]},
+      // arms (back)
+      {id:'upper_arm_back',label:'upper arm (back, triceps)',kind:'limb',side:1,s:[90,93,81,130,16]},
+      {id:'forearm_back',label:'forearm (back)',kind:'limb',side:1,s:[78,150,67,190,13]},
+      {id:'hand_back',label:'back of hand',kind:'hand',side:1,e:[58,214,7,8]},
+      {id:'fingers',label:'fingers',kind:'hand',side:1,e:[53,236,7,9]},
+      // legs (back)
+      {id:'thigh_back',label:'thigh (back, hamstring)',kind:'limb',side:1,s:[115,200,111,240,20]},
+      {id:'calf',label:'calf',kind:'limb',side:1,s:[109,266,103,322,13]},
+      {id:'heel',label:'heel',kind:'foot',side:1,r:[90,339,19,12]},
+      {id:'sole',label:'sole of foot',kind:'foot',side:1,r:[75,341,14,10]},
+      // joints
+      {id:'shoulder',label:'shoulder',kind:'joint',side:1,e:[93,82,9,8]},
+      {id:'elbow',label:'elbow',kind:'joint',side:1,e:[79,140,7,7]},
+      {id:'wrist',label:'wrist',kind:'joint',side:1,e:[64,200,6,5]},
+      {id:'hip',label:'hip',kind:'joint',side:1,e:[92,190,6,7]},
+      {id:'knee_back',label:'back of knee',kind:'joint',side:1,e:[110,254,9,8]},
+      {id:'ankle',label:'ankle (Achilles)',kind:'joint',side:1,e:[101,332,6,5]},
+      // head and neck
+      {id:'crown',label:'Top of head (crown)',kind:'head',e:[130,19,15,7]},
+      {id:'occiput',label:'back of head',kind:'head',side:1,e:[119,37,10,12]},
+      {id:'ear',label:'ear',kind:'ear',side:1,e:[105,41,3,5]},
+      {id:'nape',label:'back of neck',kind:'neck',side:1,r:[119,58,10.5,16]},
+    ],
   };
+  const MIRROR={
+    e:([cx,cy,rx,ry])=>[BODY_W-cx,cy,rx,ry],
+    r:([x,y,w,h])=>[BODY_W-x-w,y,w,h],
+    s:([x1,y1,x2,y2,w])=>[BODY_W-x1,y1,BODY_W-x2,y2,w],
+  };
+  const cap=(t)=>t.charAt(0).toUpperCase()+t.slice(1);
+  function expandZones(view){
+    const near=view==='front'?'right':'left', far=view==='front'?'left':'right';
+    const out=[];
+    BODY_ZONES[view].forEach(z=>{
+      const geo=z.e?'e':z.r?'r':'s';
+      if(!z.side){ out.push({id:z.id,label:z.label,kind:z.kind,geo,g:z[geo]}); return; }
+      [[near,z[geo]],[far,MIRROR[geo](z[geo])]].forEach(([side,g])=>out.push({id:`${z.id}_${side}`,label:`${cap(side)} ${z.label}`,kind:z.kind,geo,g}));
+    });
+    return out;
+  }
+  const zoneMeta={};
+  ['front','back'].forEach(v=>expandZones(v).forEach(z=>{
+    if(!zoneMeta[z.id]) zoneMeta[z.id]={label:z.label,kind:z.kind,views:[]};
+    zoneMeta[z.id].views.push(v);
+  }));
+  // Symptom choices per kind of area. These are prompts for the crew report, not diagnoses.
   const symptomSets = {
     head:['Pain / headache','Pressure','Dizziness','Visual changes','Light sensitivity','Numbness / tingling','Confusion'],
+    eye:['Eye pain','Blurred or changed vision','Pressure behind the eye','Redness / irritation','Light sensitivity','Something in the eye'],
+    ear:['Ear pain','Pressure / fullness','Ringing (tinnitus)','Reduced hearing','Dizziness'],
+    face:['Pain','Sinus pressure / congestion','Swelling','Numbness / tingling','Jaw pain or clenching','Nosebleed'],
+    neck:['Pain / stiffness','Tenderness','Swelling','Sore throat','Difficulty swallowing','Numbness / tingling'],
     joint:['Pain / aching','Joint stiffness','Tenderness','Swelling','Reduced range of motion','Weakness','Tingling / numbness'],
     limb:['Pain / aching','Muscle soreness','Tingling / pins and needles','Numbness','Weakness','Swelling','Reduced movement / grip','Skin color / temperature change'],
-    torso:['Pain / tightness','Pressure','Tenderness','Shortness of breath','Persistent cough','Nausea','Tingling / numbness'],
-    back:['Pain / aching','Stiffness','Tenderness','Muscle spasm','Tingling / numbness','Weakness','Reduced movement']
+    hand:['Pain / aching','Fingertip or nail pain','Tingling / numbness','Weak grip','Swelling','Skin abrasion / hot spot','Cold fingers'],
+    foot:['Pain / aching','Tingling / numbness','Swelling','Blister / abrasion','Cold toes'],
+    chest:['Pain / tightness','Pressure','Tenderness','Shortness of breath','Persistent cough','Palpitations','Skin mottling / itch'],
+    abdomen:['Pain / cramping','Tenderness','Nausea','Bloating','Burning / heartburn','Changed bowel habits'],
+    back:['Pain / aching','Stiffness','Tenderness','Muscle spasm','Tingling / numbness','Weakness','Skin mottling / itch'],
+    spine:['Pain / aching','Stiffness','Pain shooting into an arm or leg','Tingling / numbness','Weakness','Reduced movement'],
+    pelvis:['Pain / aching','Tenderness','Swelling','Tingling / numbness','Pain when urinating']
   };
 
   const palettes = {
@@ -984,35 +1089,18 @@ const ReportLink = (() => {
     if(view==='ship') teleportCompanion('triagePanel'); else teleportCompanion('metricsGrid');
   }
 
-  function zoneShape(id, markup, type='zone'){
-    return markup.replace('class="zone"',`class="${type}"`).replace('data-zone=""',`data-zone="${id}"`);
+  function zoneSvg(z){
+    const a=`class="zone" data-zone="${z.id}"`, t=`<title>${z.label}</title>`;
+    if(z.geo==='e'){ const [cx,cy,rx,ry]=z.g; return `<ellipse ${a} cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}">${t}</ellipse>`; }
+    if(z.geo==='r'){ const [x,y,w,h]=z.g; return `<rect ${a} x="${x}" y="${y}" width="${w}" height="${h}" rx="2.5">${t}</rect>`; }
+    const [x1,y1,x2,y2,w]=z.g, len=Math.hypot(x2-x1,y2-y1), nx=-(y2-y1)/len*w/2, ny=(x2-x1)/len*w/2;
+    const pts=[[x1+nx,y1+ny],[x2+nx,y2+ny],[x2-nx,y2-ny],[x1-nx,y1-ny]].map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ');
+    return `<polygon ${a} points="${pts}" stroke-linejoin="round">${t}</polygon>`;
   }
-  function circleZone(id,x,y,rx,ry=rx){ return `<ellipse class="zone" data-zone="${id}" cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`; }
-  function rectZone(id,x,y,w,h,rad=3){ return `<rect class="zone" data-zone="${id}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rad}"/>`; }
-  function lineZone(id,d,width=13){ return `<path class="zone-limb" data-zone="${id}" d="${d}" style="stroke-width:${width}px"/>`; }
   function renderBodyMap(){
     const front=state.bodyView==='front';
-    const torsoZones=front
-      ? [
-          rectZone('chest_upper_right',104,91,25,24,5),rectZone('chest_upper_left',131,91,25,24,5),
-          rectZone('chest_lower_right',104,117,25,22,4),rectZone('chest_lower_left',131,117,25,22,4),
-          rectZone('abdomen_upper_right',105,142,24,20,4),rectZone('abdomen_upper_left',131,142,24,20,4),
-          rectZone('abdomen_lower_right',106,164,23,18,4),rectZone('abdomen_lower_left',131,164,23,18,4)
-        ].join('')
-      : [
-          rectZone('upper_back',104,91,52,28,5),rectZone('mid_back',104,121,52,29,5),rectZone('lower_back',106,152,48,30,5)
-        ].join('');
-    const upperLimbs=[
-      lineZone('upper_arm_right','M91 83 L75 130',14),circleZone('elbow_right',72,141,8),lineZone('forearm_right','M69 151 L59 194',12),circleZone('wrist_right',57,201,7),circleZone('hand_right',53,218,9,11),
-      lineZone('upper_arm_left','M169 83 L185 130',14),circleZone('elbow_left',188,141,8),lineZone('forearm_left','M191 151 L201 194',12),circleZone('wrist_left',203,201,7),circleZone('hand_left',207,218,9,11)
-    ].join('');
-    const lowerLimbs=[
-      circleZone('hip_right',113,184,13,10),lineZone('thigh_right','M112 195 L105 247',16),circleZone('knee_right',104,255,9),lineZone('shin_right','M103 266 L96 325',14),circleZone('ankle_right',95,334,7),rectZone('foot_right',78,340,28,13,5),
-      circleZone('hip_left',147,184,13,10),lineZone('thigh_left','M148 195 L155 247',16),circleZone('knee_left',156,255,9),lineZone('shin_left','M157 266 L164 325',14),circleZone('ankle_left',165,334,7),rectZone('foot_left',154,340,28,13,5)
-    ].join('');
-    const headZones=[circleZone('forehead',130,28,13,8),circleZone('temple_right',112,39,7,8),circleZone('temple_left',148,39,7,8),rectZone('jaw',117,46,26,11,5),rectZone('neck',119,58,22,17,4)];
-    const shoulders=[circleZone('shoulder_right',94,81,12,10),circleZone('shoulder_left',166,81,12,10)];
-    $('bodyMap').innerHTML=`<svg viewBox="0 0 260 365" class="w-full h-auto" role="img" aria-label="${front?'Front':'Back'} anatomical body map with individual selectable pain zones">
+    const zones=expandZones(state.bodyView);
+    $('bodyMap').innerHTML=`<svg viewBox="0 0 260 365" class="w-full h-auto" role="img" aria-label="${front?'Front':'Back'} body map with ${zones.length} selectable areas">
       <g class="body-base">
         <circle cx="130" cy="34" r="24"/><rect x="118" y="55" width="24" height="24" rx="7"/>
         <path d="M96 76 Q130 67 164 76 L176 111 171 180 Q168 194 153 201 L107 201 Q92 194 89 180 L84 111Z"/>
@@ -1022,9 +1110,8 @@ const ReportLink = (() => {
         <path d="M51 218 Q43 231 47 243 L59 248 66 230Z M209 218 Q217 231 213 243 L201 248 194 230Z"/>
         <path d="M91 338 L111 338 109 350 74 352 74 346Z M149 338 L169 338 186 346 186 352 151 350Z"/>
       </g>
-      <path class="body-guide" d="M130 62V196 M84 109H176"/>
-      ${headZones.join('')}${torsoZones}${upperLimbs}${shoulders.join('')}${lowerLimbs}
-      <g class="zone-label"><text x="130" y="9">${front?'FRONT VIEW':'BACK VIEW'}</text><text x="43" y="105">R</text><text x="217" y="105">L</text><text x="130" y="360">R / L = CREW SIDES</text></g>
+      ${zones.map(zoneSvg).join('')}
+      <g class="zone-label"><text x="130" y="7">${front?'FRONT VIEW · FACING YOU':'BACK VIEW · FACING AWAY'}</text><text x="${front?36:224}" y="100">R</text><text x="${front?224:36}" y="100">L</text><text x="130" y="362">R / L = CREW MEMBER'S SIDES</text></g>
     </svg>`;
     $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
       el.classList.toggle('selected',el.dataset.zone===state.selectedZone);
@@ -1204,7 +1291,7 @@ const ReportLink = (() => {
     syncLocationMode(); render();
     speak('Airlock re-entry simulated. Habitat watch resumed and sortie budget reset.');
   });
-  document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(state.bodyView==='back' && !['upper_back','mid_back','lower_back'].includes(state.selectedZone)) state.selectedZone='upper_back';if(state.bodyView==='front' && ['upper_back','mid_back','lower_back'].includes(state.selectedZone)) state.selectedZone='chest_upper_left';renderBodyMap();renderSymptoms();}));
+  document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(!(zoneMeta[state.selectedZone]?.views||[]).includes(state.bodyView)) state.selectedZone=state.bodyView==='front'?'forehead':'crown';renderBodyMap();renderSymptoms();}));
   $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
   $('analyzeButton').addEventListener('click',runTriage);
   document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{state.palette=b.dataset.palette;updateCompanion();}));

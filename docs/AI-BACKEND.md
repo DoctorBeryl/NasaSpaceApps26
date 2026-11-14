@@ -14,6 +14,8 @@ The contract between the AI backend and the frontend features built on it: the o
 
 Optional `.env` settings (see `.env.example`): `OLLAMA_URL` (default `http://127.0.0.1:11434`), `OLLAMA_MODEL` (default `qwen2.5:3b`), `OLLAMA_TIMEOUT_MS` (120000), `OLLAMA_NUM_CTX` (8192).
 
+**If the model crashes on load** (Ollama log: `ggml_vulkan: device lost`, seen on a GTX 1050 Ti), set the user environment variable `OLLAMA_VULKAN=0` and restart Ollama to run on the CPU. `qwen2.5:3b` answers in about 5 to 45 s there.
+
 **Without Ollama:** onboarding and the brief still work, using rule-based fallbacks (`"source": "rules"`). Chat returns `503 {"error":"ollama_unavailable"}`, so show a "VEGA is offline" state.
 
 ## Design
