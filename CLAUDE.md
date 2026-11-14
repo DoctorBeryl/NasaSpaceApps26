@@ -16,9 +16,10 @@ Shared instructions for every Claude Code instance working on this repo. This fi
 A static site with no build step and no dependencies: plain HTML, CSS, and vanilla JS loaded with `<script>` tags. Keep it that way unless the team decides otherwise, and record that decision in HISTORY.
 
 ```sh
-python -m http.server 8000      # then open http://localhost:8000
-# or: npx serve .   (needs Node)
+node server.js      # Node 18+, then open http://localhost:8000
 ```
+
+`server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`, key from the gitignored `.env`; copy `.env.example`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
 
 Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome or Edge. Typed commands work everywhere.
 
