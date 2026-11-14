@@ -33,7 +33,7 @@ npm run dev               # same, plus starts Ollama first if it isn't running (
 # frontend only, no AI or TTS:  python -m http.server 8000
 ```
 
-`server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`, key from the gitignored `.env`; copy `.env.example`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
+`server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`; it uses the shared key in `server/elevenlabs-key.js` unless `.env` sets `ELEVENLABS_API_KEY`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
 
 Free-form questions in the HUD's command box go to a local [Ollama](https://ollama.com) model through `server.js` (`/api/chat`; set `OLLAMA_URL` and `OLLAMA_MODEL` in `.env`, default `qwen2.5:3b`, the same model as `/api/ai/*`). The system prompt is fixed in `server.js` and keeps VEGA on AstraSight features and mission topics; the page sends only the conversation and the current simulated readings. Built-in commands are still handled by the rule-based parser. Without Ollama, questions get the built-in answer or "didn't catch that".
 
@@ -88,6 +88,7 @@ Save screenshots and test output to `.screenshots/` or `.tmp/`. Both are gitigno
 Everything committed here is world-readable forever, git history included. Never commit:
 
 - API keys, tokens, passwords, `.env` files, cookies, or service account JSON. If a feature needs a key, read it from an environment variable or a gitignored `config.local.js`, and commit a `config.example.js` with placeholders.
+  - **Exception: the ElevenLabs API key (`ELEVENLABS_API_KEY`) may be committed.** The team decided it's low-value enough to be public. The shared key lives in `server/elevenlabs-key.js`, so every clone gets VEGA's voice without setup, and `ELEVENLABS_API_KEY` in `.env` overrides it. This exception covers only that key. Firebase credentials, service account JSON, and every other secret stay out of the repo.
 - Personal data: email addresses, phone numbers, home addresses, real health data, or full names of people who haven't agreed to it. In docs, refer to collaborators by GitHub handle or first name.
 - Machine-specific paths (`C:\Users\<name>\...`, `/home/<name>/...`) or anything else from someone's local environment.
 - Content from private chats, Slack or Discord, or judges' feedback that wasn't meant to be public.
@@ -132,7 +133,7 @@ The aim is a **union** that keeps both sides working, not a pick between them.
 
 ### Before pushing
 1. `git fetch origin` again. If `origin/main` moved since your last pull, repeat the pull and merge steps above, then verify again.
-2. Check `git diff --staged` against the "Public repo rules": no keys, no `.env`, no emails, no personal paths.
+2. Check `git diff --staged` against the "Public repo rules": no keys (except the ElevenLabs key), no `.env`, no emails, no personal paths.
 3. Make sure your HISTORY entry is in the same push as the work it describes.
 4. `git push origin main`. If it's rejected (non-fast-forward), fetch, merge, verify, and push again. **Never force.**
 

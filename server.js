@@ -2,7 +2,7 @@
    AstraSight — local dev server (no dependencies, Node 18+)
    - Serves the static site
    - POST /api/tts  { text }  -> audio/mpeg from ElevenLabs
-     The API key stays here (read from .env), never in the browser.
+     The API key stays here (from .env, else the shared server/elevenlabs-key.js), never in the browser.
    - POST /api/stt  <audio blob> -> { text } from ElevenLabs Scribe (voice-input
      fallback when the browser's speech service fails with "network")
    - POST /api/chat { messages, context } -> { reply } from a local Ollama model
@@ -28,7 +28,8 @@ try {
 const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
 const auth = require("./server/auth"); // face sign-in + Firebase custom tokens (docs/AUTH.md)
 
-const KEY = process.env.ELEVENLABS_API_KEY;
+// .env wins; otherwise every clone uses the team's shared, committed key (server/elevenlabs-key.js).
+const KEY = process.env.ELEVENLABS_API_KEY || (() => { try { return require("./server/elevenlabs-key"); } catch { return ""; } })();
 const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
 const MODEL = process.env.ELEVENLABS_MODEL_ID || "eleven_flash_v2_5";
 const PORT = Number(process.env.PORT) || 8000;
@@ -59,7 +60,8 @@ Features:
 Mission topics: spaceflight health hazards (radiation, isolation and confinement, distance from Earth, altered gravity, hostile closed environments), countermeasures such as exercise, sleep, hydration and nutrition, EVA procedures, and general crew and mission questions.
 
 Rules:
-- Only bring up readings when the person asks about them, or when one is WARNING or CRITICAL. Don't tell people to check their vitals out of the blue.
+- When someone says they feel unwell (lightheaded, dizzy, a headache, nausea, and so on), never say you can't help or that it's outside what you do. Acknowledge it, give one or two concrete things to do now (stop and steady yourself, slow breaths, sip water), say whether the readings that relate to it are normal (oxygen and heart rate for lightheadedness), and say when to contact the flight surgeon. For example: "I feel a bit lightheaded" -> "Okay, stop what you're doing and hold onto something steady. Your oxygen and heart rate look normal, so take a few slow breaths and sip some water. If it doesn't pass in a few minutes, or you feel faint, contact the flight surgeon."
+- Only bring up readings when the person asks about them, when one is WARNING or CRITICAL, or when they say they feel unwell. Don't tell people to check their vitals out of the blue.
 - Each reading is labeled NORMAL, WARNING, or CRITICAL. Trust that label over your own judgment: a NORMAL reading is fine, so say so and never call it high or low. Never call a WARNING or CRITICAL reading normal, and don't say "all systems are nominal" unless every reading is NORMAL.
 - All data in this prototype is simulated. You flag and suggest; you never diagnose or prescribe. For anything uncertain, suggest contacting the flight surgeon; for anything CRITICAL, say to contact them now.
 - Bigger tasks unrelated to AstraSight or the mission (writing poems or stories, recipes, coding, homework) aren't something you do. Turn them down kindly and lightly, for example "Ha, that's a bit outside my orbit! I'm better with health and mission stuff, though. Anything I can help with there?" Don't do the task partly or in a "space" version.
@@ -190,9 +192,13 @@ async function chat(req, res) {
   // Name the situation outright so small models pick the right tone instead of judging it themselves.
   const situation = /\bCRITICAL\b/.test(context) ? "URGENT (at least one reading is CRITICAL)"
     : /\bWARNING\b/.test(context) ? "CAUTION (at least one reading is WARNING)" : "CALM (every reading is NORMAL)";
-  const system = context
+  let system = context
     ? `${SYSTEM_PROMPT}\n\nSituation: ${situation}\n\nLive HUD readings (simulated):\n${context}`
     : SYSTEM_PROMPT;
+  // Same red-flag symptom list as the sidebar chat (server/ai.js): escalate, don't reassure.
+  if (ai.RED_FLAGS && ai.RED_FLAGS.test(history[history.length - 1].content)) {
+    system += "\n\nIMPORTANT: the crew member describes a symptom that can be serious. Start your reply by telling them to stop what they're doing and contact the flight surgeon and the crew medical officer now. Don't suggest waiting or re-checking later. Then give one short thing they can do while help comes.";
+  }
 
   try {
     const r = await fetch(`${OLLAMA_URL}/api/chat`, {

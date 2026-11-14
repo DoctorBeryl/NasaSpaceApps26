@@ -306,4 +306,4 @@ function handle(req, res) {
   return true;
 }
 
-module.exports = { handle };
+module.exports = { handle, RED_FLAGS }; // RED_FLAGS is shared with the HUD's /api/chat in server.js

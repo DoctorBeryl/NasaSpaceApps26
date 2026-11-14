@@ -331,14 +331,67 @@
     // Questions about a reading ("why is my heart rate high?") parse as show_tool;
     // send those to the model too, and fall back to the built-in answer if it's offline.
     const asks = QUESTION.test(raw) && !["help", "status_report", "full_scan", "scan_tool", "simulate_alert", "clear_alert"].includes(p.intent);
+    // Symptoms: serious ones escalate at once with a fixed reply (no waiting on a small model);
+    // the rest get the model's answer, or the built-in, readings-aware one if it's offline.
+    if (p.intent === "symptom") {
+      if (p.slots.symptom === "red" || p.slots.symptom === "selfharm") return runIntent(p, tool);
+      return chat(raw, () => runIntent(p, tool));
+    }
     if (p.intent === "unknown" || (asks && p.intent === "show_tool")) {
       return chat(raw, () => runIntent(p, tool));
     }
     return runIntent(p, tool);
   }
 
+  /* Built-in answer when the crew member says how they feel. Protocol-style: steady yourself,
+     the readings that relate, then when to call the flight surgeon. Never a diagnosis. */
+  function symptomReply(kind) {
+    const who = typeof Crew !== "undefined" && Crew.callSign ? Crew.callSign() : "";
+    // "Sam, stop ..." with a name, "Stop ..." without one.
+    const lead = who ? `${who}, ` : "";
+    const cap = (s) => (who ? s : s.charAt(0).toUpperCase() + s.slice(1));
+    if (kind === "selfharm") {
+      return { text: `${lead}${cap("I'm")} really glad you told me. Please talk to the flight surgeon or a crewmate right now; you don't have to handle this alone. I'm here with you.`, tone: "caution" };
+    }
+    if (kind === "red") {
+      setVisible(true); setFocus("cardio");
+      return { text: `${lead}${cap("stop")} what you're doing and contact the flight surgeon and the crew medical officer now. Hold onto something steady and keep the line open. I'm watching your numbers.`, tone: "urgent" };
+    }
+    const RELATED = { dizzy: ["spo2", "cardio", "resp"], headache: ["spo2", "resp", "thermal"], nausea: ["cardio", "thermal"] };
+    const ids = RELATED[kind] || ["spo2", "cardio"];
+    const off = ids.map(toolById).filter((t) => toolStatus(t, state.values[t.id]) !== "ok");
+    setVisible(true); setFocus((off[0] || toolById(ids[0])).id);
+    const worst = off.some((t) => zoneOf(t, state.values[t.id]).zone === "crit") ? "urgent" : off.length ? "caution" : "calm";
+    const readings = off.length
+      ? `Your ${off.map((t) => `${t.short.toLowerCase()} is ${fmt(t)}`).join(" and ")}, outside your normal range, which could be part of it.`
+      : null;
+    const call = worst === "urgent" ? "Contact the flight surgeon now." : null;
+    const lines = {
+      dizzy: [
+        "Okay, stop what you're doing and hold onto something steady.",
+        readings || `Your oxygen is ${fmt(toolById("spo2"))} percent and your heart rate ${fmt(toolById("cardio"))}, both normal, so take a few slow breaths and sip some water.`,
+        call || "If it doesn't pass in a few minutes, or you feel faint, contact the flight surgeon.",
+      ],
+      headache: [
+        "Headaches up here often come from cabin carbon dioxide, dehydration, or fluid shifting toward your head.",
+        readings || "Drink some water and rest near a fan or air vent for a bit.",
+        call || "If it gets worse, or your vision changes, contact the flight surgeon.",
+      ],
+      nausea: [
+        "Nausea is common while your inner ear adjusts to weightlessness. Keep your head still and fix your eyes on one spot.",
+        readings || "Take small sips of water.",
+        call || "If it keeps coming back or you can't keep fluids down, contact the flight surgeon.",
+      ],
+    };
+    return { text: lines[kind].join(" "), tone: worst };
+  }
+
   function runIntent(p, tool) {
     switch (p.intent) {
+      case "symptom": {
+        const r = symptomReply(p.slots.symptom);
+        return respond(r.text, { tone: r.tone });
+      }
       case "show_tool":
         setVisible(true); setFocus(tool.id);
         return respond(describe(tool));
