@@ -15,6 +15,17 @@ const VEGA = (() => {
     hrv: ["stress", "stressed", "hrv", "variability", "anxious", "recovery"],
   };
 
+  // How the crew member says they feel. Checked before RULES so "help, I feel dizzy" is a
+  // symptom, not a help request. "red" mirrors RED_FLAGS in server/ai.js: escalate at once.
+  // "selfharm" gets its own gentle reply. Tiredness, stress, hot or cold stay tool aliases above.
+  const SYMPTOMS = [
+    ["selfharm", /\b(suicid\w*|kill myself|hurt myself|end my life)\b/],
+    ["red", /\b(chest pain|chest (is )?tight\w*|pass(ed)? out|faint(ed|ing)?|black(ed)? out|can'?t breathe|cannot breathe|short of breath|vision loss|lost (my )?vision|can'?t see|confus(ed|ion)|worst headache|seizure|unconscious|numb(ness)? (in|on) (my )?(face|arm|leg)|slurred)\b/],
+    ["dizzy", /\b(light ?headed\w*|dizz(y|iness)|woozy|vertigo|spinning|unsteady|off balance|wobbly)\b/],
+    ["headache", /\b(head ?aches?|my head (hurts|is pounding|is killing me)|migraine|head pressure)\b/],
+    ["nausea", /\b(nause\w*|queasy|vomit\w*|throw(ing)? up|threw up|sick to my stomach|feel(ing)? sick|motion sick\w*|space sick\w*)\b/],
+  ];
+
   // Ordered: first match wins. Each rule: [intent, regex, baseConfidence]
   const RULES = [
     ["breathing", /\b(breathing exercise|calm me|relax|guided breath|help me breathe)\b/, 0.9],
@@ -61,9 +72,11 @@ const VEGA = (() => {
     const text = normalize(raw || "");
     const woke = /\bvega\b/i.test(raw || "");
     const tool = findTool(text);
-    let intent = "unknown", confidence = 0.2;
+    let intent = "unknown", confidence = 0.2, symptom = null;
 
-    for (const [name, re, conf] of RULES) {
+    const hit = SYMPTOMS.find(([, re]) => re.test(text));
+    if (hit) { intent = "symptom"; confidence = 0.9; symptom = hit[0]; }
+    else for (const [name, re, conf] of RULES) {
       if (re.test(text)) { intent = name; confidence = conf; break; }
     }
     // A bare tool mention ("oxygen?") is a show request
@@ -77,7 +90,7 @@ const VEGA = (() => {
 
     return {
       intent,
-      slots: tool ? { tool } : {},
+      slots: { ...(tool ? { tool } : {}), ...(symptom ? { symptom } : {}) },
       confidence: +confidence.toFixed(2),
       normalized: text,
       wake_word: woke,
