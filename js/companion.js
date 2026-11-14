@@ -2,10 +2,12 @@
    AstraSight: home-page VEGA pop-up (16-bit pixel companion)
    Load after vega.js and crew.js on index.html.
 
-   - Greets the crew member by name on every visit.
-   - Runs a light background EVA simulation. When a hazard fires,
-     VEGA pops up with the alert, announces it on the ship PA, and
-     links to the report screen with the same scenario.
+   - Starts collapsed (avatar only); clicking the avatar greets the
+     crew member by name.
+   - No background events. VegaBuddy.fireHazard() (the "Random health
+     event" button on tools.html) pops up a random hazard, announces it
+     on the ship PA, and links to the report screen with that scenario.
+   - Every bubble has Acknowledge: stops VEGA's voice and collapses.
    - Stays hidden while report.html is open in another tab (that
      page sends heartbeats on ReportBus and does its own alerts).
    The sprite and moods match VEGA on the report screen.
@@ -144,7 +146,7 @@
     { key: "rad-warn", mood: "reminder", scenario: "radiation", loc: "Radiation and shelter timer",
       msg: "Solar activity is rising: 4.2 mSv/hr. The safe window is 7:30. Start wrapping up outside work." },
   ];
-  const FIRST_ALERT_MS = 25000, ALERT_EVERY_MS = 75000, SNOOZE_MS = 60000;
+  const SNOOZE_MS = 60000;
 
   const LABEL = { nominal: "NOMINAL", caution: "CAUTION", reminder: "TIMER ALERT", critical: "URGENT" };
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -169,6 +171,7 @@
         <button type="submit">Save</button>
       </form>
       <div class="vb-actions">
+        <button type="button" class="vb-ack">Acknowledge</button>
         <a class="vb-open" href="report.html">Open report screen →</a>
         <button type="button" class="vb-pa" aria-pressed="true" title="Ship PA announcements"></button>
       </div>
@@ -187,7 +190,7 @@
   const ctx = $("canvas").getContext("2d");
   const bubble = $(".vb-bubble"), msgEl = $(".vb-msg"), nameForm = $(".vb-name"), openLink = $(".vb-open");
 
-  let mood = "nominal", phase = 0, reportOpen = false, lastBeat = 0, snoozeUntil = 0, hazardIdx = 0, tipIdx = 0;
+  let mood = "nominal", phase = 0, reportOpen = false, lastBeat = 0, snoozeUntil = 0, hazardIdx = -1, tipIdx = 0;
   const redraw = (blink = false) => draw(ctx, mood, phase, blink);
 
   function setMood(m) {
@@ -197,8 +200,8 @@
     redraw();
   }
 
-  function show({ m = "nominal", html, askName = false, scenario = null }) {
-    if (reportOpen) return;
+  function show({ m = "nominal", html, askName = false, scenario = null, force = false }) {
+    if (reportOpen && !force) return;
     setMood(m);
     msgEl.innerHTML = html;
     nameForm.hidden = !askName;
@@ -211,10 +214,12 @@
   }
 
   function minimize() { root.classList.add("minimized"); setMood("nominal"); }
+  // Avatar only, no speech bubble: the resting state. Click the avatar to open the greeting.
+  function collapsed() { if (reportOpen) return; root.hidden = false; minimize(); }
 
   /* ---------------- greeting & tips ---------------- */
   const TIPS = [
-    "If a reading goes wrong while the report screen is closed, I'll pop up here.",
+    "To see how I handle an emergency, press Random health event on the Diagnostics page. I'll pop up with the alert.",
     "On the report screen, every alert is announced on the ship PA with your name, so the whole crew knows who needs help.",
     "Danger-zone readings always go to the flight surgeon. I flag and suggest; I don't diagnose.",
     "Outside the hull, a solar particle event can cut your safe EVA window to minutes. I'll count it down for you.",
@@ -229,12 +234,16 @@
   }
 
   /* ---------------- alerts ---------------- */
-  function fireHazard() {
-    if (reportOpen || Date.now() < snoozeUntil) return;
-    const h = HAZARDS[hazardIdx++ % HAZARDS.length];
+  /* On demand only. force: show even while the report screen is open in another tab
+     (an explicit button press beats the "report screen handles it" rule). */
+  function fireHazard({ force = false } = {}) {
+    if (!force && (reportOpen || Date.now() < snoozeUntil)) return;
+    let i; do { i = Math.floor(Math.random() * HAZARDS.length); } while (HAZARDS.length > 1 && i === hazardIdx);
+    hazardIdx = i;
+    const h = HAZARDS[i];
     const first = Crew.firstName();
     show({
-      m: h.mood,
+      m: h.mood, force,
       scenario: h.scenario,
       html: `<span class="vb-loc">${esc(h.loc)}</span>${first ? `<b>${esc(first)}</b>, ${esc(h.msg[0].toLowerCase() + h.msg.slice(1))}` : esc(h.msg)}`,
     });
@@ -246,8 +255,11 @@
   /* ---------------- events ---------------- */
   $(".vb-x").addEventListener("click", () => {
     if (mood !== "nominal") snoozeUntil = Date.now() + SNOOZE_MS;
+    ShipPA.stopVoice();
     minimize();
   });
+  // Acknowledge: stop the voice, forget the alert (so PA on won't replay it), collapse.
+  $(".vb-ack").addEventListener("click", () => { ShipPA.ack(); minimize(); });
   $(".vb-avatar").addEventListener("click", () => {
     if (root.classList.contains("minimized") || mood === "nominal") greet();
   });
@@ -268,6 +280,7 @@
     paBtn.setAttribute("aria-pressed", String(ShipPA.enabled));
   }
   paLabel();
+  // PA on re-reads the current alert from the start (ShipPA.setEnabled handles it).
   paBtn.addEventListener("click", () => { ShipPA.setEnabled(!ShipPA.enabled); paLabel(); });
 
   /* report.html open in another tab? It sends a heartbeat every second. */
@@ -275,7 +288,7 @@
     if (open === reportOpen) return;
     reportOpen = open;
     if (open) root.hidden = true;
-    else greet();
+    else collapsed();
   }
   ReportBus.on((m) => {
     if (!m) return;
@@ -289,11 +302,10 @@
   setInterval(() => { if (mood === "nominal") { redraw(true); setTimeout(() => redraw(), 150); } }, 4000);
   redraw();
 
-  /* start: ask whether the report screen is open, then greet if it isn't */
+  /* start: ask whether the report screen is open; if it isn't, show VEGA collapsed (no greeting) */
   ReportBus.send({ type: "ping" });
   setTimeout(() => {
-    if (!reportOpen) greet();
-    setTimeout(function loop() { fireHazard(); setTimeout(loop, ALERT_EVERY_MS); }, FIRST_ALERT_MS);
+    collapsed();
   }, 600);
 
   window.VegaBuddy = { greet, fireHazard, get reportOpen() { return reportOpen; } };

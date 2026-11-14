@@ -86,6 +86,9 @@
     .companion { position:fixed; z-index:80; width:min(316px,calc(100vw - 16px)); pointer-events:none; transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1); filter:drop-shadow(0 7px 14px rgba(0,0,0,.42)); opacity:.94; }
     .companion-layout { display:flex; align-items:flex-end; gap:7px; }
     .companion-card { flex:1; min-width:0; background:rgba(5,10,20,.96); border:1px solid rgba(255,42,133,.46); box-shadow:0 0 14px rgba(255,42,133,.08); border-radius:11px; padding:7px 8px; position:relative; }
+    .companion-ack { pointer-events:auto; display:block; margin-top:6px; padding:4px 9px; border-radius:6px; font:700 8px 'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; color:#001217; background:var(--cyan); border:1px solid var(--cyan); cursor:pointer; }
+    .companion-ack:hover { box-shadow:0 0 12px rgba(0,240,255,.45); }
+    .companion-ack.done { background:transparent; color:#7193aa; border-color:rgba(63,103,130,.5); }
     .companion-card:after { content:""; position:absolute; bottom:-6px; right:21px; width:10px;height:10px; background:#050a14; border-right:1px solid rgba(255,42,133,.56); border-bottom:1px solid rgba(255,42,133,.56); transform:rotate(45deg); }
     .sprite-frame { flex:0 0 76px; border:1.5px solid var(--cyan); border-radius:10px; padding:3px; background:rgba(4,15,25,.98); box-shadow:0 0 11px rgba(0,240,255,.14),inset 0 0 8px rgba(0,240,255,.06); text-align:center; position:relative; }
     .sprite-frame:before,.sprite-frame:after { content:""; position:absolute; width:10px;height:10px; border-color:#00f0ff; border-style:solid; }
@@ -530,7 +533,7 @@
         <div class="panel rounded-xl overflow-hidden" id="crewPaPanel">
           <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span id="pa-count" class="text-[9px] mono text-slate-500">0 announcements</span></div>
           <div class="p-4 space-y-3">
-            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, VEGA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s while they're active.</p>
+            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, VEGA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on VEGA's card. Turning the PA on reads the current alert again from the start.</p>
             <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-2" autocomplete="off">
               <label class="sr-only" for="crew-rank">Rank</label>
               <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
@@ -560,6 +563,7 @@
       <div class="companion-card">
         <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● VEGA <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
         <div id="companionMessage" class="text-[9px] leading-[1.45] text-slate-200 mt-1.5">Link established with Ship Core AI Server. All EVA parameters nominal. Cabin-exit radiation and DCS exposure timers are actively tracking.</div>
+        <button id="companionAck" type="button" class="companion-ack">Acknowledge</button>
         <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
       </div>
       <div class="sprite-frame">
@@ -585,7 +589,9 @@ const ReportLink = (() => {
   return {
     announce,
     setActive(alert) { active = alert && alert.mood === 'critical' ? alert : null; },
-    clear() { active = null; if (hasBus) ReportBus.send({ type: 'alert', key: 'nominal', mood: 'nominal' }); },
+    // Acknowledge: stop the voice now and stop the 45 s repeats for this alert.
+    ack() { active = null; if (hasPA) ShipPA.ack(); else if (typeof VEGA !== 'undefined' && VEGA.stop) VEGA.stop(); },
+    clear() { active = null; if (hasPA) ShipPA.clear(); if (hasBus) ReportBus.send({ type: 'alert', key: 'nominal', mood: 'nominal' }); },
     get paOn() { return hasPA && ShipPA.enabled; },
   };
 })();
@@ -852,6 +858,7 @@ const ReportLink = (() => {
   function companionWarn(message,target,mood){
     mood=mood||state.expression||'nominal';
     $('companionMessage').textContent=message;
+    $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
     $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
     teleportCompanion(target || 'card-psi');
     if(mood==='nominal'){ ReportLink.clear(); speak(message,mood); return; }
@@ -1331,6 +1338,11 @@ const ReportLink = (() => {
       $('pa-dot').className = 'dot ' + (ShipPA.enabled ? 'bg-emerald-400 text-emerald-400' : 'bg-slate-500 text-slate-500');
     };
     paButton();
+    $('companionAck').addEventListener('click', () => {
+      ReportLink.ack();
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+      $('companionAck').classList.add('done'); $('companionAck').textContent='Acknowledged';
+    });
     $('pa-toggle').addEventListener('click', () => { ShipPA.setEnabled(!ShipPA.enabled); paButton(); });
     $('pa-test').addEventListener('click', () => ShipPA.announce({ mood: 'caution', msg: 'This is a test of the ship PA. No action needed.', loc: 'PA test' }));
 

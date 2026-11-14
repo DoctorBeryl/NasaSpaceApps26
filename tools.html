@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/companion.css" />
   <link rel="stylesheet" href="css/arcade.css" />
 </head>
 <body>
@@ -54,6 +55,7 @@
         <button class="btn btn-ghost" id="btn-anomaly">⚠ Simulate anomaly</button>
         <button class="btn btn-ghost" id="btn-reset">↺ Return to baseline</button>
         <button class="btn btn-ghost" id="btn-speak">🔊 Hear VEGA</button>
+        <button class="btn btn-ghost" id="btn-event" title="VEGA pops up with a random simulated EVA hazard and announces it on the ship PA">⚡ Random health event</button>
       </div>
 
       <div class="card slider-card">
@@ -98,7 +100,13 @@
   <script src="js/common.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/vega.js"></script>
+  <script src="js/crew.js"></script>
   <script src="js/alerts.js"></script>
+  <script src="js/companion.js"></script>
   <script src="js/tools.js"></script>
+  <script>
+    // Health events only happen on demand now (no background timer).
+    document.getElementById("btn-event").onclick = () => window.VegaBuddy && VegaBuddy.fireHazard({ force: true });
+  </script>
 </body>
 </html>

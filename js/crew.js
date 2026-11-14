@@ -10,7 +10,9 @@
    Crew.onChange(fn)     fn() when the profile changes in any tab
 
    ShipPA.announce({ mood, msg, loc })   chime + spoken crew-wide announcement
-   ShipPA.enabled / ShipPA.setEnabled(b)
+   ShipPA.enabled / ShipPA.setEnabled(b)  turning it on re-reads the current alert from the start
+   ShipPA.ack()                          stop the voice now and forget the current alert
+   ShipPA.stopVoice() / ShipPA.clear()   stop speaking / forget the alert without stopping
    ShipPA.log                            newest-first list of announcements
    ShipPA.onLog(fn)
 
@@ -101,31 +103,49 @@ const ShipPA = (() => {
     return `${lead} ${who}. ${msg}`;
   }
 
+  let current = null, pending = 0;   // the alert being announced, and its queued speech
+  function stopVoice() {
+    clearTimeout(pending); pending = 0;
+    if (typeof VEGA !== "undefined" && VEGA.stop) VEGA.stop();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+  }
+  function say(alert) {
+    stopVoice();
+    chime(alert.mood);
+    pending = setTimeout(() => {
+      pending = 0;
+      const t = spoken(compose(alert));
+      if (typeof VEGA !== "undefined" && VEGA.speak) VEGA.speak(t, { tone: VEGA.toneFor(alert.mood) });
+      else if ("speechSynthesis" in window) { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
+    }, alert.mood === "critical" ? 600 : 750);
+  }
+  /* Acknowledge: stop speaking now and forget the alert, so turning the PA on doesn't replay it. */
+  function ack() { current = null; stopVoice(); }
+  function clear() { current = null; }
+
   function announce(alert) {
+    current = alert;
     const text = compose(alert);
     const entry = { at: new Date(), mood: alert.mood, loc: alert.loc || "", text, who: Crew.callSign() || "EVA crew member" };
     log.unshift(entry);
     if (log.length > 20) log.pop();
     listeners.forEach((fn) => fn(log));
     if (!enabled) return entry;
-    chime(alert.mood);
-    setTimeout(() => {
-      const t = spoken(text);
-      if (typeof VEGA !== "undefined" && VEGA.speak) VEGA.speak(t, { tone: VEGA.toneFor(alert.mood) });
-      else if ("speechSynthesis" in window) { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
-    }, alert.mood === "critical" ? 600 : 750);
+    say(alert);
     return entry;
   }
 
   function setEnabled(b) {
     enabled = !!b;
     try { localStorage.setItem(KEY, enabled ? "on" : "off"); } catch { /* ignore */ }
-    if (!enabled && typeof VEGA !== "undefined" && VEGA.setMuted) { VEGA.setMuted(true); VEGA.setMuted(false); }
+    if (!enabled) stopVoice();
+    else if (current) say(current);   // PA back on: read the current alert again from the start
     listeners.forEach((fn) => fn(log));
   }
 
   return {
-    announce, setEnabled, compose, spoken, log,
+    announce, setEnabled, compose, spoken, log, ack, clear, stopVoice,
+    get current() { return current; },
     get enabled() { return enabled; },
     onLog: (fn) => listeners.add(fn),
   };

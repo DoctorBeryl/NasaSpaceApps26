@@ -53,6 +53,13 @@
 .vb-name button:hover { background: rgba(94, 242, 255, 0.1); }
 
 .vb-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.vb-ack {
+  font: 600 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  padding: 6px 12px; border-radius: 8px; color: var(--bg);
+  background: var(--vb-accent); border: 1px solid var(--vb-accent);
+}
+.vb-ack:hover, .vb-ack:focus-visible { filter: brightness(1.12); box-shadow: 0 0 14px color-mix(in srgb, var(--vb-accent) 45%, transparent); }
+.vb-ack + .vb-open { margin-left: 0; margin-right: auto; }
 .vb-open {
   font-size: 13px; font-weight: 600; color: var(--vb-accent); text-decoration: none;
   padding: 6px 10px; margin-left: -10px; border-radius: 8px;
