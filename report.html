@@ -248,6 +248,32 @@
     .mode-status { color:#7596aa; font:8px 'JetBrains Mono',monospace; letter-spacing:.08em; }
     @media (prefers-reduced-motion:reduce) { body::before { opacity:.055; } }
 
+    /* Ship triage roles: a crew member sees their own record, the Crew Medical Officer (CMO) sees everyone. */
+    .role-btn[aria-pressed="true"] { color:#001217; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    .role-btn.cmo[aria-pressed="true"] { color:#fff; background:var(--pink); border-color:var(--pink); }
+    .roster-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,172px),1fr)); gap:8px; }
+    .roster-card { text-align:left; min-width:0; border:1px solid rgba(63,103,130,.38); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.88); border-radius:8px; padding:8px 9px; transition:border-color .15s ease,background .15s ease; }
+    .roster-card:hover { border-color:rgba(0,240,255,.55); border-left-color:var(--lvl,#34d399); }
+    .roster-card.active { background:rgba(0,240,255,.07); box-shadow:inset 0 0 0 1px var(--cyan); }
+    .roster-name { font:700 10px 'JetBrains Mono',monospace; color:#eaf6ff; letter-spacing:.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .roster-meta { font:500 8px 'JetBrains Mono',monospace; color:#6f8ea3; letter-spacing:.04em; }
+    .roster-level { font:700 7.5px 'JetBrains Mono',monospace; letter-spacing:.08em; color:var(--lvl,#34d399); white-space:nowrap; }
+    .roster-top { font-size:9.5px; color:#b9cfdd; line-height:1.35; margin-top:4px; }
+    .zone.reported:not(.selected):not(:hover) { fill:rgba(255,42,133,.42); stroke:#ff6aa8; }
+    .zone.reported.pain-hi:not(.selected):not(:hover) { fill:rgba(255,42,75,.62); stroke:#ff2a4b; }
+    .zone.heat1:not(.selected):not(:hover) { fill:rgba(255,184,0,.4); stroke:#ffb800; }
+    .zone.heat2:not(.selected):not(:hover) { fill:rgba(255,120,40,.62); stroke:#ff8a3d; }
+    .zone.heat3:not(.selected):not(:hover) { fill:rgba(255,42,75,.78); stroke:#ff2a4b; }
+    .heat-count { fill:#fff; font:700 7px 'JetBrains Mono',monospace; text-anchor:middle; dominant-baseline:central; pointer-events:none; paint-order:stroke; stroke:#04070d; stroke-width:2px; }
+    .viewing-banner { border:1px solid rgba(0,240,255,.3); background:rgba(0,240,255,.05); }
+    .viewing-banner.other { border-color:rgba(255,184,0,.5); background:rgba(255,184,0,.06); }
+    .viewing-banner.whole { border-color:rgba(255,42,133,.5); background:rgba(255,42,133,.06); }
+    .pattern-card { border:1px solid rgba(255,42,133,.3); background:rgba(255,42,133,.05); border-radius:8px; padding:8px 10px; }
+    .heat-row { border:1px solid rgba(63,103,130,.3); background:#091624; border-radius:7px; padding:6px 8px; }
+    .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
+    .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
+    .name-link:hover { color:#fff; }
+
 </style>
 </head>
 <body class="font-sans antialiased">
@@ -508,14 +534,33 @@
 
       <!-- SHIP TRIAGE PANEL -->
       <section id="triagePanel" class="space-y-5 min-w-0">
+        <div class="panel rounded-xl p-3 sm:p-4" id="triageRoleBar">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="soft-label">VIEW AS</span>
+              <div class="flex gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="View the ship triage as">
+                <button type="button" class="btn role-btn rounded-md px-3 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW · MY RECORD</button>
+                <button type="button" class="btn role-btn cmo rounded-md px-3 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO · ALL CREW</button>
+              </div>
+            </div>
+            <span id="roleAccess" class="text-[9px] mono text-slate-400">CREW ACCESS · YOUR RECORD ONLY</span>
+          </div>
+          <div id="cmoRoster" class="mt-3 hidden-view">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div class="eyebrow">CREW ROSTER · MOST URGENT FIRST</div><span class="text-[8px] mono text-slate-500">OPEN A CARD TO SEE THAT RECORD</span></div>
+            <div id="rosterCards" class="roster-grid"></div>
+          </div>
+          <div id="viewingBanner" class="viewing-banner rounded-lg px-3 py-2 mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"></div>
+          <p class="text-[8px] mono text-slate-600 mt-2">Demo switch. A real ship server would check the CMO role before opening anyone else's record. Crew members other than you are simulated.</p>
+        </div>
+
         <div class="panel rounded-xl overflow-hidden">
           <div class="panel-head p-4 flex items-center justify-between gap-3">
             <div><div class="eyebrow" id="triageContextLabel">03 / SHIP SERVER · CREW REVIEW</div><h2 class="text-white font-bold mt-1">CREW HEALTH REVIEW</h2></div>
             <span class="chip rounded px-2 py-1 text-[9px] mono text-cyan">OFFLINE CACHE</span>
           </div>
           <div class="p-4">
-            <div class="rounded-lg border border-pink/20 bg-pink/[.045] p-3 mb-4">
-              <div class="flex items-center justify-between gap-2"><span class="eyebrow">RECORDED EVA SNAPSHOT</span><span id="snapshotState" class="text-[9px] mono text-emerald-300">STREAM LINKED</span></div>
+            <div id="triageSnapshot" class="rounded-lg border border-pink/20 bg-pink/[.045] p-3 mb-4">
+              <div class="flex items-center justify-between gap-2"><span id="snapshotTitle" class="eyebrow">RECORDED EVA SNAPSHOT</span><span id="snapshotState" class="text-[9px] mono text-emerald-300">STREAM LINKED</span></div>
               <div class="grid grid-cols-4 gap-2 mt-3">
                 <div><div class="text-[9px] text-slate-500 mono">R-VALUE</div><div id="triageR" class="text-lg mono text-cyan">08</div></div>
                 <div><div class="text-[9px] text-slate-500 mono">PRESSURE</div><div id="triagePsi" class="text-lg mono text-cyan">4.30</div></div>
@@ -529,10 +574,11 @@
                 <div class="rounded-lg border border-line/70 bg-[#07111d] p-2 flex items-center justify-center min-h-[390px]">
                   <div id="bodyMap" class="w-full max-w-[340px]" aria-label="Interactive front body map with separately selectable anatomical areas"></div>
                 </div>
-                <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
+                <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span id="bodyMapHint" class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
                 <p class="text-[9px] text-slate-500 mt-2">Front and back are each split into left and right areas: head, face, eyes, ears, neck, chest, the nine abdominal regions, back and spine, arms, hands, legs and feet. Hover an area to see its name.</p>
               </div>
-              <div class="min-w-0">
+              <div id="crewOverlayPane" class="min-w-0 hidden-view" aria-live="polite"></div>
+              <div class="min-w-0" id="symptomColumn">
                 <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">LOCALIZED SYMPTOM INPUT</div><span id="selectedZoneLabel" class="text-[9px] mono text-cyan">FOREHEAD SELECTED</span></div>
                 <div id="symptomButtons" class="grid grid-cols-2 gap-2"></div>
                 <div class="pain-control mt-3">
@@ -548,7 +594,7 @@
           </div>
         </div>
 
-        <div class="panel rounded-xl overflow-hidden">
+        <div class="panel rounded-xl overflow-hidden" id="triageReviewPanel">
           <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">VEGA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
           <div class="p-4">
             <div id="triageOutput" class="rounded-lg border border-line/70 bg-[#07111d] p-3 min-h-[128px]">
@@ -556,6 +602,10 @@
               <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">Choose a body zone, select any reported symptoms, then run the offline simulation. This interface can surface patterns for training; it cannot diagnose decompression sickness.</p>
             </div>
             <div id="vegaNote" class="mt-3 rounded-lg border border-cyan/25 bg-cyan/[.04] p-3" aria-live="polite" hidden></div>
+            <div id="surgeonBox" class="mt-3 rounded-lg border border-pink/30 bg-pink/[.04] p-3 hidden-view">
+              <div class="flex flex-wrap items-center justify-between gap-2"><span class="eyebrow">CMO ACTION · FLIGHT SURGEON</span><button id="sendSurgeon" type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono">SEND CASE TO FLIGHT SURGEON ↗</button></div>
+              <p id="surgeonStatus" class="text-[10px] text-slate-400 mt-2 leading-relaxed"></p>
+            </div>
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div class="chip rounded-lg p-3"><div class="eyebrow">ENGINE CONTEXT</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Compares reported zones and keywords with the demo R-value and recorded suit pressure context.</div></div>
               <div class="chip rounded-lg p-3"><div class="eyebrow">SAFETY ROUTING</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Suspected DCS or neurological/cardiopulmonary warning signs require immediate mission medical escalation.</div></div>
@@ -594,14 +644,14 @@
   <div id="companion" class="companion" style="left:calc(100vw - 312px);top:145px;">
     <div class="companion-layout">
       <div class="companion-card">
-        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● VEGA <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● <span id="companionName">VEGA</span> <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
         <div id="companionMessage" class="text-[9px] leading-[1.45] text-slate-200 mt-1.5">Link established with Ship Core AI Server. All EVA parameters nominal. Cabin-exit radiation and DCS exposure timers are actively tracking.</div>
         <button id="companionAck" type="button" class="companion-ack">Acknowledge</button>
-        <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
+        <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span id="companionLoc" class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
       </div>
       <div class="sprite-frame">
         <div class="sprite-stage"><canvas id="floatingSprite" width="36" height="36" class="companion-sprite"></canvas><canvas id="floatingEmote" width="18" height="24" class="floating-emote float"></canvas></div>
-        <div class="sprite-caption">VEGA</div>
+        <div id="spriteCaption" class="sprite-caption">VEGA</div>
       </div>
     </div>
   </div>
@@ -644,6 +694,7 @@ const ReportLink = (() => {
     palette:'cobalt', expression:'nominal', selectedZone:'forehead', bodyView:'front', symptoms:new Map(), painLevels:{},
     peakHr:78, triageRan:false, lastWarning:'', alertState:'nominal', overrides:new Set(),
     companionMode:'auto', activeModule:'vitals',
+    role:'crew', patient:'you', overlay:false, overlayZone:'',   // ship triage: who is looking, whose record is open
     spo2:98, hrv:64, gsr:2.6, co2ppm:650, sleepHours:7.6, cfDna:0.84,
     protonFlux:2.4, neutronFlux:0.04, cabinTemp:21.4, humidity:42, pm25:4.2, voc:0.12
   };
@@ -1037,8 +1088,7 @@ const ReportLink = (() => {
     $('radState').style.color=state.rad>=1?'#ff2a4b':state.rad>=.3?'#ffb800':'#34d399';
     setText('packetSeq',String(state.seq).padStart(6,'0'));
     $('jsonPacket').textContent=JSON.stringify({...(state.operatingMode==='habitat'?{}:{psi:round(state.psi,2)}),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
-    setText('triageR',String(state.r).padStart(2,'0')); setText('triagePsi',state.psi.toFixed(2)); setText('triageHr',Math.round(state.peakHr)); setText('triageO2',Math.round(state.o2)+'%');
-    setText('snapshotState',state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD');
+    renderSnapshot();
     setText('spo2Value',state.spo2.toFixed(1)); setText('hrvValue',Math.round(state.hrv)); setText('gsrValue',state.gsr.toFixed(2)); setText('co2ppmValue',Math.round(state.co2ppm));
     setText('sleepHoursValue',state.sleepHours.toFixed(1)); $('sleepBar').style.width=clamp(state.sleepHours/12*100,0,100)+'%';
     setText('cfDnaValue',state.cfDna.toFixed(2)); setText('protonFluxValue',state.protonFlux.toFixed(2)); setText('neutronFluxValue',state.neutronFlux.toFixed(3));
@@ -1068,8 +1118,15 @@ const ReportLink = (() => {
   }
   const esc=(t)=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review',evaClocks:'EVA countdown'};
-  function companionWarn(message,target,mood){
+  // priv: a CMO-only note (about another crew member's record). VEGA tells the CMO; nothing goes on the ship PA.
+  function companionWarn(message,target,mood,priv){
     mood=mood||state.expression||'nominal';
+    if(priv){
+      $('companionMessage').textContent=message;
+      $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
+      $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
+      teleportCompanion(target||'triagePanel'); speak(message,mood); return;
+    }
     if(mood!=='nominal' && state.operatingMode==='eva'){   // say the new EVA countdown in the same breath as the hazard
       updateEmergencies();
       const pending=[...emergencies.values()].filter(e=>!e.announced);
@@ -1130,12 +1187,33 @@ const ReportLink = (() => {
       ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
     }
   }
+  // In the CMO view VEGA is the ship's doctor: glasses, lab coat over scrubs, stethoscope, red-cross hair clip.
+  const isDoctor=()=>state.role==='cmo' && state.view!=='eva';
+  function drawDoctor(ctx){
+    const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
+    const coat='#eef5fa', shade='#aebfcc', line='#1a2633', scrub='#1f8a8f', tube='#ff4f9a', silver='#c9d6df', red='#ff2a4b', white='#ffffff';
+    // Lab coat across the shoulders, open V-neck showing teal scrubs.
+    px(line,[[8,31,21],[7,32,23],[6,33,1,3],[30,33,1,3]]);
+    px(coat,[[9,31,19],[8,32,21],[7,33,23,3]]);
+    px(scrub,[[16,31,5],[16,32,5],[17,33,3],[18,34]]);
+    px(shade,[[15,31],[21,31],[15,32],[21,32],[16,33],[20,33],[17,34],[19,34],[18,35]]);
+    px(red,[[10,33],[9,34,3],[10,35]]);                                  // red-cross badge on the coat
+    // Stethoscope around the neck, chest piece on the right.
+    px(tube,[[14,30,1,3],[13,33,1,2],[22,30,1,3],[23,33]]);
+    px(silver,[[23,34,2,2]]); px(white,[[23,34]]);
+    // Glasses: two frames, a bridge, arms to the hair, and a glint on each lens.
+    px(line,[[10,17,6],[10,21,6],[10,17,1,5],[15,17,1,5],[21,17,6],[21,21,6],[21,17,1,5],[26,17,1,5],[16,18,5],[9,18],[27,18]]);
+    px(white,[[14,18],[25,18]]);
+    // Red-cross clip replaces the grey hair clip.
+    px(shade,[[22,3,7,7]]); px(white,[[23,4,5,5]]); px(red,[[25,5,1,3],[24,6,3,1]]);
+  }
   function drawSprite(canvas){
     if(!canvas || !characterImage || !characterImage.complete || !characterImage.naturalWidth) return;
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,36,36); ctx.imageSmoothingEnabled=false;
     ctx.drawImage(characterImage,0,0,36,36);
     drawFaceExpression(ctx);
+    if(isDoctor()) drawDoctor(ctx);
     canvas.style.filter=paletteFilters[state.palette]||'none';
   }
   function drawEmote(canvas){
@@ -1161,6 +1239,9 @@ const ReportLink = (() => {
     if(modeButton){modeButton.innerHTML='VEGA: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
     const customPanel=$('astraCustomPanel'); if(customPanel) customPanel.classList.toggle('hidden-view',state.companionMode!=='custom');
     setText('companionExpressionLabel',state.expression.toUpperCase());
+    const doc=isDoctor();
+    setText('companionName',doc?'DR. VEGA':'VEGA'); setText('spriteCaption',doc?'DR. VEGA':'VEGA');
+    setText('companionLoc',doc?'LOC: MED BAY · CMO CONSOLE':'LOC: VISOR HUD STANDBY');
     setText('companionPaletteLabel',state.palette.toUpperCase());
     const emotes={nominal:'✦',reminder:'❗',caution:'💧',critical:'💢'};
     const e=emotes[state.expression]; $('emote').textContent=e;
@@ -1290,7 +1371,8 @@ const ReportLink = (() => {
       const timerClear=!(state.exited && state.safeSeconds<=165);
       const psiOk=state.operatingMode==='habitat' || Math.abs(state.psi-4.30)<=0.16;
       const recovered=timerClear && psiOk && state.o2>=92 && state.co2>=92 && state.hr<115 && state.hr>55 && state.temp<37.7 && state.temp>36.0 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
-      if(recovered){
+      // A crew-report alert (state.triageHold) is about symptoms, not telemetry: keep it until Acknowledge.
+      if(recovered && !state.triageHold){
         const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
         state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert) ReportLink.clear();
         if(!state.exited) state.safeSeconds=1800;
@@ -1338,6 +1420,7 @@ const ReportLink = (() => {
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
     $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
     if(view==='ship') teleportCompanion('triagePanel'); else teleportCompanion('metricsGrid');
+    updateCompanion();   // DR. VEGA only outside the EVA-only view
   }
 
   function zoneSvg(z){
@@ -1362,16 +1445,41 @@ const ReportLink = (() => {
         <path d="M91 338 L111 338 109 350 74 352 74 346Z M149 338 L169 338 186 346 186 352 151 350Z"/>
       </g>
       ${zones.map(zoneSvg).join('')}
+      ${inOverlay()?heatLabels(zones):''}
       <g class="zone-label"><text x="130" y="7">${front?'FRONT VIEW · FACING YOU':'BACK VIEW · FACING AWAY'}</text><text x="${front?36:224}" y="100">R</text><text x="${front?224:36}" y="100">L</text><text x="130" y="362">R / L = CREW MEMBER'S SIDES</text></g>
     </svg>`;
     $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
-      el.classList.toggle('selected',el.dataset.zone===state.selectedZone);
-      el.addEventListener('click',()=>{state.selectedZone=el.dataset.zone;renderSymptoms();renderBodyMap();});
+      el.addEventListener('click',()=>{
+        if(inOverlay()){ state.overlayZone=el.dataset.zone; renderBodyMap(); renderOverlay(); return; }
+        state.selectedZone=el.dataset.zone;renderSymptoms();renderBodyMap();
+      });
       el.setAttribute('role','button'); el.setAttribute('tabindex','0');
       el.setAttribute('aria-label',zoneMeta[el.dataset.zone]?.label||el.dataset.zone);
       el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
     });
+    paintZones();
     document.querySelectorAll('[data-body-view]').forEach(b=>b.classList.toggle('active',b.dataset.bodyView===state.bodyView));
+  }
+  // Colour the body map: the open record's reported areas, or (whole-crew view) how many crew report each area.
+  function paintZones(){
+    const ov=inOverlay(), counts=ov?crewZoneCounts():null, sel=ov?state.overlayZone:state.selectedZone;
+    $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
+      const id=el.dataset.zone;
+      el.classList.remove('reported','pain-hi','heat1','heat2','heat3');
+      el.classList.toggle('selected',id===sel);
+      if(ov){ const n=(counts.get(id)||[]).length; if(n) el.classList.add('heat'+Math.min(3,n)); return; }
+      const pain=Number(state.painLevels[id]||0);
+      if((state.symptoms.get(id)?.size||0)>0 || pain>0){ el.classList.add('reported'); if(pain>=7) el.classList.add('pain-hi'); }
+    });
+  }
+  function zoneCenter(z){
+    if(z.geo==='e') return [z.g[0],z.g[1]];
+    if(z.geo==='r') return [z.g[0]+z.g[2]/2,z.g[1]+z.g[3]/2];
+    return [(z.g[0]+z.g[2])/2,(z.g[1]+z.g[3])/2];
+  }
+  function heatLabels(zones){
+    const counts=crewZoneCounts();
+    return zones.filter(z=>counts.has(z.id)).map(z=>{const [x,y]=zoneCenter(z);return `<text class="heat-count" x="${x}" y="${y}">${counts.get(z.id).length}</text>`;}).join('');
   }
   function selectedSymptomSet(){
     if(!state.symptoms.has(state.selectedZone)) state.symptoms.set(state.selectedZone,new Set());
@@ -1396,39 +1504,44 @@ const ReportLink = (() => {
     const items=[];
     for(const [zone,set] of state.symptoms.entries()) for(const sym of set) items.push({zone,text:sym});
     for(const [zone,value] of Object.entries(state.painLevels)) if(Number(value)>0) items.push({zone,text:`Pain intensity ${value}/10`});
+    if(state.role==='cmo') renderRoster();
+    if($('bodyMap').firstChild) paintZones();
     if(!items.length){box.innerHTML='<span class="text-[10px] text-slate-600">No symptoms reported.</span>';return;}
     items.forEach(item=>{
       const chip=document.createElement('span');chip.className='symptom-chip';
       chip.textContent=`${zoneMeta[item.zone]?.label||item.zone}: ${item.text}`;box.appendChild(chip);
     });
   }
+  // Rule-based triage level for one record. Same training rules as the review panel; never a diagnosis.
+  const NEURO_WORDS=['confusion','numbness','tingling','weakness','visual','vision','dizziness','difficulty walking','shortness of breath','breathing difficulty','persistent cough','coordination'];
+  const TYPE1_WORDS=['pain','ache','aching','joint','itch','skin change','swelling','stiffness','tenderness','soreness'];
+  function classify(entries, notes, v, painLevels){
+    const report=String(notes||'').toLowerCase();
+    const text=entries.map(x=>`${zoneMeta[x.zone]?.label||x.zone} ${x.text}`).join(' ').toLowerCase()+' '+report;
+    const maxPain=Math.max(0,...Object.values(painLevels).map(Number));
+    if(!entries.length && !report.trim()) return 'none';
+    if(NEURO_WORDS.some(w=>text.includes(w)) || v.r>=65 || v.psi<3.6) return 'critical';
+    if(TYPE1_WORDS.some(w=>text.includes(w)) || maxPain>=4 || v.r>=35) return 'caution';
+    return 'low';
+  }
   function runTriage(){
-    const report=$('triageText').value.toLowerCase();
-    const entries=[];
-    for(const [zone,set] of state.symptoms.entries()) for(const sym of set) entries.push({zone,text:sym});
-    const painEntries=Object.entries(state.painLevels).filter(([,v])=>Number(v)>0).map(([zone,v])=>({zone,text:`pain ${v}/10`}));
-    const allEntries=[...entries,...painEntries];
-    const symptomText=allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone} ${x.text}`).join(' ').toLowerCase()+' '+report;
-    const neuroWords=['confusion','numbness','tingling','weakness','visual','vision','dizziness','difficulty walking','shortness of breath','breathing difficulty','persistent cough','coordination'];
-    const typeIWords=['pain','ache','aching','joint','itch','skin change','swelling','stiffness','tenderness','soreness'];
-    const neuro=neuroWords.some(w=>symptomText.includes(w));
-    const maxPain=Math.max(0,...Object.values(state.painLevels).map(Number));
-    const typeI=typeIWords.some(w=>symptomText.includes(w)) || maxPain>=4;
-    const any=allEntries.length>0 || report.trim().length>0;
+    const rec=currentRec(), v=recVitals(rec);
+    const allEntries=recEntries(rec);
+    const level=classify(allEntries,$('triageText').value,v,state.painLevels);
     const locations=[...new Set(allEntries.map(x=>zoneMeta[x.zone]?.label||x.zone))];
-    let level='low',title='NO HIGH-PRIORITY PATTERN FLAGGED',body='',actions=[];
-    if(!any){
-      level='none';title='NO CREW REPORT ENTERED';body='No symptoms or pain scores were entered. This is not evidence that a crew member is medically clear.';
-    } else if(neuro || state.r>=65 || state.psi<3.6){
-      level='critical'; title='URGENT NEUROLOGIC / CARDIOPULMONARY REVIEW FLAG';
+    let title='NO HIGH-PRIORITY PATTERN FLAGGED',body='',actions=[];
+    if(level==='none'){
+      title='NO CREW REPORT ENTERED';body='No symptoms or pain scores were entered. This is not evidence that a crew member is medically clear.';
+    } else if(level==='critical'){
+      title='URGENT NEUROLOGIC / CARDIOPULMONARY REVIEW FLAG';
       body='The training rules detected neurological or cardiopulmonary keywords, a high simulated R-value, or a pressure anomaly. The signal cannot identify a cause or diagnose DCS; route the crew report to mission medical oversight.';
       actions=['Record exact body locations, symptom onset, progression, and the EVA timeline.','Immediately notify the designated flight surgeon / mission medical authority for assessment under the mission plan.','Do not use this prototype to select oxygen delivery, recompression settings, chamber schedules, or fitness-for-duty decisions.'];
-    } else if(typeI || state.r>=35){
-      level='caution';title='MUSCULOSKELETAL / SKIN PATTERN — REVIEW REQUIRED';
+    } else if(level==='caution'){
+      title='MUSCULOSKELETAL / SKIN PATTERN — REVIEW REQUIRED';
       body='The training rules found pain, joint, limb, or skin-related terms and/or an elevated simulated score. Suit/glove mechanics can overlap with medical symptoms; this interface cannot distinguish them reliably.';
       actions=['Record the affected side and small body region, pain score, onset, and whether symptoms are changing.','Escalate persistent, worsening, or unusual symptoms to the flight surgeon using approved mission procedures.','Do not dismiss reported limb or joint pain as ordinary suit fatigue based on this score.'];
     } else {
-      level='low';title='NON-SPECIFIC REPORT — KEEP UNDER REVIEW';
+      title='NON-SPECIFIC REPORT — KEEP UNDER REVIEW';
       body='The inputs do not match the training rules for a higher-priority flag. A low result is not a diagnosis and does not rule out decompression sickness or another medical problem.';
       actions=['Keep the location, onset, and symptom description in the crew record.','Escalate persistent, worsening, or concerning symptoms through the mission medical workflow.'];
     }
@@ -1440,32 +1553,50 @@ const ReportLink = (() => {
     const onsetLine=`<p class="text-[9px] mono text-slate-500 mt-1">ONSET: ${$('onsetSelect').value}</p>`;
     out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SIMULATION ROUTING / NOT A TREATMENT PROTOCOL</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
     state.triageRan=true;
+    rec.reportedAt=Date.now(); rec.reviewed=level;
     if(level==='none'){ $('vegaNote').hidden=true; }
-    else askVega(`Crew report from the ${state.operatingMode==='habitat'?'habitat':'post-EVA'} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
-    if(level==='critical')setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');
-    else if(level==='caution')setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');
+    else askVega(`Crew report from the ${rec.live?(state.operatingMode==='habitat'?'habitat':'post-EVA'):rec.setting} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
+    if(!rec.live){
+      // Another crew member's record, reviewed by the CMO: VEGA tells the CMO privately, no ship PA.
+      const who=recName(rec);
+      if(level==='critical') companionWarn(`${who}'s report needs urgent flight-surgeon review. Use Send case to flight surgeon below the review.`,'triageOutput','critical',true);
+      else if(level==='caution') companionWarn(`${who}'s report is logged for medical review. Keep watching for changes.`,'triageOutput','caution',true);
+    }
+    else if(level==='critical'){state.triageHold=true;setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');}
+    else if(level==='caution'){state.triageHold=true;setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');}
     else if(level==='low'){if(state.companionMode==='auto') state.expression='reminder';updateCompanion();}
+    renderRoster();
   }
 
   // Second opinion from VEGA's medical model (MedGemma on the local server, /api/ai/triage,
   // docs/AI-BACKEND.md; falls back to Qwen if MedGemma isn't pulled).
   // The rule-based review always shows; this note is added when the AI backend answers.
-  let vegaReq=null;
+  // One request per crew record, so switching records in the CMO view doesn't cancel or misplace a review:
+  // the answer lands in the record it was asked for, even if the CMO has opened someone else meanwhile.
+  const vegaReqs={};
   async function askVega(summary, flag, level){
-    const box=$('vegaNote');
-    if(vegaReq) vegaReq.abort();
-    vegaReq=new AbortController();
+    const box=$('vegaNote'), pid=state.patient, rec=currentRec(), v=recVitals(rec);
+    if(vegaReqs[pid]) vegaReqs[pid].abort();
+    const req=vegaReqs[pid]=new AbortController();
+    const put=(html)=>{
+      if(state.patient===pid){ box.hidden=false; box.innerHTML=html; }
+      else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
+    };
     const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">VEGA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    box.hidden=false;
-    box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report (the first run can take a minute while the model loads)…</p>';
+    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report (the first run can take a minute while the model loads)…</p>');
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
       if(typeof AstraAuth!=='undefined'){
         const t=await AstraAuth.getIdToken().catch(()=>null); if(t) headers.Authorization='Bearer '+t;
-        const p=await AstraAuth.getProfile().catch(()=>null); profile=p&&p.profile;
+        if(rec.live){ const p=await AstraAuth.getProfile().catch(()=>null); profile=p&&p.profile; }   // only your own tailored baselines
       }
-      const context={
+      const context=!rec.live?{
+        'Patient':`${recName(rec)}, ${rec.role} (reviewed by the Crew Medical Officer)`,
+        'Setting':rec.setting,'Peak heart rate':v.peakHr+' bpm','Suit O2 reserve at last EVA':v.o2+' %',
+        'DCS R-value (demo heuristic, 0-100)':v.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag,
+        'Time outside habitat':rec.lastEva||'not outside'
+      }:{
         'Operating zone':state.operatingMode==='habitat'?'Habitat / IVA':(state.exited?'EVA, outside':'EVA, at the airlock'),
         'Suit pressure':state.psi.toFixed(2)+' PSI','Primary O2 reserve':Math.round(state.o2)+' %','CO2 scrubber':Math.round(state.co2)+' %',
         'Peak heart rate':Math.round(state.peakHr)+' bpm','Metabolic load':Math.round(state.work)+' W','Radiation flux':state.rad.toFixed(2)+' mSv/h',
@@ -1473,9 +1604,9 @@ const ReportLink = (() => {
         'Time outside habitat':state.exited?formatClock(state.outsideSeconds):(state.lastOutside?'last EVA '+formatClock(state.lastOutside):'not outside'),
         'Active EVA countdowns':emergencies.size?byUrgency(emergencies.values()).map(e=>`${e.h.label} ${formatDuration(e.remaining)} left to ${e.h.act}`).join('; '):'none'
       };
-      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:vegaReq.signal,body:JSON.stringify({
+      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:req.signal,body:JSON.stringify({
         report:summary, flag, level,
-        vitals:{cardio:Math.round(state.hr),spo2:round(state.spo2,1),thermal:round(state.temp,1),hrv:Math.round(state.hrv)},
+        vitals:{cardio:Math.round(v.hr),spo2:round(v.spo2,1),thermal:round(v.temp,1),hrv:Math.round(v.hrv)},
         context,profile
       })});
       const j=await r.json().catch(()=>({}));
@@ -1483,16 +1614,231 @@ const ReportLink = (() => {
       const tone={'more likely':'text-amber-200','possible':'text-cyan','less likely':'text-slate-400'};
       const causes=(j.possibleCauses||[]).map(c=>`<li class="text-[10px] text-slate-300 leading-relaxed"><span class="font-bold text-slate-100">${esc(c.name)}</span> <span class="mono text-[8px] ${tone[c.likelihood]||'text-cyan'}">${esc((c.likelihood||'').toUpperCase())}</span><br><span class="text-slate-400">${esc(c.why)}</span></li>`).join('');
       const checks=(j.checkNext||[]).map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${esc(a)}</span></li>`).join('');
-      box.innerHTML=head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
+      put(head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
         +(j.summary?'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.summary)+'</p>':'')
         +(causes?'<div class="eyebrow mt-3 mb-1">POSSIBLE CAUSES TO CONSIDER</div><ul class="space-y-2">'+causes+'</ul>':'')
         +(checks?'<div class="eyebrow mt-3 mb-1">CHECK OR RECORD NEXT</div><ol class="space-y-1">'+checks+'</ol>':'')
         +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'')
-        +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>';
+        +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>');
     }catch(e){
       if(e.name==='AbortError') return;
-      box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">VEGA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>';
+      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">VEGA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
     }
+  }
+
+  // ---------- Ship triage roles ----------
+  // CREW: you see only your own record. CMO (Crew Medical Officer): a roster of every crew member, each
+  // record's body map, vitals snapshot and review, a whole-crew body map with VEGA's pattern notes, and
+  // "send to flight surgeon". The other four crew are simulated. state.symptoms and state.painLevels point
+  // at the open record, so the body map, symptom input and triage engine work on whoever is open.
+  const LEVEL_COLOR={critical:'#ff2a4b',caution:'#ffb800',low:'#00f0ff',none:'#34d399'};
+  const LEVEL_LABEL={critical:'URGENT',caution:'REVIEW',low:'WATCH',none:'NO COMPLAINTS'};
+  const LEVEL_RANK={critical:3,caution:2,low:1,none:0};
+  const EARTH_DELAY_MIN=12;   // simulated one-way signal delay; Earth to Mars is about 3 to 22 min depending on orbits
+  const SEED_CREW=[
+    {id:'ortega',rank:'Spc.',name:'M. Ortega',role:'Mission specialist · EVA lead',ago:18,setting:'Habitat, 40 min after an EVA',lastEva:'last EVA 06:12:40',
+      onset:'Immediately after EVA',notes:'Deep ache in the right knee since repress, worse when bending. Right shoulder sore from tether work. Some tingling in the right fingers.',
+      symptoms:{knee_right:['Pain / aching','Joint stiffness'],shoulder_right:['Pain / aching'],fingers_right:['Tingling / numbness']},pain:{knee_right:6,shoulder_right:3},
+      vitals:{hr:94,peakHr:138,spo2:97.2,temp:37.4,hrv:46,r:41,psi:4.27,o2:58}},
+    {id:'okafor',rank:'Eng.',name:'A. Okafor',role:'Flight engineer',ago:42,setting:'Habitat / IVA, lab module',
+      onset:'Unknown / not recorded',notes:'Dull headache since the start of shift, worse in the lab module. Feels like pressure behind the forehead.',
+      symptoms:{forehead:['Pain / headache','Pressure']},pain:{forehead:4},
+      vitals:{hr:82,peakHr:97,spo2:97.6,temp:37.0,hrv:57,r:7,psi:4.30,o2:97}},
+    {id:'sato',rank:'Cdr.',name:'K. Sato',role:'Commander',ago:65,setting:'Habitat / IVA',
+      onset:'Unknown / not recorded',notes:'Headache across the forehead and temples this afternoon. Lower back stiff after sleep.',
+      symptoms:{forehead:['Pain / headache'],temple_right:['Pain / headache'],spine_lower:['Pain / aching','Stiffness']},pain:{forehead:3,temple_right:2,spine_lower:3},
+      vitals:{hr:76,peakHr:102,spo2:98.0,temp:36.9,hrv:61,r:6,psi:4.30,o2:98}},
+    {id:'reyes',rank:'Dr.',name:'L. Reyes',role:'Payload scientist',ago:130,setting:'Habitat / IVA',
+      onset:'Unknown / not recorded',notes:'',symptoms:{},pain:{},
+      vitals:{hr:68,peakHr:88,spo2:98.4,temp:36.8,hrv:72,r:5,psi:4.30,o2:99}},
+  ];
+  const crewRecords={you:{id:'you',live:true,symptoms:state.symptoms,painLevels:state.painLevels,onset:$('onsetSelect').value,notes:'',reportedAt:0,out:null}};
+  SEED_CREW.forEach(s=>{crewRecords[s.id]={...s,symptoms:new Map(Object.entries(s.symptoms).map(([z,a])=>[z,new Set(a)])),painLevels:{...s.pain},reportedAt:Date.now()-s.ago*60000,out:null};});
+  const CREW_ORDER=['you',...SEED_CREW.map(s=>s.id)];
+  const DEFAULT_OUT={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:'',vegaHidden:true};
+
+  const inOverlay=()=>state.role==='cmo'&&state.overlay;
+  const currentRec=()=>crewRecords[state.patient]||crewRecords.you;
+  const recName=(r)=>r.live?(typeof Crew!=='undefined'&&Crew.callSign()||'You'):`${r.rank} ${r.name}`;
+  const shortName=(r)=>r.live?'You':r.name.split(' ').pop();
+  const recOpen=(r)=>r.id===state.patient;
+  const recNotes=(r)=>recOpen(r)?$('triageText').value:(r.notes||'');
+  const recOnset=(r)=>recOpen(r)?$('onsetSelect').value:r.onset;
+  function recVitals(r){
+    return r.live?{hr:state.hr,peakHr:Math.round(state.peakHr),spo2:state.spo2,temp:state.temp,hrv:state.hrv,r:state.r,psi:state.psi,o2:Math.round(state.o2)}:r.vitals;
+  }
+  function recEntries(r){
+    const out=[];
+    for(const [zone,set] of r.symptoms.entries()) for(const sym of set) out.push({zone,text:sym});
+    for(const [zone,v] of Object.entries(r.painLevels)) if(Number(v)>0) out.push({zone,text:`pain ${v}/10`});
+    return out;
+  }
+  function recZones(r){   // areas with a complaint, most painful first
+    const zones=new Set([...[...r.symptoms.entries()].filter(([,s])=>s.size).map(([z])=>z),...Object.keys(r.painLevels).filter(z=>Number(r.painLevels[z])>0)]);
+    return [...zones].sort((a,b)=>Number(r.painLevels[b]||0)-Number(r.painLevels[a]||0));
+  }
+  const recLevel=(r)=>classify(recEntries(r),recNotes(r),recVitals(r),r.painLevels);
+  function agoText(t){
+    if(!t) return 'no report filed';
+    const m=Math.round((Date.now()-t)/60000);
+    return m<1?'just now':m<60?`${m} min ago`:`${Math.floor(m/60)} h ${m%60} min ago`;
+  }
+  const hhmm=(t)=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  function renderSnapshot(){
+    const r=currentRec(), v=recVitals(r);
+    setText('triageR',String(v.r).padStart(2,'0')); setText('triagePsi',v.psi.toFixed(2)); setText('triageHr',Math.round(v.peakHr)); setText('triageO2',Math.round(v.o2)+'%');
+    setText('snapshotTitle',r.live?'RECORDED EVA SNAPSHOT':`SNAPSHOT AT LAST REPORT · ${r.name.toUpperCase()}`);
+    setText('snapshotState',r.live?(state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD'):'STORED ON SHIP SERVER');
+  }
+  function renderBanner(){
+    const b=$('viewingBanner'), r=currentRec(), cmo=state.role==='cmo', ov=inOverlay();
+    b.classList.toggle('other',cmo&&!ov&&!r.live); b.classList.toggle('whole',ov);
+    let left, right, color;
+    if(ov){
+      const open=CREW_ORDER.reduce((n,id)=>n+recZones(crewRecords[id]).length,0);
+      left='◎ VIEWING: WHOLE CREW'; right=`${open} reported area${open===1?'':'s'} across ${CREW_ORDER.length} crew. Click a name to open their record.`; color='text-pink';
+    } else if(!r.live){
+      left=`VIEWING: ${recName(r).toUpperCase()} · ${r.role.toUpperCase()}`; right='Not your record. Opened with CMO access.'; color='text-amber';
+    } else {
+      left=`MY RECORD · ${recName(r).toUpperCase()}`; color='text-cyan';
+      right=cmo?'Your own record.':"Only you and the Crew Medical Officer (CMO) can see this. Other crew can't open it.";
+    }
+    b.innerHTML=`<span class="text-[10px] mono font-bold ${color}">${esc(left)}</span><span class="text-[9px] text-slate-400">${esc(right)}</span>`;
+  }
+  function renderRoster(){
+    if(state.role!=='cmo') return;
+    const rows=CREW_ORDER.map(id=>{const r=crewRecords[id];return {r,lvl:recLevel(r),zones:recZones(r)};});
+    rows.sort((a,b)=>LEVEL_RANK[b.lvl]-LEVEL_RANK[a.lvl]||Math.max(0,...Object.values(b.r.painLevels).map(Number))-Math.max(0,...Object.values(a.r.painLevels).map(Number)));
+    const totalAreas=rows.reduce((n,x)=>n+x.zones.length,0), patterns=crewPatterns().filter(p=>p.ids.length).length;
+    const whole=`<button type="button" class="roster-card ${state.overlay?'active':''}" data-open="__whole" style="--lvl:#ff2a85">
+      <div class="flex items-center justify-between gap-2"><span class="roster-name">◎ WHOLE CREW</span><span class="roster-level">${patterns} PATTERN${patterns===1?'':'S'}</span></div>
+      <div class="roster-meta mt-0.5">Combined body map</div>
+      <div class="roster-top">${totalAreas} reported area${totalAreas===1?'':'s'} across ${rows.length} crew</div>
+      <div class="roster-meta mt-1">VEGA looks for shared causes</div></button>`;
+    $('rosterCards').innerHTML=whole+rows.map(({r,lvl,zones})=>{
+      const z=zones[0], pain=z?Number(r.painLevels[z]||0):0, sym=z?[...(r.symptoms.get(z)||[])][0]:'';
+      const top=z?`${cap(zoneMeta[z]?.label||z)}${sym?' · '+sym:''}${pain?` · ${pain}/10`:''}${zones.length>1?` <span class="text-slate-500">+${zones.length-1} more</span>`:''}`
+        :(recNotes(r).trim()?'Free-text note only':'No complaints reported');
+      const active=!state.overlay&&state.patient===r.id;
+      return `<button type="button" class="roster-card ${active?'active':''}" data-open="${r.id}" style="--lvl:${LEVEL_COLOR[lvl]}">
+        <div class="flex items-center justify-between gap-2"><span class="roster-name">${r.live?'YOU':esc(r.rank+' '+r.name).toUpperCase()}</span><span class="roster-level">${LEVEL_LABEL[lvl]}</span></div>
+        <div class="roster-meta mt-0.5">${esc(r.live?recName(r):r.role)}</div>
+        <div class="roster-top">${top}</div>
+        <div class="roster-meta mt-1 flex justify-between gap-1"><span>${zones.length} open · ${agoText(r.reportedAt)}</span>${r.sentAt?'<span class="text-pink">↗ SURGEON</span>':''}</div></button>`;
+    }).join('');
+    $('rosterCards').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>b.dataset.open==='__whole'?openWholeCrew():openRecord(b.dataset.open)));
+  }
+
+  // Whole-crew view: who reports what, where, and VEGA's notes on patterns that point to a shared cause.
+  function crewZoneCounts(){
+    const map=new Map();
+    CREW_ORDER.forEach(id=>{const r=crewRecords[id]; recZones(r).forEach(z=>{ if(!map.has(z)) map.set(z,[]); map.get(z).push({id,pain:Number(r.painLevels[z]||0),symptoms:[...(r.symptoms.get(z)||[])]}); });});
+    return map;
+  }
+  function crewPatterns(){
+    const total=CREW_ORDER.length, out=[];
+    const who=(test)=>CREW_ORDER.filter(id=>recZones(crewRecords[id]).some(z=>test(zoneMeta[z]?.kind)));
+    const head=who(k=>k==='head');
+    if(head.length>=2) out.push({mood:'caution',ids:head,text:`${head.length} of ${total} crew report head pain or pressure. Rule out a shared cause before treating each case alone: in microgravity air doesn't rise, so CO₂ can pool around a person even when the cabin average looks normal (now ${Math.round(state.co2ppm)} ppm). Check airflow where they work and sleep.`});
+    const back=who(k=>k==='back'||k==='spine');
+    if(back.length>=2) out.push({mood:'caution',ids:back,text:`${back.length} of ${total} crew report back pain. Over half of astronauts report back pain in flight as the spine lengthens; review exercise and sleep-restraint routines.`});
+    const evaJoint=CREW_ORDER.filter(id=>{const r=crewRecords[id], on=recOnset(r);
+      return /EVA/.test(on)&&!/before/i.test(on)&&recZones(r).some(z=>['joint','limb','hand'].includes(zoneMeta[z]?.kind));});
+    if(evaJoint.length) out.push({mood:'critical',ids:evaJoint,text:`${evaJoint.length===1?'One crew member reports':evaJoint.length+' crew report'} joint or limb symptoms after an EVA. Treat as a possible decompression sickness (DCS) case: compare with the EVA log and send it to the flight surgeon.`});
+    return out.sort((a,b)=>(b.mood==='critical')-(a.mood==='critical'));   // most urgent first
+  }
+  function renderOverlay(){
+    const counts=crewZoneCounts(), pats=crewPatterns();
+    const nameBtn=(id)=>`<button type="button" class="name-link" data-open="${id}">${esc(shortName(crewRecords[id]))}</button>`;
+    const patHTML=pats.length?pats.map(p=>`<div class="pattern-card" style="border-color:${p.mood==='critical'?'rgba(255,42,75,.5)':'rgba(255,184,0,.45)'}">
+        <p class="text-[10.5px] text-slate-200 leading-relaxed">${esc(p.text)}</p>
+        <div class="text-[9px] mono text-slate-400 mt-1.5">CREW: ${p.ids.map(nameBtn).join(' · ')}</div></div>`).join('')
+      :'<div class="pattern-card"><p class="text-[10.5px] text-slate-300">No shared pattern across the crew right now.</p></div>';
+    const heat=(n)=>n>=3?'#ff2a4b':n===2?'#ff8a3d':'#ffb800';
+    const rows=[...counts.entries()].sort((a,b)=>b[1].length-a[1].length||Math.max(...b[1].map(x=>x.pain))-Math.max(...a[1].map(x=>x.pain)))
+      .map(([z,list])=>`<li class="heat-row ${z===state.overlayZone?'sel':''}">
+        <div class="flex items-center justify-between gap-2"><button type="button" class="text-[10px] text-slate-100 text-left hover:text-cyan" data-zone-pick="${z}">${esc(cap(zoneMeta[z]?.label||z))}</button><span class="text-[8px] mono font-bold" style="color:${heat(list.length)}">${list.length} CREW</span></div>
+        <div class="text-[9px] text-slate-400 mt-0.5 leading-relaxed">${list.map(p=>`${nameBtn(p.id)}${p.pain?` ${p.pain}/10`:''}${p.symptoms.length?` <span class="text-slate-500">(${esc(p.symptoms.join(', '))})</span>`:''}`).join(' · ')}</div></li>`).join('');
+    $('crewOverlayPane').innerHTML=`
+      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">DR. VEGA · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
+      <div class="space-y-2">${patHTML}</div>
+      <div class="flex justify-between gap-2 items-center mt-4 mb-2"><div class="eyebrow">REPORTED AREAS · ALL CREW</div><span class="text-[8px] mono text-slate-500">CLICK AN AREA OR A NAME</span></div>
+      <ul class="space-y-1.5">${rows||'<li class="text-[10px] text-slate-500">No crew member has reported symptoms.</li>'}</ul>`;
+    $('crewOverlayPane').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openRecord(b.dataset.open)));
+    $('crewOverlayPane').querySelectorAll('[data-zone-pick]').forEach(b=>b.addEventListener('click',()=>{
+      const z=b.dataset.zonePick; state.overlayZone=z;
+      const views=zoneMeta[z]?.views||[]; if(views.length&&!views.includes(state.bodyView)) state.bodyView=views[0];
+      renderBodyMap(); renderOverlay();
+    }));
+  }
+
+  function renderSurgeon(){
+    const r=currentRec();
+    if(r.sentAt){
+      $('sendSurgeon').textContent='SENT ✓ · SEND AN UPDATE ↗';
+      setText('surgeonStatus',`Sent to the flight surgeon at ${hhmm(r.sentAt)}. The signal takes about ${EARTH_DELAY_MIN} min each way (simulated), so the earliest reply is around ${hhmm(r.sentAt+EARTH_DELAY_MIN*2*60000)}. Keep monitoring ${r.live?'yourself':shortName(r)} until then.`);
+    } else {
+      $('sendSurgeon').textContent='SEND CASE TO FLIGHT SURGEON ↗';
+      setText('surgeonStatus',"Packages this record (body map, pain scores, onset, notes, vitals snapshot and VEGA's review) for the flight surgeon on Earth. Replies are delayed by the signal time.");
+    }
+  }
+  function saveOpenRecord(){
+    const r=currentRec();
+    r.onset=$('onsetSelect').value; r.notes=$('triageText').value;
+    r.out={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:$('vegaNote').innerHTML,vegaHidden:$('vegaNote').hidden};
+  }
+  function defaultOut(r){
+    if(r.live) return {...DEFAULT_OUT};
+    return {...DEFAULT_OUT,badgeClass:'rounded px-2 py-1 text-[9px] mono border bg-amber/10 text-amber-200 border-amber/35',badgeText:'NOT REVIEWED',outHTML:`<div class="flex gap-2 items-center text-amber-200"><span class="text-lg">◈</span><span class="text-xs font-bold tracking-wider">REPORT ON FILE · NOT YET REVIEWED</span></div><p class="text-[11px] text-slate-400 mt-2 leading-relaxed">${esc(recName(r))} filed this report ${esc(agoText(r.reportedAt))}. Check the body map and notes, then run the triage simulation to review it.</p>`};
+  }
+  function openRecord(id){
+    if(!crewRecords[id]) id='you';
+    saveOpenRecord();
+    state.patient=id; state.overlay=false;
+    const r=currentRec();
+    state.symptoms=r.symptoms; state.painLevels=r.painLevels;
+    $('onsetSelect').value=r.onset; $('triageText').value=r.notes||'';
+    const o=r.out||defaultOut(r);
+    $('triageBadge').className=o.badgeClass; $('triageBadge').textContent=o.badgeText;
+    $('triageOutput').className=o.outClass; $('triageOutput').innerHTML=o.outHTML;
+    $('vegaNote').innerHTML=o.vega; $('vegaNote').hidden=o.vegaHidden;
+    const first=recZones(r)[0];   // land on their worst area
+    if(first&&zoneMeta[first]){ state.selectedZone=first; if(!zoneMeta[first].views.includes(state.bodyView)) state.bodyView=zoneMeta[first].views[0]; }
+    renderTriageRole();
+  }
+  function openWholeCrew(){
+    saveOpenRecord();
+    state.overlay=true; state.overlayZone='';
+    renderTriageRole();
+    const pats=crewPatterns(), p=pats[0];
+    companionWarn(p?`Whole-crew view. ${pats.length>1?`I see ${pats.length} things to check. First: `:''}${p.text}`:'Whole-crew view. No shared pattern right now.','crewOverlayPane',p?p.mood:'nominal',true);
+  }
+  function renderTriageRole(){
+    const cmo=state.role==='cmo', ov=inOverlay();
+    document.querySelectorAll('[data-role]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.role===state.role)));
+    $('cmoRoster').classList.toggle('hidden-view',!cmo);
+    setText('roleAccess',cmo?'CMO ACCESS · ALL CREW RECORDS':'CREW ACCESS · YOUR RECORD ONLY');
+    $('roleAccess').style.color=cmo?'#ff7ab0':'';
+    $('symptomColumn').classList.toggle('hidden-view',ov);
+    $('crewOverlayPane').classList.toggle('hidden-view',!ov);
+    $('triageSnapshot').classList.toggle('hidden-view',ov);
+    $('triageReviewPanel').classList.toggle('hidden-view',ov);
+    $('surgeonBox').classList.toggle('hidden-view',!cmo);
+    setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
+    renderBanner(); renderSurgeon(); renderSnapshot();
+    renderBodyMap(); renderSymptoms(); renderReported();
+    if(ov) renderOverlay();
+    updateCompanion();
+  }
+  function setRole(role,quiet){
+    state.role=role==='cmo'?'cmo':'crew';
+    try{ localStorage.setItem('astrasight.triageRole',state.role); }catch(e){}
+    if(state.role==='crew'){ state.overlay=false; if(state.patient!=='you') openRecord('you'); else renderTriageRole(); }
+    else if(quiet){ state.overlay=true; renderTriageRole(); }
+    else openWholeCrew();
+    if(quiet) return;
+    if(state.role==='crew') companionWarn("Crew view. You see only your own record, and only you and the CMO can open it.",'triageSnapshot','nominal',true);
   }
 
   // Wire view controls.
@@ -1560,6 +1906,15 @@ const ReportLink = (() => {
   document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(!(zoneMeta[state.selectedZone]?.views||[]).includes(state.bodyView)) state.selectedZone=state.bodyView==='front'?'forehead':'crown';renderBodyMap();renderSymptoms();}));
   $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
   $('analyzeButton').addEventListener('click',runTriage);
+  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; });   // the voice/PA side is handled in the crew script below
+  document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.role!==state.role) setRole(b.dataset.role); }));
+  $('sendSurgeon').addEventListener('click',()=>{
+    const r=currentRec(); r.sentAt=Date.now(); renderSurgeon(); renderRoster();
+    companionWarn(`Case for ${recName(r)} sent to the flight surgeon. With the signal delay, expect a reply in about ${EARTH_DELAY_MIN*2} minutes. Keep monitoring until then.`,'surgeonBox','reminder',true);
+  });
+  $('triageText').addEventListener('input',()=>{ if(state.role==='cmo') renderRoster(); });
+  $('onsetSelect').addEventListener('change',()=>{ if(state.role==='cmo') renderRoster(); });
+  setInterval(()=>{ if(state.role==='cmo'){ renderRoster(); if(inOverlay()) renderBanner(); } },30000);   // "18 min ago" and your live risk
   document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{state.palette=b.dataset.palette;updateCompanion();}));
   document.querySelectorAll('[data-expression]').forEach(b=>b.addEventListener('click',()=>{state.expression=b.dataset.expression;updateCompanion();}));
   window.addEventListener('resize',()=>teleportCompanion(state.expression==='critical'?'card-psi':'metricsGrid'));
@@ -1569,6 +1924,10 @@ const ReportLink = (() => {
   else if(characterImage && characterImage.naturalWidth) updateCompanion();
   // Initial UI and deterministic one-second clocks.
   buildLimitScales();renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
+  // Ship triage role: remembered per browser; report.html?role=cmo opens straight into the CMO view.
+  let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
+  const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
+  setRole(startRole,true);
   setInterval(tickSensors,1000);
   setInterval(sensorTimerTick,1000);
   setTimeout(()=>teleportCompanion('metricsGrid'),350);
