@@ -44,3 +44,6 @@ developer_key
 developer_key.*
 *.prg
 *.iq
+
+# --- Promo video renders (video/render.py) ---
+video/build/
