@@ -7,8 +7,9 @@
    pivot hubs and a metal neck ring. The mini health display is built
    into the visor on the wearer's right. Reflections come from a small
    procedural studio environment (PMREM), so no HDR file is needed.
-   Callout arrows follow the left button, right button, scroll knob and
-   visor display as it turns. "Left" and "right" are the wearer's: the
+   No buttons or knobs: gloved hands can't work small controls, so the
+   helmet is hands-free. Callout arrows follow the chin microphones,
+   inward eye cameras, dosimeter and visor display as it turns. "Left" and "right" are the wearer's: the
    wearer looks along +z, so their right side sits at -x.
    ========================================================== */
 (function () {
@@ -195,7 +196,7 @@
     helmet.add(g);
   });
 
-  /* Visor pivot hubs at the sides: the buttons sit on top, the scroll knob on the right hub */
+  /* Visor pivot hubs at the sides (plain hardware: no buttons, gloves can't work small controls) */
   const EY = -0.02, EZ = -0.06, EX = 1.17, HR = 0.26, HW = 0.12;
   [-1, 1].forEach((side) => {
     const hub = new THREE.Mesh(new THREE.CylinderGeometry(HR, HR + 0.02, HW, 48), trimMat);
@@ -207,35 +208,30 @@
       const s = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 10), darkMat);
       s.rotation.z = Math.PI / 2; s.position.set(side * (EX + HW / 2 + 0.005), EY + Math.sin(a) * HR * 0.8, EZ + Math.cos(a) * HR * 0.8); helmet.add(s);
     }
-    const name = side === 1 ? "left" : "right";
-    const btn = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.16, 6, 12), glowMat(ctrl3d(name)));
-    btn.rotation.x = Math.PI / 2;
-    btn.position.set(side * EX, EY + HR + 0.03, EZ); helmet.add(btn);
-    const a = new THREE.Object3D(); a.position.set(side * EX, EY + HR + 0.08, EZ); helmet.add(a);
-    anchors[name] = a;
   });
 
-  // Scroll knob: a knurled crown on the right hub's cap (-x), joined by a short axle
-  const KR = 0.1, KW = 0.07, AX = 0.03;
-  const capOuter = -(EX + HW / 2 + 0.025);
-  const knobX = capOuter - AX - KW / 2;
-  const knob = new THREE.Group();
-  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(KR, KR, KW, 32), new THREE.MeshStandardMaterial({ color: REAL.metal, metalness: 1, roughness: 0.22, flatShading: true }));
-  wheel.rotation.z = Math.PI / 2; knob.add(wheel);
-  for (let i = 0; i < 16; i++) {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(KW + 0.004, 0.014, 0.018), darkMat);
-    const t = (i / 16) * Math.PI * 2;
-    rib.position.set(0, Math.cos(t) * (KR + 0.003), Math.sin(t) * (KR + 0.003)); rib.rotation.x = -t; knob.add(rib);
+  /* Hands-free inputs, all inside the bubble: microphones by the chin, inward IR eye cameras under the gold visor */
+  const mic = new THREE.Group();
+  for (let i = -1; i <= 1; i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.035, 14, 10), glowMat(ctrl3d("voice")));
+    m.position.copy(P(R - 0.1, FWD + i * 0.09, 1.98)); mic.add(m);
   }
-  const knobGlow = glowMat(ctrl3d("knob"));
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(KR * 0.7, 0.01, 8, 28), knobGlow);
-  ring.rotation.y = Math.PI / 2; ring.position.x = -KW / 2 - 0.002; knob.add(ring);
-  const dot = new THREE.Mesh(new THREE.CircleGeometry(KR * 0.3, 20), knobGlow);
-  dot.rotation.y = -Math.PI / 2; dot.position.x = -KW / 2 - 0.003; knob.add(dot);
-  knob.position.set(knobX, EY, EZ); helmet.add(knob);
-  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, AX + 0.01, 16), metalMat);
-  axle.rotation.z = Math.PI / 2; axle.position.set(capOuter - AX / 2 + 0.005, EY, EZ); helmet.add(axle);
-  anchors.knob = new THREE.Object3D(); anchors.knob.position.set(knobX - KW / 2, EY, EZ); helmet.add(anchors.knob);
+  helmet.add(mic);
+  anchors.voice = new THREE.Object3D(); anchors.voice.position.copy(P(R - 0.08, FWD, 1.98)); helmet.add(anchors.voice);
+  [-1, 1].forEach((side) => {
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.03, 18), glowMat(ctrl3d("eyes")));
+    eye.position.copy(P(R - 0.08, FWD + side * 0.16, 1.42)); eye.lookAt(0, eye.position.y, 0); eye.rotateY(Math.PI); helmet.add(eye);
+  });
+  anchors.eyes = new THREE.Object3D(); anchors.eyes.position.copy(P(R - 0.06, FWD + 0.16, 1.42)); helmet.add(anchors.eyes);
+
+  /* Radiation dosimeter: a small module on top of the shell */
+  const dose = new THREE.Group();
+  const doseBox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.18), trimMat); dose.add(doseBox);
+  const doseLed = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.012, 0.05), glowMat(ctrl3d("dose"))); doseLed.position.y = 0.034; dose.add(doseLed);
+  const dp = P(R + 0.01, FWD, 0.42); dose.position.copy(dp);
+  dose.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dp.clone().normalize());
+  helmet.add(dose);
+  anchors.dose = new THREE.Object3D(); anchors.dose.position.copy(P(R + 0.06, FWD, 0.42)); helmet.add(anchors.dose);
 
   /* Neck ring: the shell seats in a metal bearing ring with locking lugs, over a dark collar */
   const neckY = R * Math.cos(NECK) - 0.03, neckR = R * Math.sin(NECK);
@@ -332,7 +328,6 @@
     if (!dragging) idle += dt;
     const sway = reduced || idle < 2 ? 0 : Math.sin(now / 2600) * 0.25 * Math.min(1, (idle - 2) / 2);
     helmet.rotation.set(0.08 + pitch, yaw + sway, 0);
-    if (!reduced) knob.rotation.x = now / 900;   // knob turns slowly, hinting it scrolls
     renderer.render(scene, camera);
     drawCallouts(w, h);
   }

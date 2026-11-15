@@ -443,3 +443,10 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Changed:** the live server's `astrasight-update.timer` checks GitHub every minute instead of every 10 (`deploy/oracle-setup.sh`, docs). A push is live about a minute later.
 **Why not a real on-push trigger:** a GitHub webhook or an Actions secret needs the repo owner's admin rights; a one-minute `git fetch` is cheap and needs neither.
 **Gotcha:** every push that changes files restarts the server, which cuts off any MedGemma review in progress (about 2.5 min). Batch pushes during judging, or freeze with `sudo systemctl disable --now astrasight-update.timer`.
+
+## 2026-11-15 · Alex (Claude) · Helmet without buttons
+
+**Why:** Alex: physical buttons on a spacesuit helmet don't make sense (a pressurized glove can't work small buttons), and the hero illustration still showed the old cartoon helmet.
+**Changed:** `js/glasses3d.js` drops the left/right buttons and the scroll knob; the visor hubs are plain hardware. New callout targets: chin microphones (`voice`), inward IR eye cameras under the gold visor (`eyes`, look to select, blink twice to acknowledge; same cameras as the ocular scan), a dosimeter module on top of the shell (`dose`), and the visor display. `index.html` section is now "No buttons. Hands stay free." The hero SVG is redrawn to match the 3D model: gold sun visor, helmet lights with camera, dosimeter, plain hubs, no buttons. Callout colors in `css/styles.css` use the new target names.
+**Note:** gaze select and double-blink are concept copy only; nothing on the live interface implements them yet (keyboard still maps buttons in `js/alerts.js`).
+**Verified:** Playwright (SwiftShader) at 1440 and 390 px: 3D renders, arrows land on each part, no page errors, no horizontal scroll.

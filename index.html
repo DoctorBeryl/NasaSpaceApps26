@@ -52,40 +52,48 @@
               </linearGradient>
             </defs>
             <!-- neck ring and collar -->
-            <path d="M104 312 Q 200 352 296 312 L 300 346 Q 200 384 100 346 Z" fill="#0a1226" fill-opacity=".8" stroke="url(#frame)" stroke-width="4" />
-            <!-- shell -->
-            <circle cx="200" cy="176" r="148" fill="#0a1226" fill-opacity=".55" stroke="url(#frame)" stroke-width="7" />
-            <!-- ridge over the top -->
-            <path d="M200 30 V 82" stroke="url(#frame)" stroke-width="5" stroke-linecap="round" opacity=".5" />
-            <!-- lamps -->
-            <rect x="92" y="78" width="34" height="18" rx="5" transform="rotate(-38 109 87)" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
-            <rect x="274" y="78" width="34" height="18" rx="5" transform="rotate(38 291 87)" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
-            <circle cx="109" cy="87" r="4" fill="#ffc65c" /><circle cx="291" cy="87" r="4" fill="#ffc65c" />
-            <!-- ear modules: left and right buttons on top, scroll knob on the wearer's right (viewer's left) -->
-            <rect x="34" y="140" width="26" height="76" rx="12" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
-            <rect x="340" y="140" width="26" height="76" rx="12" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
-            <rect x="38" y="128" width="18" height="9" rx="4.5" fill="#5ef2ff" />
-            <rect x="344" y="128" width="18" height="9" rx="4.5" fill="#ffc65c" />
-            <circle cx="28" cy="178" r="11" fill="#0a1226" stroke="#ff6ad5" stroke-width="3" /><circle cx="28" cy="178" r="4" fill="#ff6ad5" />
-            <!-- visor -->
-            <path d="M82 150 Q 200 64 318 150 L 310 226 Q 200 290 90 226 Z" fill="url(#lens)" stroke="url(#frame)" stroke-width="6" stroke-linejoin="round" />
+            <path d="M112 300 Q 200 336 288 300 L 294 338 Q 200 378 106 338 Z" fill="#0a1226" fill-opacity=".8" stroke="url(#frame)" stroke-width="4" />
+            <path d="M108 318 Q 200 356 292 318" stroke="url(#frame)" stroke-width="2" opacity=".5" />
+            <!-- hard shell -->
+            <circle cx="200" cy="172" r="146" fill="#0a1226" fill-opacity=".55" stroke="url(#frame)" stroke-width="7" />
+            <!-- dosimeter on top -->
+            <rect x="182" y="34" width="36" height="12" rx="4" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
+            <rect x="192" y="38" width="16" height="4" rx="2" fill="#ffc65c" />
+            <!-- helmet lights: four lamps per side, camera on the wearer's left (viewer's right) -->
+            <g transform="rotate(-32 92 92)">
+              <rect x="64" y="80" width="56" height="24" rx="6" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
+              <circle cx="76" cy="92" r="3.5" fill="#fff4dc" /><circle cx="88" cy="92" r="3.5" fill="#fff4dc" /><circle cx="100" cy="92" r="3.5" fill="#fff4dc" /><circle cx="112" cy="92" r="3.5" fill="#fff4dc" />
+            </g>
+            <g transform="rotate(32 308 92)">
+              <rect x="280" y="80" width="56" height="24" rx="6" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
+              <circle cx="292" cy="92" r="3.5" fill="#fff4dc" /><circle cx="304" cy="92" r="3.5" fill="#fff4dc" /><circle cx="316" cy="92" r="3.5" fill="#fff4dc" /><circle cx="328" cy="92" r="3.5" fill="#fff4dc" />
+              <rect x="300" y="64" width="22" height="14" rx="4" fill="#0a1226" stroke="url(#frame)" stroke-width="2.5" />
+              <circle cx="311" cy="71" r="3.5" fill="#5ef2ff" opacity=".7" />
+            </g>
+            <!-- visor pivot hubs (plain hardware, no controls) -->
+            <circle cx="56" cy="190" r="22" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
+            <circle cx="56" cy="190" r="11" stroke="url(#frame)" stroke-width="2" opacity=".6" />
+            <circle cx="344" cy="190" r="22" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
+            <circle cx="344" cy="190" r="11" stroke="url(#frame)" stroke-width="2" opacity=".6" />
+            <!-- visor opening -->
+            <path d="M118 112 Q 200 92 282 112 Q 314 120 314 156 L 312 228 Q 310 262 276 268 Q 200 280 124 268 Q 90 262 88 228 L 86 156 Q 86 120 118 112 Z" fill="url(#lens)" stroke="url(#frame)" stroke-width="6" stroke-linejoin="round" />
+            <!-- gold sun visor, raised -->
+            <path d="M110 104 Q 200 82 290 104 Q 318 112 318 136 L 316 146 Q 200 124 84 146 L 82 136 Q 82 112 110 104 Z" fill="#ffc65c" fill-opacity=".22" stroke="#ffc65c" stroke-opacity=".8" stroke-width="3" stroke-linejoin="round" />
             <!-- mini display inside the visor, on the wearer's right -->
             <g opacity=".95">
-              <rect x="106" y="140" width="66" height="84" rx="10" fill="#0a1226" fill-opacity=".75" stroke="#5ef2ff" stroke-opacity=".7" />
-              <rect x="115" y="151" width="46" height="6" rx="3" fill="#5ef2ff" opacity=".8" />
-              <rect x="115" y="164" width="32" height="5" rx="2.5" fill="#8f7cff" opacity=".7" />
-              <path d="M115 186 l7 0 4 -8 6 16 5 -10 3 2 h12" stroke="#4dffb0" stroke-width="2" fill="none" />
-              <rect x="115" y="202" width="40" height="5" rx="2.5" fill="#5ef2ff" opacity=".5" />
-              <rect x="115" y="213" width="24" height="5" rx="2.5" fill="#ff6ad5" opacity=".6" />
+              <rect x="108" y="158" width="64" height="82" rx="10" fill="#0a1226" fill-opacity=".75" stroke="#5ef2ff" stroke-opacity=".7" />
+              <rect x="117" y="169" width="46" height="6" rx="3" fill="#5ef2ff" opacity=".8" />
+              <rect x="117" y="182" width="32" height="5" rx="2.5" fill="#8f7cff" opacity=".7" />
+              <path d="M117 204 l7 0 4 -8 6 16 5 -10 3 2 h12" stroke="#4dffb0" stroke-width="2" fill="none" />
+              <rect x="117" y="220" width="40" height="5" rx="2.5" fill="#5ef2ff" opacity=".5" />
+              <rect x="117" y="231" width="24" height="5" rx="2.5" fill="#ff6ad5" opacity=".6" />
             </g>
             <!-- reticle in the clear centre of view -->
-            <circle cx="236" cy="182" r="20" stroke="#5ef2ff" stroke-opacity=".5" stroke-dasharray="4 6" />
-            <circle cx="236" cy="182" r="3" fill="#5ef2ff" />
-            <!-- sensors -->
-            <circle cx="200" cy="268" r="4" fill="#4dffb0" /><circle cx="186" cy="266" r="3" fill="#4dffb0" /><circle cx="214" cy="266" r="3" fill="#4dffb0" />
-            <!-- glare -->
-            <path d="M232 104 Q 272 112 296 140" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" />
-            <path d="M74 120 Q 96 70 150 46" stroke="#fff" stroke-opacity=".18" stroke-width="5" stroke-linecap="round" />
+            <circle cx="238" cy="196" r="20" stroke="#5ef2ff" stroke-opacity=".5" stroke-dasharray="4 6" />
+            <circle cx="238" cy="196" r="3" fill="#5ef2ff" />
+            <!-- glare on the bubble -->
+            <path d="M236 152 Q 270 160 292 186" stroke="#fff" stroke-opacity=".3" stroke-width="5" stroke-linecap="round" />
+            <path d="M72 120 Q 92 72 146 48" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round" />
           </svg>
         </div>
         <div class="float-tag t1"><span class="dot pulse"></span>Heart <b>72 bpm</b></div>
@@ -141,35 +149,35 @@
     <div class="container">
       <div class="section-head center reveal">
         <span class="eyebrow">The helmet</span>
-        <h2>Three controls. <span class="grad-text">No screen to tap.</span></h2>
-        <p class="lead">Voice does most of the work, but gloves, noise and comm blackouts happen. Two buttons and a scroll knob on the helmet's ear modules do the same job by touch, and the health display sits inside the visor, off to one side. Drag the model to turn it.</p>
+        <h2>No buttons. <span class="grad-text">Hands stay free.</span></h2>
+        <p class="lead">Small buttons don't work through a pressurized glove, so the helmet has none. You talk to ASTRA, and when it's too noisy to talk, your eyes do the job. The health display sits inside the visor, off to one side. Drag the model to turn it.</p>
       </div>
       <div class="g3d-stage reveal" id="glasses-stage">
-        <canvas aria-label="3D model of the AstraSight helmet, showing the visor display, left button, right button and scroll knob" role="img"></canvas>
+        <canvas aria-label="3D model of the AstraSight helmet, showing the chin microphones, inward eye cameras, dosimeter and visor display" role="img"></canvas>
         <svg class="g3d-lines" aria-hidden="true">
           <defs><marker id="g3d-arrow" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" /></marker></defs>
         </svg>
-        <div class="g3d-callout pos-tl" data-target="right">
-          <span class="mono">01 · Right button</span>
-          <b>Acknowledge and next step</b>
-          <p>Press to acknowledge an alert, then again to page through its steps.</p>
+        <div class="g3d-callout pos-tl" data-target="dose">
+          <span class="mono">01 · Dosimeter</span>
+          <b>Radiation dose, all the time</b>
+          <p>A silicon detector on top of the shell logs your dose and warns before a limit.</p>
         </div>
-        <div class="g3d-callout pos-bl" data-target="knob">
-          <span class="mono">02 · Scroll knob</span>
-          <b>Scroll the side panel</b>
-          <p>Turn to move through readings or alert steps. Press it in to open the selected tool.</p>
-        </div>
-        <div class="g3d-callout pos-tr" data-target="left">
-          <span class="mono">03 · Left button</span>
+        <div class="g3d-callout pos-br" data-target="voice">
+          <span class="mono">02 · Microphones</span>
           <b>Talk to ASTRA</b>
-          <p>Press it together with the right button, or just say “Hey ASTRA”. Same as pressing V on the live interface.</p>
+          <p>Say “Hey ASTRA” and ask. Same as pressing V on the live interface.</p>
         </div>
-        <div class="g3d-callout pos-br" data-target="display">
+        <div class="g3d-callout pos-tr" data-target="eyes">
+          <span class="mono">03 · Eye cameras</span>
+          <b>Look to select</b>
+          <p>Hold your gaze on a reading to open it, blink twice to acknowledge an alert. The same cameras run the ocular scan.</p>
+        </div>
+        <div class="g3d-callout pos-bl" data-target="display">
           <span class="mono">04 · Visor display</span>
           <b>Health panel in the visor</b>
           <p>Vitals sit at the edge of your view. The centre stays clear for the task.</p>
         </div>
-        <p class="g3d-hint mono">Drag to rotate · left and right are the wearer's</p>
+        <p class="g3d-hint mono">Drag to rotate</p>
       </div>
     </div>
   </section>
