@@ -1,13 +1,14 @@
 """Render video/promo.html to an MP4, frame by frame.
 
-    python video/render.py                 # full render: build/promo.mp4 (+ build/promo-silent.mp4)
+    python video/render.py                 # full render: build/promo.mp4 (music + effects),
+                                           #   promo-nomusic.mp4 (effects only), promo-silent.mp4
     python video/render.py --stills 2 4.6 9  # just screenshots at those times, into build/stills/
     python video/render.py --from 4 --to 7   # render part of the timeline (for checking)
 
 The site is served on BASE (default http://127.0.0.1:8765, e.g. `python -m http.server 8765`).
 Needs: pip install playwright imageio-ffmpeg, then `playwright install chromium`.
-Sound: run make_audio.py after the first render (it reads build/cues.json); this script muxes
-build/promo-sfx.wav when it exists.
+Sound: make_audio.py (effects, reads build/cues.json) then make_music.py (the beat and the mix);
+this script muxes build/promo-mix.wav and build/promo-sfx.wav when they exist.
 """
 import argparse, asyncio, json, subprocess, sys, time
 from pathlib import Path
@@ -67,12 +68,13 @@ async def main():
                     print(f"frame {n}/{n1}  {el:.0f}s elapsed, ~{el / done * (n1 - n0 - done):.0f}s left", flush=True)
             ff.stdin.close(); ff.wait()
             print("wrote", silent)
-            sfx = BUILD / "promo-sfx.wav"
-            if sfx.exists() and silent.name == "promo-silent.mp4":
-                final = BUILD / "promo.mp4"
-                subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(silent), "-i", str(sfx), "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
-                                "-shortest", "-movflags", "+faststart", str(final)], check=True)
-                print("wrote", final)
+            if silent.name == "promo-silent.mp4":
+                mix, sfx = BUILD / "promo-mix.wav", BUILD / "promo-sfx.wav"
+                for audio, out in [(mix if mix.exists() else sfx, "promo.mp4"), (sfx, "promo-nomusic.mp4")]:
+                    if not audio.exists(): continue
+                    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(silent), "-i", str(audio), "-c:v", "copy", "-c:a", "aac", "-b:a", "256k",
+                                    "-shortest", "-movflags", "+faststart", str(BUILD / out)], check=True)
+                    print("wrote", BUILD / out, "with", audio.name)
         if errors:
             print("page errors / warnings:", *errors[:10], sep="\n  ")
         await browser.close()

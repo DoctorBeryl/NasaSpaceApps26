@@ -123,13 +123,26 @@ async def seg_medical(browser):
     m = await rec.stop(); await page.close(); return m
 
 
+async def seg_solar(browser):
+    """report.html EVA HUD, outside: Solar radiation spike raises proton flux; ASTRA calls for shelter."""
+    page = await new_page(browser, "report.html?view=eva")
+    await page.evaluate("document.getElementById('exitButton').click()")
+    await page.wait_for_timeout(1500)
+    rec = Recorder(page, "solar"); rec.start()
+    await page.wait_for_timeout(600)
+    rec.mark("solar")
+    await page.click('[data-scenario="solar"]')
+    await page.wait_for_timeout(7500)
+    m = await rec.stop(); await page.close(); return m
+
+
 async def main():
     OUT.mkdir(parents=True, exist_ok=True)
     mf = OUT / "manifest.json"
     manifest = json.loads(mf.read_text()) if ONLY and mf.exists() else {"width": W, "height": H, "segments": {}}
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        for name, fn in [("hud", seg_hud), ("eva", seg_eva), ("suits", seg_suits), ("medical", seg_medical)]:
+        for name, fn in [("hud", seg_hud), ("eva", seg_eva), ("suits", seg_suits), ("medical", seg_medical), ("solar", seg_solar)]:
             if ONLY and name not in ONLY:
                 continue
             print("recording", name)

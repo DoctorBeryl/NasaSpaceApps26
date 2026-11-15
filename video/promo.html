@@ -6,13 +6,15 @@
 <title>AstraSight promo</title>
 <!--
   AstraSight 30-second promo. One timeline drives everything:
+  Cuts sit on a 120 BPM grid (one beat = 0.5 s) so make_music.py's beat lines up.
     0–4 s    side shot: stickman pushes off the smart handrails, drifting diagonally left
     4–7 s    hyper-zoom on the hand at rail 3B, car-edit strobe readouts
-    7–12 s   locked-off back shot: he floats to the hatch, it opens on a window, a distant light
-    12–14 s  warp zoom into the light, white flash, then silence
-    14–15 s  black
-    15–26 s  the real website (frames recorded by capture_site.py), punch zooms and captions
-    26–30 s  title card
+    7–11 s   locked-off back shot: he floats to the hatch, it opens on a window, a distant light
+    11–14 s  solar flare: the light flares, red alert, lens HUD "SOLAR FLARE · 02:40", he looks around
+    14–16 s  warp zoom into the flare, white flash, then silence
+    16–17 s  black
+    17–28 s  the real website (frames recorded by capture_site.py), punch zooms and captions
+    28–30 s  title card (static)
   Open with ?play to watch it in the browser (with the sound-effect track if it has been built).
   render.py calls PROMO.seek(t) for every frame and screenshots the 1920×1080 stage.
 -->
@@ -79,6 +81,22 @@
   #title .disc { position: absolute; bottom: 70px; font: 600 17px/1 var(--mono); color: var(--amber); letter-spacing: .18em; }
   #title .t-a, #title .t-b, #title .t-c, #title .t-d { opacity: 0; }
 
+  /* lens HUD solar-flare alarm */
+  #alarm { opacity: 0; }
+  #alarm .a-box { position: absolute; left: 100px; top: 160px; transform-origin: 0 0; width: 600px; padding: 24px 30px 28px; background: rgba(30,2,8,.78); border: 2px solid var(--crit); box-shadow: 0 0 60px rgba(255,42,75,.45), inset 0 0 40px rgba(255,42,75,.18); text-align: left; }
+  #alarm .a-k { font: 400 15px/1 var(--pixel); color: #ff8fa3; letter-spacing: .04em; }
+  #alarm .a-t { font: 400 46px/1 var(--pixel); color: #fff; margin-top: 22px; text-shadow: 0 0 22px rgba(255,42,75,.95), 3px 0 0 rgba(255,184,0,.8), -3px 0 0 rgba(255,42,75,.8); }
+  #alarm .a-sub { font: 600 20px/1 var(--mono); color: var(--amber); letter-spacing: .24em; margin-top: 18px; }
+  #alarm .a-count { display: flex; align-items: baseline; justify-content: flex-start; gap: 22px; margin-top: 26px; }
+  #alarm .a-lbl { font: 600 22px/1 var(--mono); color: #ffb3c0; letter-spacing: .2em; }
+  #alarm .a-num { font: 400 76px/1 var(--pixel); color: var(--amber); text-shadow: 0 0 26px rgba(255,184,0,.8); }
+  #alarm .a-bar { height: 10px; margin-top: 22px; background: rgba(255,184,0,.18); }
+  #alarm .a-bar i { display: block; height: 100%; width: 100%; background: var(--amber); box-shadow: 0 0 14px var(--amber); }
+  #alarm .a-msg { font: 600 22px/1.3 var(--sans); color: #fff; margin-top: 18px; }
+  #alarm .a-br { position: absolute; width: 90px; height: 90px; border: 5px solid var(--crit); filter: drop-shadow(0 0 10px var(--crit)); }
+  #alarm .a-br.tl { left: 60px; top: 112px; border-right: 0; border-bottom: 0; } #alarm .a-br.tr { right: 60px; top: 112px; border-left: 0; border-bottom: 0; }
+  #alarm .a-br.bl { left: 60px; bottom: 112px; border-right: 0; border-top: 0; } #alarm .a-br.br { right: 60px; bottom: 112px; border-left: 0; border-top: 0; }
+  #redwash { background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(255,20,40,.55) 100%); opacity: 0; mix-blend-mode: screen; }
   #loading { position: fixed; left: 16px; bottom: 16px; font: 12px var(--mono); color: #789; }
 </style>
 <script type="importmap">
@@ -105,6 +123,19 @@
   </div>
   <div id="readouts" class="layer"></div>
   <div id="simtag" class="layer">SIMULATED DATA</div>
+
+  <div id="alarm" class="layer">
+    <div class="a-box">
+      <div class="a-k">⚠ ASTRA · CRITICAL · RADIATION</div>
+      <div class="a-t">SOLAR FLARE</div>
+      <div class="a-sub">PROTON FLUX RISING</div>
+      <div class="a-count"><span class="a-lbl">SHELTER IN</span><span class="a-num">02:40</span></div>
+      <div class="a-bar"><i></i></div>
+      <div class="a-msg">Reach the storm shelter before this reaches zero.</div>
+    </div>
+    <div class="a-br tl"></div><div class="a-br tr"></div><div class="a-br bl"></div><div class="a-br br"></div>
+  </div>
+  <div id="redwash" class="layer"></div>
 
   <div id="cap" class="layer"><div class="k"></div><div class="t"></div></div>
 
@@ -143,6 +174,8 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const W = 1920, H = 1080, DURATION = 30;
+// key times (video seconds); BPM 120 → beats every 0.5 s
+const BPM = 120, T_FLARE = 11, T_WARP = 14, T_BLACK = 16, T_SITE = 17, T_TITLE = 28;
 const $ = (s) => document.querySelector(s);
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -248,8 +281,9 @@ for (let z = Z_NEAR; z > Z_HATCH + 0.01; z -= 2) {
 { const cap = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), M.panelDark); cap.position.z = Z_NEAR; cap.rotation.y = Math.PI; station.add(cap); }
 
 // lights
+const corridorLights = [];
 for (let z = 1; z > Z_HATCH; z -= 4) {
-  const l = new THREE.PointLight(0xe6f2ff, 2.2, 6.5, 1.8); l.position.set(0, 1.3, z); scene.add(l);
+  const l = new THREE.PointLight(0xe6f2ff, 2.2, 6.5, 1.8); l.position.set(0, 1.3, z); scene.add(l); corridorLights.push(l);
 }
 scene.add(new THREE.HemisphereLight(0x9fcfff, 0x0a1018, 0.18));
 
@@ -388,6 +422,19 @@ const beaconTex = (() => {
 const BEACON = V3(45.5, -34.0, SPACE_Z - 500);   // right half of the window, clear of him in the back shot
 const beacon = new THREE.Sprite(new THREE.SpriteMaterial({ map: beaconTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
 beacon.position.copy(BEACON); scene.add(beacon);
+// the solar flare: a warm white-orange burst with long horizontal streaks at the light's position
+const flareTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 512;
+  const g = c.getContext("2d"); const gr = g.createRadialGradient(256, 256, 0, 256, 256, 256);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.08, "rgba(255,244,220,1)"); gr.addColorStop(.25, "rgba(255,170,60,.55)"); gr.addColorStop(.6, "rgba(255,90,30,.12)"); gr.addColorStop(1, "rgba(255,60,20,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 512);
+  const st = g.createLinearGradient(0, 0, 512, 0);
+  st.addColorStop(0, "rgba(255,200,120,0)"); st.addColorStop(.5, "rgba(255,240,210,.9)"); st.addColorStop(1, "rgba(255,200,120,0)");
+  g.fillStyle = st; g.fillRect(0, 252, 512, 8);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const flare = new THREE.Sprite(new THREE.SpriteMaterial({ map: flareTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 }));
+flare.position.copy(BEACON); scene.add(flare);
 
 /* ======================= stickman ======================= */
 const R = { limb: 0.052, torso: 0.085, head: 0.13, hand: 0.058 };
@@ -487,11 +534,25 @@ for (const g of GRABS) {
 }
 const HERO = GRABS.find((g) => g.hero);
 
+// solar-flare reaction, set per frame from video time: he startles and looks around
+let alarmA = -1;                                     // seconds since the flare (−1 = no alarm)
+const LOOK = [[0, 0, 0], [0.3, -0.95, 0.15], [0.85, -0.95, 0.1], [1.2, 0.95, 0.2], [1.75, 0.95, 0.15], [2.1, -0.35, 0.35], [2.6, 0.1, 0.45], [9, 0.1, 0.45]];
+function lookAround(a) {                             // → [yaw, pitch] in radians
+  if (a < 0) return [0, 0];
+  let i = 0; while (i < LOOK.length - 2 && a > LOOK[i + 1][0]) i++;
+  const [ta, ya, pa] = LOOK[i], [tb, yb, pb] = LOOK[i + 1];
+  const k = easeInOut((a - ta) / (tb - ta));
+  return [lerp(ya, yb, k), lerp(pa, pb, k)];
+}
 function restHand(f, s) {
   const S = shoulder(f, s);
   const flyRest = S.clone().addScaledVector(f.axis, 0.28).addScaledVector(f.front, 0.26).addScaledVector(f.right, s * 0.1);
   // neutral microgravity posture: arms float forward and out at chest height
   const upRest = S.clone().addScaledVector(f.axis, -0.2).addScaledVector(f.front, 0.3).addScaledVector(f.right, s * 0.3);
+  if (alarmA >= 0) {                                 // startle: arms flinch up and out, then stay tense
+    const st = Math.min(1, alarmA / 0.25) * (0.75 + 0.25 * Math.sin(alarmA * 9 + s));
+    upRest.addScaledVector(f.axis, 0.17 * st).addScaledVector(f.right, s * 0.1 * st);
+  }
   return flyRest.lerp(upRest, f.u);
 }
 function handTarget(t, s, f) {
@@ -516,11 +577,16 @@ function handTarget(t, s, f) {
 
 function poseMan(t) {
   const f = frame(t);
+  if (alarmA >= 0) {                                 // body turns a little with the head
+    const q = new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), lookAround(alarmA)[0] * 0.3);
+    f.front.applyQuaternion(q); f.right.applyQuaternion(q);
+  }
   const pelvis = f.C.clone().addScaledVector(f.axis, -0.28);
-  const chest = f.C.clone().addScaledVector(f.axis, 0.2);
+  const chest = f.C.clone().addScaledVector(f.axis, 0.2 + (alarmA >= 0 ? 0.015 * Math.sin(alarmA * 2 * Math.PI / 0.75) : 0));
   const neck = f.C.clone().addScaledVector(f.axis, 0.4);
   // head looks along the travel direction (and at the window when upright)
   const hf = f.d.clone().addScaledVector(f.front, .35).normalize().lerp(V3(0, 0, -1), f.u).normalize();
+  if (alarmA >= 0) { const [yaw, pitch] = lookAround(alarmA); hf.applyAxisAngle(V3(0, 1, 0), yaw); hf.y += pitch; hf.normalize(); }
   const hu = f.axis.clone().addScaledVector(hf, -f.axis.dot(hf)).normalize();
   const headC = neck.clone().addScaledVector(hu, 0.15);
   placeSeg(parts.torso, pelvis, chest); placeSeg(parts.neck, chest, headC);
@@ -572,51 +638,58 @@ cue(3.1, "riser", { dur: 0.9 });
 cue(4.0, "drop");
 cue(4.0, "zoom");
 const READOUTS = [
-  { t: 4.48, lbl: "RAIL 3B · NODE 2", val: "LINKED", unit: "→ LENS", sub: "LOAD CELL · PPG · EDA · TEMP" },
-  { t: 4.98, lbl: "PUSH-OFF FORCE", val: "184", unit: "N" },
-  { t: 5.48, lbl: "GRIP FORCE", val: "31", unit: "kgf", sub: "−6 % VS PRE-FLIGHT BASELINE" },
-  { t: 5.98, lbl: "HEART RATE · PPG", val: "96", unit: "bpm" },
-  { t: 6.48, lbl: "SKIN CONDUCTANCE", val: "2.4", unit: "µS", sub: "STRESS TREND: NORMAL" },
+  { t: 4.5, lbl: "RAIL 3B · NODE 2", val: "LINKED", unit: "→ LENS", sub: "LOAD CELL · PPG · EDA · TEMP" },
+  { t: 5.0, lbl: "PUSH-OFF FORCE", val: "184", unit: "N" },
+  { t: 5.5, lbl: "GRIP FORCE", val: "31", unit: "kgf", sub: "−6 % VS PRE-FLIGHT BASELINE" },
+  { t: 6.0, lbl: "HEART RATE · PPG", val: "96", unit: "bpm" },
+  { t: 6.5, lbl: "SKIN CONDUCTANCE", val: "2.4", unit: "µS", sub: "STRESS TREND: NORMAL" },
 ];
 READOUTS.forEach((r, i) => cue(r.t, "strobe", { n: i }));
 cue(tauToVideo(HERO.t1) > 7 ? 7.02 : 6.95, "whoosh", { pan: -0.1, big: true });
 cue(tauToVideo(DOOR_T), "unlock");
 cue(tauToVideo(DOOR_T + 0.15), "hiss", { dur: 0.9 });
-cue(11.05, "beacon");
-cue(12.0, "warp", { dur: 2.0 });
-cue(14.0, "cut");
-cue(15.0, "powerup");
+cue(10.5, "beacon");
+cue(T_FLARE, "flare");
+cue(T_FLARE, "alarmbeeps", { dur: 3.0 });
+cue(T_FLARE, "breathing", { dur: 3.4 });
+cue(T_WARP, "warp", { dur: 2.0 });
+cue(T_BLACK, "cut");
+cue(T_SITE, "powerup");
 const SITE_EDL = [
   // [video from, to, segment, segment-time at `from`, speed, zoom keys [[videoT, cx, cy, scale], …]]
-  { a: 15.0, b: 16.15, seg: "hud", s0: 0.25, sp: 0.55, z: [[15.0, 960, 540, 1.0], [16.15, 900, 520, 1.06]] },
-  { a: 16.15, b: 17.45, seg: "hud", s0: 1.25, sp: 1.0, z: [[16.15, 763, 258, 1.95], [17.45, 763, 262, 2.1]], punch: true },
-  { a: 17.45, b: 18.35, seg: "hud", s0: 9.75, sp: 1.0, z: [[17.45, 1705, 300, 2.0], [18.35, 1700, 310, 2.15]], punch: true },
-  { a: 18.35, b: 20.05, seg: "hud", s0: 6.0, sp: 2.4, z: [[18.35, 560, 960, 1.75], [20.05, 520, 940, 1.85]], punch: true },
-  { a: 20.05, b: 21.0, seg: "eva", s0: 0.3, sp: 1.6, z: [[20.05, 960, 520, 1.15], [21.0, 880, 430, 1.3]] },
-  { a: 21.0, b: 22.15, seg: "eva", s0: 3.0, sp: 1.8, z: [[21.0, 700, 860, 1.75], [22.15, 760, 860, 1.85]], punch: true },
-  { a: 22.15, b: 23.25, seg: "suits", s0: 0.4, sp: 2.0, z: [[22.15, 430, 590, 1.9], [23.25, 430, 580, 2.05]], punch: true },
-  { a: 23.25, b: 24.35, seg: "suits", s0: 3.2, sp: 1.0, z: [[23.25, 1645, 335, 2.6], [24.35, 1640, 335, 2.75]], punch: true },
-  { a: 24.35, b: 26.0, seg: "medical", s0: 0.6, sp: 2.4, z: [[24.35, 960, 560, 1.12], [26.0, 1280, 440, 1.6]] },
+  // every cut is on a beat (0.5 s at 120 BPM)
+  { a: 17.0, b: 18.0, seg: "hud", s0: 0.25, sp: 0.6, z: [[17.0, 960, 540, 1.0], [18.0, 900, 520, 1.06]] },
+  { a: 18.0, b: 19.5, seg: "hud", s0: 1.25, sp: 1.0, z: [[18.0, 763, 258, 1.95], [19.5, 763, 262, 2.1]], punch: true },
+  { a: 19.5, b: 20.5, seg: "hud", s0: 9.75, sp: 0.9, z: [[19.5, 1705, 300, 2.0], [20.5, 1700, 310, 2.15]], punch: true },
+  { a: 20.5, b: 22.0, seg: "hud", s0: 6.0, sp: 2.8, z: [[20.5, 560, 960, 1.75], [22.0, 520, 940, 1.85]], punch: true },
+  { a: 22.0, b: 23.0, seg: "solar", s0: 4.2, sp: 1.0, z: [[22.0, 1312, 630, 2.2], [23.0, 1312, 630, 2.35]], punch: true },
+  { a: 23.0, b: 24.0, seg: "solar", s0: 5.2, sp: 1.0, z: [[23.0, 1055, 895, 2.9], [24.0, 1055, 895, 3.05]], punch: true },
+  { a: 24.0, b: 25.0, seg: "suits", s0: 0.9, sp: 1.5, z: [[24.0, 430, 590, 1.9], [25.0, 430, 580, 2.05]], punch: true },
+  { a: 25.0, b: 26.0, seg: "suits", s0: 3.2, sp: 1.0, z: [[25.0, 1645, 335, 2.6], [26.0, 1640, 335, 2.75]], punch: true },
+  { a: 26.0, b: 28.0, seg: "medical", s0: 0.6, sp: 2.2, z: [[26.0, 960, 560, 1.12], [28.0, 1280, 440, 1.6]] },
 ];
 const CAPTIONS = [
-  { a: 16.15, b: 18.35, k: "INTERFACE · LENS HUD", t: "ASTRA flags a reading the moment it drifts" },
-  { a: 18.35, b: 20.05, k: "ASK ASTRA", t: "Speak or type: “status report”", top: true },
-  { a: 20.05, b: 22.15, k: "REPORT · EVA HUD", t: "Heavy exertion: heart rate, heat and CO₂ climb" },
-  { a: 22.15, b: 24.35, k: "SUIT CHECK", t: "A failed life-support sensor means NO-GO" },
-  { a: 24.35, b: 26.0, k: "MEDICAL BAY · CMO", t: "Crew-wide patterns go to the flight surgeon" },
+  { a: 18.0, b: 20.5, k: "INTERFACE · LENS HUD", t: "ASTRA flags a reading the moment it drifts" },
+  { a: 20.5, b: 22.0, k: "ASK ASTRA", t: "Speak or type: “status report”", top: true },
+  { a: 22.0, b: 24.0, k: "REPORT · EVA HUD", t: "Solar flare: ASTRA starts the storm-shelter countdown", top: true },
+  { a: 24.0, b: 26.0, k: "SUIT CHECK", t: "A failed life-support sensor means NO-GO" },
+  { a: 26.0, b: 28.0, k: "MEDICAL BAY · CMO", t: "Crew-wide patterns go to the flight surgeon" },
 ];
 SITE_EDL.forEach((e, i) => { if (i > 0) cue(e.a, e.punch ? "punch" : "blip", { n: i }); });
 // typing in the "status report" shot (segment time 6.16–8.36 s at 2.4× speed), then Enter
 { const e = SITE_EDL[3], m = (st) => e.a + (st - e.s0) / e.sp;
   for (let st = 6.2; st < 8.3; st += 0.12) cue(m(st), "key");
   cue(m(8.36), "enter"); }
-cue(16.2, "chime");
-cue(22.2, "alarm");
-cue(26.0, "hit");
-cue(26.0, "title");
+cue(18.05, "chime");
+cue(22.05, "alarm");
+cue(24.05, "alarm", { soft: true });
+cue(T_TITLE, "hit");
+cue(T_TITLE, "title");
 
 /* ======================= camera ======================= */
-const CAM3 = { pos: V3(-0.42, 0.45, -7.7), look: V3(-0.35, 0.02, -17) };
+const CAM3 = { pos: V3(-0.42, 0.45, -7.7), look: V3(-0.35, 0.02, -17), push: V3(-0.3, 0.42, -12.6) };
+// during the alarm the camera slowly pushes in so you can see him look around
+const cam3Pos = (t) => CAM3.pos.clone().lerp(CAM3.push, t >= T_FLARE ? easeInOut((t - T_FLARE) / (T_WARP - T_FLARE)) : 0);
 const shake = (t, amp, f = 9) => V3(noise1(t * f) * amp, noise1(t * f + 50) * amp, noise1(t * f + 99) * amp * .5);
 let lastPose = null;
 function placeCamera(t, tau, pose) {
@@ -633,13 +706,14 @@ function placeCamera(t, tau, pose) {
     camera.position.copy(G).addScaledVector(dir, dist).add(V3(0, 0.06, 0)).add(shake(t, 0.006 + hit * 0.03, 22));
     camera.lookAt(G.clone().add(V3(0.05, 0.07, 0.07)));
     camera.fov = lerp(52, 32, k);
-  } else if (t < 12) {                                                   // shot 3: locked off behind, he floats away
-    camera.position.copy(CAM3.pos).add(shake(t, 0.004, 0.9));
+  } else if (t < T_WARP) {                                              // shot 3: locked off behind; the flare jolts it
+    const jolt = t >= T_FLARE ? Math.max(0, 1 - (t - T_FLARE) / 0.6) * 0.03 + 0.004 : 0.004;
+    camera.position.copy(cam3Pos(t)).add(shake(t, jolt, t >= T_FLARE ? 14 : 0.9));
     camera.lookAt(CAM3.look); camera.fov = 52;
   } else {                                                               // shot 4: warp to the light
-    const k = (t - 12) / 1.6;
+    const k = (t - T_WARP) / 1.6;
     const e = easeIn(clamp(k));
-    const via = [CAM3.pos, V3(0.42, 0.55, -15.2), V3(0.12, 0.2, Z_HATCH - 0.6), V3(0.1, 0.15, Z_HATCH - 3), BEACON.clone().multiplyScalar(1).setZ(BEACON.z + 60)];
+    const via = [CAM3.push, V3(0.42, 0.55, -15.2), V3(0.12, 0.2, Z_HATCH - 0.6), V3(0.1, 0.15, Z_HATCH - 3), BEACON.clone().multiplyScalar(1).setZ(BEACON.z + 60)];
     const curve = new THREE.CatmullRomCurve3(via);
     const s = clamp(e * 0.985 + clamp(k - 1) * .01);
     camera.position.copy(curve.getPoint(s)).add(shake(t, 0.01 * k, 30));
@@ -681,7 +755,7 @@ let currentSrc = null;
 async function drawOverlays(t, tau, pose) {
   const stage = $("#stage");
   // letterbox in the station shots, opens for the website
-  const bar = t < 14 ? 92 : t < 15 ? 0 : 0;
+  const bar = t < T_BLACK ? 92 : 0;
   $("#bars").style.setProperty("--bar", bar + "px");
 
   // flashes: the drop, every strobe, the warp white-out, site cuts and the title hit
@@ -689,12 +763,13 @@ async function drawOverlays(t, tau, pose) {
   flash = Math.max(flash, 1 - clamp((t - 4.0) / 0.12));
   if (t < 4) flash = 0;
   for (const r of READOUTS) if (t >= r.t && t < r.t + .1) flash = Math.max(flash, 1 - (t - r.t) / .1);
-  if (t >= 12.9 && t < 14) flash = Math.max(flash, smooth(12.9, 13.5, t));
+  if (t >= T_WARP + 0.9 && t < T_BLACK) flash = Math.max(flash, smooth(T_WARP + 0.9, T_WARP + 1.5, t));
+  if (t >= T_FLARE && t < T_FLARE + 0.18) flash = Math.max(flash, 0.75 * (1 - (t - T_FLARE) / 0.18));
   for (const e of SITE_EDL.slice(1)) if (t >= e.a && t < e.a + .08) flash = Math.max(flash, (1 - (t - e.a) / .08) * (e.punch ? .85 : .5));
-  if (t >= 26 && t < 26.25) flash = Math.max(flash, 1 - (t - 26) / .25);
+  if (t >= T_TITLE && t < T_TITLE + .15) flash = Math.max(flash, 1 - (t - T_TITLE) / .15);
   if (t >= 7 && t < 7.06) flash = Math.max(flash, .6);
   $("#flash").style.opacity = flash.toFixed(3);
-  $("#black").style.opacity = (t >= 14 && t < 15) ? 1 : 0;
+  $("#black").style.opacity = (t >= T_BLACK && t < T_SITE) ? 1 : 0;
 
   // RGB split on hits
   const rgbAmt = Math.max(t >= 4 && t < 4.3 ? 1 - (t - 4) / .3 : 0, ...READOUTS.map((r) => (t >= r.t && t < r.t + .18) ? 1 - (t - r.t) / .18 : 0),
@@ -703,7 +778,7 @@ async function drawOverlays(t, tau, pose) {
 
   // corner HUD text (typewriter) in shot 1, back in shot 3
   const corner = $("#corner");
-  if ((t > 0.3 && t < 4) || (t > 7.3 && t < 12)) {
+  if ((t > 0.3 && t < 4) || (t > 7.3 && t < T_FLARE)) {
     const k = t < 4 ? (t - 0.3) / 1.2 : (t - 7.3) / 1.0;
     const plain = CORNER.replace(/<\/?b>/g, "");
     const n = Math.floor(clamp(k) * plain.length);
@@ -722,11 +797,11 @@ async function drawOverlays(t, tau, pose) {
     const s = lerp(2.2, 1, k);
     ret.style.opacity = (k * (0.75 + 0.25 * Math.sin(t * 20))).toFixed(3);
     ret.style.transform = `translate(${x - 110}px, ${y - 110}px) scale(${s}) rotate(${(t * 40).toFixed(1)}deg)`;
-  } else if (t >= 11.05 && t < 12.35) {                     // lock onto the distant light before the warp
+  } else if (t >= 10.5 && t < T_WARP + 0.35) {              // lock onto the distant light; it becomes the flare
     const p = BEACON.clone().project(camera);
     const x = (p.x * .5 + .5) * W, y = (-p.y * .5 + .5) * H;
-    const k = easeOut((t - 11.05) / .3), s = lerp(1.1, 0.34, k) * (t > 12 ? 1 + (t - 12) * 3 : 1);
-    ret.style.opacity = (k * (0.7 + 0.3 * Math.sin(t * 18)) * (1 - smooth(12.15, 12.35, t))).toFixed(3);
+    const k = easeOut((t - 10.5) / .3), s = lerp(1.1, 0.34, k) * (t > T_FLARE ? 1.35 : 1) * (t > T_WARP ? 1 + (t - T_WARP) * 3 : 1);
+    ret.style.opacity = (k * (0.7 + 0.3 * Math.sin(t * 18)) * (1 - smooth(T_WARP + 0.15, T_WARP + 0.35, t))).toFixed(3);
     ret.style.transform = `translate(${x - 110}px, ${y - 110}px) scale(${s}) rotate(${(t * 60).toFixed(1)}deg)`;
   } else ret.style.opacity = 0;
   READOUTS.forEach((r, i) => {
@@ -742,6 +817,23 @@ async function drawOverlays(t, tau, pose) {
   });
   $("#simtag").style.opacity = t >= 4.5 && t < 7 ? .9 : 0;
 
+  // solar-flare alarm in the lens HUD, blinking with the beeps (3 beeps per second, then a rest)
+  const alarm = $("#alarm"), wash = $("#redwash");
+  if (t >= T_FLARE + 0.1 && t < T_WARP + 0.4) {
+    const a = t - T_FLARE;
+    const inK = easeOut((a - 0.1) / 0.18), outK = 1 - smooth(T_WARP + 0.1, T_WARP + 0.4, t);
+    const ph = a % 1, beepOn = ph < 0.75 && (ph % 0.25) < 0.14;
+    const glitch = a < 0.35 ? (Math.floor(a * 40) % 2 ? 0.3 : 1) : 1;
+    alarm.style.opacity = (inK * outK * glitch).toFixed(3);
+    alarm.querySelector(".a-box").style.borderColor = beepOn ? "#ff2a4b" : "rgba(255,42,75,.45)";
+    alarm.querySelector(".a-box").style.transform = `scale(${(1 + (1 - inK) * 0.25).toFixed(3)})`;
+    const secs = Math.max(0, 160 - Math.floor(Math.max(0, a - 0.1)));
+    alarm.querySelector(".a-num").textContent = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
+    alarm.querySelector(".a-bar i").style.width = `${(100 - a * 0.65).toFixed(2)}%`;
+    alarm.querySelectorAll(".a-br").forEach((b) => (b.style.opacity = beepOn ? 1 : 0.35));
+    wash.style.opacity = ((beepOn ? 0.75 : 0.3) * outK).toFixed(3);
+  } else { alarm.style.opacity = 0; wash.style.opacity = 0; }
+
   // website section
   const site = $("#site"), crt = $("#crt");
   const edl = SITE_EDL.find((e) => t >= e.a && t < e.b);
@@ -755,7 +847,7 @@ async function drawOverlays(t, tau, pose) {
     const tx = clamp(W / 2 - cx * sc, W - W * sc, 0), ty = clamp(H / 2 - cy * sc, H - H * sc, 0);
     siteImg.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${sc.toFixed(4)})`;
     // CRT power-on at 15 s
-    const on = (t - 15) / .45;
+    const on = (t - T_SITE) / .45;
     if (on < 1) {
       const vh = on < .5 ? 4 : lerp(4, H, easeOut((on - .5) / .5));
       site.style.clipPath = `inset(${((H - vh) / 2).toFixed(0)}px ${on < .5 ? ((1 - easeOut(on / .5)) * W / 2).toFixed(0) : 0}px)`;
@@ -776,17 +868,13 @@ async function drawOverlays(t, tau, pose) {
 
   // title card
   const title = $("#title");
-  if (t >= 26) {
+  if (t >= T_TITLE) {                                // static card: everything on at once, no animation
     title.style.display = "flex";
-    [[".t-a", 26.15], [".t-b", 26.0], [".t-c", 26.55], [".t-d", 27.0]].forEach(([s, at]) => title.querySelectorAll(s).forEach((el) => {
-      const k = easeOut((t - at) / .45); el.style.opacity = k; el.style.transform = `translateY(${((1 - k) * 16).toFixed(1)}px)`;
-    }));
-    const b = title.querySelector(".t-b"); const k = easeOut((t - 26) / .5);
-    b.style.transform = `scale(${lerp(1.18, 1, k).toFixed(4)})`;
-    title.style.opacity = 1 - smooth(29.55, 30, t);
+    title.querySelectorAll(".t-a, .t-b, .t-c, .t-d").forEach((el) => { el.style.opacity = 1; el.style.transform = "none"; });
+    title.style.opacity = 1;
   } else title.style.display = "none";
-  $("#vignette").style.opacity = t >= 15 && t < 26 ? .55 : 1;
-  $("#scan").style.opacity = t >= 15 ? .35 : .5;
+  $("#vignette").style.opacity = t >= T_SITE && t < T_TITLE ? .55 : 1;
+  $("#scan").style.opacity = t >= T_SITE ? .35 : .5;
 }
 
 /* ======================= per-frame scene state ======================= */
@@ -816,21 +904,34 @@ function updateScene(t, tau) {
   glow.material.emissiveIntensity = 2 + open * 2;
   dring.material.emissiveIntensity = 2 * (1 - open);
   door.visible = open < 0.999;
-  spill.intensity = open * 1.6;
+  spill.intensity = open * 1.6;   // the flare (in updateScene below) raises this
   glass.visible = camera.position.z > Z_HATCH - 1.45;
   // the distant light pulses once the hatch is open
-  const vis = smooth(DOOR_T + 0.9, DOOR_T + 1.6, tau);
+  const vis = smooth(DOOR_T + 0.6, DOOR_T + 1.1, tau);
   const pulse = 0.8 + 0.2 * Math.sin(t * 6.5);
   const base = 15 * vis * pulse;
-  const warpK = clamp((t - 12) / 1.6);
+  const warpK = clamp((t - T_WARP) / 1.6);
   const near = camera.position.distanceTo(BEACON);
-  const grow = t >= 12 ? lerp(1, 40, easeIn(warpK)) : 1;
+  const fl = t >= T_FLARE ? Math.min(1, (t - T_FLARE) / 0.2) : 0;   // the light flares
+  const grow = (t >= T_WARP ? lerp(1, 40, easeIn(warpK)) : 1) * (1 + fl * (2.2 + 0.6 * Math.sin(t * 25)));
+  const fpulse = 1 + 0.18 * Math.sin(t * 23) + 0.1 * Math.sin(t * 7.3);
+  flare.material.opacity = fl * (t >= T_WARP ? 1 : 0.95);
+  flare.scale.setScalar(Math.max(0.001, 70 * fl * fpulse * (t >= T_WARP ? lerp(1, 25, easeIn(warpK)) : 1) * (near / 500)));
+  const { spill: sp } = hatch.userData;
+  if (fl > 0) { sp.color.setHex(0xffb070); sp.intensity = 1.6 + fl * 7 * fpulse; } else sp.color.setHex(0x8fd8ff);
   beacon.scale.setScalar(Math.max(base, 0.001) * grow * (near / 500));
-  beacon.material.opacity = Math.min(1, vis + (t >= 12 ? 1 : 0));
+  beacon.material.opacity = Math.min(1, vis + (t >= T_WARP ? 1 : 0));
   // warp streaks
-  if (t >= 12 && t < 14) { const k = easeIn(warpK); setStreaks(k * 140, clamp(k * 1.2)); stars.material.opacity = 1; }
+  if (t >= T_WARP && t < T_BLACK) { const k = easeIn(warpK); setStreaks(k * 140, clamp(k * 1.2)); stars.material.opacity = 1; }
   else setStreaks(0, 0);
-  bloom.strength = t >= 4 && t < 7 ? 0.45 : t >= 12 ? lerp(0.5, 2.0, warpK) : 0.5;
+  bloom.strength = t >= 4 && t < 7 ? 0.45 : t >= T_WARP ? lerp(0.6, 2.0, warpK) : t >= T_FLARE ? 0.65 : 0.5;
+  // red alert: corridor lights and accent strips pulse red with the beeps
+  const alertOn = t >= T_FLARE && t < T_WARP + 0.6;
+  const ph = (t - T_FLARE) % 1, beep = alertOn && ph < 0.75 && (ph % 0.25) < 0.14;
+  corridorLights.forEach((l) => { l.color.setHex(alertOn ? 0xff2a3a : 0xe6f2ff); l.intensity = alertOn ? (beep ? 4.5 : 1.4) : 2.2; });
+  M.cyan.emissive.setHex(alertOn ? 0xff2a4b : 0x00f0ff); M.cyan.color.setHex(alertOn ? 0xff2a4b : 0x00f0ff);
+  M.cyan.emissiveIntensity = alertOn ? (beep ? 3.2 : 1.2) : 2.0;
+  M.light.emissiveIntensity = alertOn ? 0.35 : 1.05;
   man.visible = true;
   return pose;
 }
@@ -838,7 +939,8 @@ function updateScene(t, tau) {
 async function seek(t) {
   t = clamp(t, 0, DURATION - 1e-4);
   const tau = sceneTime(t);
-  const inScene = t < 14;
+  const inScene = t < T_BLACK;
+  alarmA = t >= T_FLARE && t < T_BLACK ? t - T_FLARE : -1;
   let pose = null;
   if (inScene) {
     pose = poseMan(tau);
@@ -861,7 +963,7 @@ const ready = (async () => {
   await seek(0);
   $("#loading").remove();
 })();
-window.PROMO = { seek, ready, duration: DURATION, cues, fps: 30, _three: { beacon, camera, scene, THREE }, grabs: GRABS.map((g) => ({ z: g.z, hand: g.hand, t0: +g.t0.toFixed(3), t1: +g.t1.toFixed(3), best: +g.best.toFixed(3) })) };
+window.PROMO = { seek, ready, duration: DURATION, cues, fps: 30, _three: { beacon, camera, scene, THREE }, bpm: BPM, grabs: GRABS.map((g) => ({ z: g.z, hand: g.hand, t0: +g.t0.toFixed(3), t1: +g.t1.toFixed(3), best: +g.best.toFixed(3) })) };
 
 // preview: fit the stage to the window; ?play runs in real time with the sound-effect track
 const params = new URLSearchParams(location.search);

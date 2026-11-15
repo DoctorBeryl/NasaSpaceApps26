@@ -3,8 +3,9 @@
     python video/make_audio.py      # writes build/promo-sfx.wav (48 kHz stereo, 30 s)
 
 Everything is generated with numpy: station hum, whooshes on each push-off, rail sensor chirps,
-the bass drop, strobe hits for the readouts, hatch clunk and hiss, the warp riser, one second of
-dead silence, a UI power-up, punch hits for the website cuts, typing, and a final bass hit.
+the bass drop, strobe hits for the readouts, hatch clunk and hiss, the solar flare (boom, three-beep
+alarm for 3 s, heavy suit-mic breathing), the warp riser, one second of dead silence, a UI power-up,
+punch hits for the website cuts, typing, and a final bass hit. make_music.py adds the beat.
 Leave room for a song: the mix peaks at -3 dBFS and stays sparse.
 """
 import json, wave
@@ -167,16 +168,53 @@ def s_hit():
     out = sub + shimmer; out[: len(trans)] += norm(trans) * .6
     return out
 
+def s_flare():
+    """Solar flare hit: a deep whump with a crackling, brightening noise swell."""
+    d = 1.8; t = t_axis(d)
+    whump = np.tanh(np.sin(2 * np.pi * np.cumsum(32 + 40 * np.exp(-t * 8)) / SR) * np.exp(-t * 1.8) * 2.0)
+    crackle = svf(noise(d) * (rng.random(int(SR * d)) < 0.02) * 6 + noise(d) * 0.3, 1800 + 3000 * np.exp(-t * 2), 0.8) * np.exp(-t * 2.2)
+    return whump * .9 + norm(crackle) * .35
+
+def s_alarmbeeps(d):
+    """beep-beep-beep, rest; repeated for d seconds (3 beeps per second, on the 16th notes at 120 BPM)."""
+    out = np.zeros(int(SR * d))
+    for sec in range(int(round(d))):
+        for k in range(3):
+            t0 = sec + k * 0.25; b = t_axis(0.14)
+            tone = np.sign(np.sin(2 * np.pi * 1046 * b)) * .6 + np.sin(2 * np.pi * 2093 * b) * .4
+            tone *= np.minimum(1, b / 0.004) * np.minimum(1, (0.14 - b) / 0.01)
+            i = int(t0 * SR); out[i:i + len(tone)] += tone[: max(0, len(out) - i)]
+    return out
+
+def s_breathing(d):
+    """Fast, heavy breathing through a helmet mic: bright inhale, louder falling exhale, 0.75 s a breath."""
+    out = np.zeros(int(SR * d)); period = 0.75
+    n = 0; t0 = 0.05
+    while t0 < d - 0.1:
+        rate = 1 + 0.06 * np.sin(n * 1.7)                       # a little uneven, like panic
+        inh = 0.28 * rate; exh = 0.40 * rate
+        ti = t_axis(inh); k = ti / inh
+        a = svf(noise(inh), 1500 + 900 * k, 2.2) * np.sin(np.pi * k) ** 1.2 * .55
+        te = t_axis(exh); k = te / exh
+        b = svf(noise(exh), 1100 - 500 * k, 1.6) * (np.sin(np.pi * np.minimum(1, k * 1.3)) ** .8) * (1 - k) ** .4
+        b += svf(noise(exh), 420, 3.0) * np.sin(np.pi * k) * .6   # chesty low end of the exhale
+        i = int(t0 * SR); j = i + len(a)
+        out[i:j] += a[: max(0, len(out) - i)]
+        e = int((t0 + inh + 0.02) * SR); out[e:e + len(b)] += b[: max(0, len(out) - e)]
+        t0 += period * rate; n += 1
+    helmet = out + np.roll(out, int(SR * 0.0023)) * .55 + np.roll(out, int(SR * 0.0051)) * .3   # small-space comb
+    return norm(helmet) * np.minimum(1, t_axis(d) / 0.05)
+
 # ---------------- ambience ----------------
 def ambience():
-    d = 14.0; t = t_axis(d)
+    d = 16.0; t = t_axis(d)
     hum = (np.sin(2 * np.pi * 50 * t) * .5 + np.sin(2 * np.pi * 100 * t) * .25 + np.sin(2 * np.pi * 150 * t) * .1) * (1 + .1 * np.sin(2 * np.pi * .3 * t))
     air = fft_band(noise(d), 80, 900); air = norm(air) * .5
     fans = fft_band(noise(d), 1800, 2600) * .15
     amb = hum * .35 + air + norm(fans) * .05
     fade = np.minimum(1, t / 0.4)
-    # the far end of the station is quieter in the back shot (7-12 s) and the warp drowns it out
-    duck = np.interp(t, [0, 6.9, 7.0, 12, 13.5, 14], [1, 1, .75, .75, .3, .3])
+    # the far end of the station is quieter in the back shot (7-11 s); the alarm and the warp cover it
+    duck = np.interp(t, [0, 6.9, 7.0, 11, 11.1, 14, 15.5, 16], [1, 1, .75, .75, .5, .5, .25, .25])
     return amb * fade * duck
 
 def site_bed():
@@ -193,7 +231,7 @@ def site_bed():
 def main():
     cues = json.loads((BUILD / "cues.json").read_text())
     place(ambience(), 0.0, 0.10)
-    place(site_bed(), 15.0, 0.12)
+    place(site_bed(), 17.0, 0.12)
     for c in cues:
         t, k = c["t"], c["kind"]
         if k == "grab": place(s_grab(), t, .5, c.get("pan", -.4))
@@ -216,10 +254,13 @@ def main():
         elif k == "key": place(s_key(), t, .18, .2)
         elif k == "enter": place(s_blip(1568), t, .3)
         elif k == "chime": place(s_chime(), t, .35)
-        elif k == "alarm": place(s_alarm(), t, .4)
+        elif k == "alarm": place(s_alarm(), t, .25 if c.get("soft") else .4)
+        elif k == "flare": place(s_flare(), t, .8)
+        elif k == "alarmbeeps": place(s_alarmbeeps(c.get("dur", 3.0)), t, .32)
+        elif k == "breathing": place(s_breathing(c.get("dur", 3.4)), t, .55)
         elif k == "hit": place(s_hit(), t, 1.0)
     # one second of dead silence after the white flash, exactly as the edit does
-    a, b = int(14.0 * SR), int(15.0 * SR)
+    a, b = int(16.0 * SR), int(17.0 * SR)
     mix[a:b] = 0
     mix[a - int(.004 * SR):a] *= np.linspace(1, 0, int(.004 * SR))[:, None]
     # gentle limiter, then peak at -3 dBFS so a song can sit on top
