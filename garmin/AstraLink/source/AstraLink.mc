@@ -22,6 +22,7 @@ import Toybox.Application;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.PersistedContent;
 import Toybox.Sensor;
 import Toybox.SensorHistory;
 import Toybox.System;
@@ -132,11 +133,8 @@ class AstraLink {
         Sensor.enableSensorEvents(null);
     }
 
-    // ---------- live sensors (callbacks untyped so they match every SDK's signature) ----------
-    function onSensor(info) as Void {
-        if (info == null) {
-            return;
-        }
+    // ---------- live sensors ----------
+    function onSensor(info as Sensor.Info) as Void {
         if (info.heartRate != null) {
             hr = info.heartRate;
         }
@@ -153,10 +151,7 @@ class AstraLink {
         WatchUi.requestUpdate();
     }
 
-    function onSensorData(data) as Void {
-        if (data == null) {
-            return;
-        }
+    function onSensorData(data as Sensor.SensorData) as Void {
         if (data.accelerometerData != null) {
             readMotion(data.accelerometerData);
         }
@@ -375,7 +370,7 @@ class AstraLink {
         }
     }
 
-    function onResponse(responseCode, data) as Void {
+    function onResponse(responseCode as Number, data as Null or ByteArray or Dictionary or String or PersistedContent.Iterator) as Void {
         _busy = false;
         ok = responseCode == 200;
         if (ok) {

@@ -1,5 +1,5 @@
 <properties>
     <!-- Where the watch posts readings. Must be https (Garmin Connect on iOS refuses plain http).
-         For a laptop demo, run `cloudflared tunnel --url http://localhost:8000` and paste its URL here. -->
+         For a laptop demo, run a cloudflared quick tunnel to port 8000 and paste its https URL here (docs/GARMIN.md). -->
     <property id="serverUrl" type="string">https://app.healtmonitor.bid</property>
 </properties>
