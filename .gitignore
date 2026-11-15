@@ -36,3 +36,6 @@ desktop.ini
 
 # --- Static preview build (build-static.js) ---
 dist/
+
+# --- Promo video renders (video/render.py) ---
+video/build/
