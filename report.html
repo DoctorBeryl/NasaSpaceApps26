@@ -628,7 +628,7 @@
               <button id="pa-test" type="button" class="btn rounded-md px-3 py-2 text-[9px] mono">TEST ANNOUNCEMENT</button>
             </div>
             <p id="pa-who" class="text-[10px] mono text-cyan"></p>
-            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard above to hear one.</li></ol>
+            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard in the EVA HUD or Dual link view to hear one.</li></ol>
           </div>
         </div>
 
@@ -1187,8 +1187,8 @@ const ReportLink = (() => {
       ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
     }
   }
-  // In the CMO view VEGA is the ship's doctor: glasses, lab coat over scrubs, stethoscope, red-cross hair clip.
-  const isDoctor=()=>state.role==='cmo' && state.view!=='eva';
+  // In the CMO view of SHIP TRIAGE (not dual link) VEGA is the ship's doctor: glasses, lab coat, stethoscope, red-cross clip.
+  const isDoctor=()=>state.role==='cmo' && state.view==='ship';
   function drawDoctor(ctx){
     const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
     const coat='#eef5fa', shade='#aebfcc', line='#1a2633', scrub='#1f8a8f', tube='#ff4f9a', silver='#c9d6df', red='#ff2a4b', white='#ffffff';
@@ -1417,10 +1417,12 @@ const ReportLink = (() => {
     state.view=view; renderEvaClocks();
     const eva=$('evaPanel'),triage=$('triagePanel');
     eva.classList.toggle('hidden-view',view==='ship'); triage.classList.toggle('hidden-view',view==='eva');
+    $('quickControlPanel').classList.toggle('hidden-view',view==='ship');   // scenarios and suit controls belong to the EVA telemetry, not the medical bay
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
     $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
-    if(view==='ship') teleportCompanion('triagePanel'); else teleportCompanion('metricsGrid');
-    updateCompanion();   // DR. VEGA only outside the EVA-only view
+    if(view==='ship') teleportCompanion('bodyMap'); else teleportCompanion('metricsGrid');
+    updateCompanion();   // DR. VEGA only in the ship triage view
+    if(inOverlay()) renderOverlay();
   }
 
   function zoneSvg(z){
@@ -1761,7 +1763,7 @@ const ReportLink = (() => {
         <div class="flex items-center justify-between gap-2"><button type="button" class="text-[10px] text-slate-100 text-left hover:text-cyan" data-zone-pick="${z}">${esc(cap(zoneMeta[z]?.label||z))}</button><span class="text-[8px] mono font-bold" style="color:${heat(list.length)}">${list.length} CREW</span></div>
         <div class="text-[9px] text-slate-400 mt-0.5 leading-relaxed">${list.map(p=>`${nameBtn(p.id)}${p.pain?` ${p.pain}/10`:''}${p.symptoms.length?` <span class="text-slate-500">(${esc(p.symptoms.join(', '))})</span>`:''}`).join(' · ')}</div></li>`).join('');
     $('crewOverlayPane').innerHTML=`
-      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">DR. VEGA · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
+      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">${isDoctor()?'DR. VEGA':'VEGA'} · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
       <div class="space-y-2">${patHTML}</div>
       <div class="flex justify-between gap-2 items-center mt-4 mb-2"><div class="eyebrow">REPORTED AREAS · ALL CREW</div><span class="text-[8px] mono text-slate-500">CLICK AN AREA OR A NAME</span></div>
       <ul class="space-y-1.5">${rows||'<li class="text-[10px] text-slate-500">No crew member has reported symptoms.</li>'}</ul>`;
