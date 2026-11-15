@@ -1,9 +1,12 @@
 /* ==========================================================
-   AstraSight — 3D glasses on the home page (three.js r160, UMD build)
-   Procedural model, no asset files. Callout arrows follow the
-   left button, right button and scroll knob as the model turns.
+   AstraSight — 3D EVA helmet on the home page (three.js r160, UMD build)
+   (File keeps its old glasses3d.js name so nothing else breaks.)
+   Procedural model, no asset files: helmet shell, dark visor with the
+   mini health display built into it, ear modules with the two buttons
+   and the scroll knob, neck ring. Callout arrows follow the left
+   button, right button, scroll knob and visor display as it turns.
    "Left" and "right" are the wearer's: the wearer looks along +z,
-   so their right temple sits at -x.
+   so their right side sits at -x.
    ========================================================== */
 (function () {
   const stage = document.getElementById("glasses-stage");
@@ -13,10 +16,12 @@
   if (!window.THREE || !canvas) { stage.classList.add("g3d-fallback"); return; }
 
   const css = getComputedStyle(document.documentElement);
-  const tok = (n, d) => new THREE.Color((css.getPropertyValue(n) || d).trim());
+  const cssVar = (n, d) => (css.getPropertyValue(n) || d).trim() || d;
+  const tok = (n, d) => new THREE.Color(cssVar(n, d));
   const C = {
     frame: tok("--surface-solid", "#0e1428"), cyan: tok("--cyan", "#5ef2ff"),
     violet: tok("--violet", "#8f7cff"), magenta: tok("--magenta", "#ff6ad5"),
+    shell: tok("--text", "#e8eeff"),
   };
   // One color per control, shared by the 3D highlight, the arrow and the label (--c on each callout)
   const calloutEls = [...stage.querySelectorAll("[data-target]")];
@@ -29,105 +34,144 @@
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
-  camera.position.set(0, 2.1, 6.4);
-  camera.lookAt(0, 0, -0.7);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-  const key = new THREE.DirectionalLight(0xffffff, 1.4); key.position.set(3, 5, 4); scene.add(key);
-  const rimC = new THREE.PointLight(C.cyan, 18, 12); rimC.position.set(-3, 1.5, 2); scene.add(rimC);
-  const rimV = new THREE.PointLight(C.violet, 22, 12); rimV.position.set(3, -1, -3); scene.add(rimV);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(3, 5, 4); scene.add(key);
+  const rimC = new THREE.PointLight(C.cyan, 22, 12); rimC.position.set(-3, 1.5, 2.5); scene.add(rimC);
+  const rimV = new THREE.PointLight(C.violet, 26, 12); rimV.position.set(3, -1, -3); scene.add(rimV);
 
-  const frameMat = new THREE.MeshStandardMaterial({ color: C.frame.clone().multiplyScalar(1.6), metalness: 0.7, roughness: 0.32 });
-  const lensMat = new THREE.MeshPhysicalMaterial({ color: C.cyan, transparent: true, opacity: 0.18, roughness: 0.05, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
+  const shellMat = new THREE.MeshStandardMaterial({ color: C.shell.clone().multiplyScalar(0.85), metalness: 0.15, roughness: 0.5 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: C.frame.clone().multiplyScalar(1.8), metalness: 0.7, roughness: 0.32 });
+  const visorMat = new THREE.MeshPhysicalMaterial({ color: C.frame.clone().multiplyScalar(1.3), emissive: C.cyan, emissiveIntensity: 0.04, metalness: 0.6, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05 });
   const glowMat = (c, o = 0.9) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.2, transparent: o < 1, opacity: o, metalness: 0.2, roughness: 0.4 });
+  const neutralGlow = glowMat(C.frame.clone().lerp(new THREE.Color("#ffffff"), 0.35), 0.6);   // neutral, so control colors stand out
 
-  const glasses = new THREE.Group();
-  scene.add(glasses);
+  const helmet = new THREE.Group();
+  scene.add(helmet);
 
-  /* Lens rims: rounded rectangle with a hole, extruded */
-  function rounded(w, h, r) {
-    const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
-    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
-    s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
-    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
-    return s;
+  // Point on a sphere of radius r: phi runs around the vertical axis (phi = PI/2 faces forward, +z),
+  // theta from the top. Same convention as THREE.SphereGeometry.
+  const P = (r, phi, theta) => new THREE.Vector3(-r * Math.cos(phi) * Math.sin(theta), r * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta));
+  const FWD = Math.PI / 2;
+
+  /* Shell */
+  const R = 1.2;
+  helmet.add(new THREE.Mesh(new THREE.SphereGeometry(R, 56, 40), shellMat));
+
+  /* Visor: a dark curved window across the front */
+  const V = { p0: FWD - 0.95, p1: FWD + 0.95, t0: 0.95, t1: 2.0 };
+  helmet.add(new THREE.Mesh(new THREE.SphereGeometry(R + 0.012, 48, 24, V.p0, V.p1 - V.p0, V.t0, V.t1 - V.t0), visorMat));
+  // Raised frame around the visor
+  const edge = [], N = 20, ER = R + 0.022;
+  for (let i = 0; i < N; i++) edge.push(P(ER, V.p0 + (V.p1 - V.p0) * i / N, V.t0));
+  for (let i = 0; i < N; i++) edge.push(P(ER, V.p1, V.t0 + (V.t1 - V.t0) * i / N));
+  for (let i = 0; i < N; i++) edge.push(P(ER, V.p1 - (V.p1 - V.p0) * i / N, V.t1));
+  for (let i = 0; i < N; i++) edge.push(P(ER, V.p0, V.t1 - (V.t1 - V.t0) * i / N));
+  helmet.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge, true, "centripetal"), 240, 0.04, 8, true), frameMat));
+
+  /* Mini display built into the visor, on the wearer's right (-x), so the centre of view stays clear */
+  const D = { p0: FWD - 0.82, p1: FWD - 0.36, t0: 1.15, t1: 1.75 };
+  const tex = document.createElement("canvas"); tex.width = 256; tex.height = 336;
+  const tctx = tex.getContext("2d");
+  const texture = new THREE.CanvasTexture(tex);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const hudCol = { cyan: cssVar("--cyan", "#5ef2ff"), ok: cssVar("--ok", "#4dffb0"), warn: cssVar("--warn", "#ffc65c"), dim: cssVar("--text-dim", "#9aa6c8") };
+  const mono = cssVar("--mono", "monospace");
+  const trace = Array.from({ length: 40 }, () => 0.5);
+  function drawDisplay() {
+    const g = tctx, w = tex.width, h = tex.height;
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = "rgba(4, 10, 20, 0.82)"; g.fillRect(0, 0, w, h);
+    g.strokeStyle = hudCol.cyan; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+    g.fillStyle = hudCol.cyan; g.font = `bold 22px ${mono}`; g.fillText("ASTRA // VITALS", 16, 38);
+    const hr = Math.round(70 + Math.random() * 5);
+    const rows = [["HEART", `${hr}`, hudCol.ok], ["SpO2", "97.6", hudCol.ok], ["RESP", "15", hudCol.ok], ["DOSE", "0.62", hudCol.warn]];
+    rows.forEach(([k, val, c], i) => {
+      const y = 86 + i * 44;
+      g.fillStyle = hudCol.dim; g.font = `22px ${mono}`; g.fillText(k, 16, y);
+      g.fillStyle = c; g.font = `bold 30px ${mono}`; g.textAlign = "right"; g.fillText(val, w - 16, y); g.textAlign = "left";
+    });
+    // ECG-style trace along the bottom
+    trace.shift(); trace.push(Math.random() < 0.12 ? 0.05 : 0.45 + Math.random() * 0.15);
+    g.strokeStyle = hudCol.ok; g.lineWidth = 4; g.beginPath();
+    trace.forEach((t, i) => { const x = 16 + i * (w - 32) / (trace.length - 1), y = 270 + t * 50; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke();
+    texture.needsUpdate = true;
   }
-  const W = 1.3, H = 0.86, T = 0.09;
-  const rimShape = rounded(W, H, 0.32);
-  rimShape.holes.push(rounded(W - 2 * T, H - 2 * T, 0.25));
-  const rimGeo = new THREE.ExtrudeGeometry(rimShape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 3, curveSegments: 24 });
-  const lensGeo = new THREE.ShapeGeometry(rounded(W - 2 * T, H - 2 * T, 0.25), 24);
-  [-1, 1].forEach((side) => {
-    const rim = new THREE.Mesh(rimGeo, frameMat);
-    rim.position.set(side * 0.74, 0, -0.05); glasses.add(rim);
-    const lens = new THREE.Mesh(lensGeo, lensMat);
-    lens.position.set(side * 0.74, 0, 0); glasses.add(lens);
-  });
-  // In-lens HUD side panel, on the wearer's right lens (-x)
-  const hud = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.46), glowMat(C.cyan, 0.45));
-  hud.position.set(-1.0, 0.02, 0.01); glasses.add(hud);
-  for (let i = 0; i < 4; i++) {
-    const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.16 - (i % 2) * 0.05, 0.025), glowMat(C.cyan, 0.9));
-    bar.position.set(-1.02, 0.15 - i * 0.09, 0.015); glasses.add(bar);
-  }
-
-  // Bridge
-  const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 12, 24, Math.PI), frameMat);
-  bridge.position.set(0, 0.1, 0.0); glasses.add(bridge);
-
-  /* Temples (arms) */
-  const TY = 0.22, TX = 1.43, TL = 2.7;
+  drawDisplay();
+  if (!reduced) setInterval(drawDisplay, 900);
+  const display = new THREE.Mesh(
+    new THREE.SphereGeometry(R + 0.018, 16, 12, D.p0, D.p1 - D.p0, D.t0, D.t1 - D.t0),
+    new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, toneMapped: false }),
+  );
+  helmet.add(display);
   const anchors = {};
-  [-1, 1].forEach((side) => {
-    const x = side * TX;
-    const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.24, 0.22), frameMat);
-    hinge.position.set(side * 1.37, TY, -0.06); glasses.add(hinge);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.17, TL), frameMat);
-    arm.position.set(x, TY, -0.1 - TL / 2); glasses.add(arm);
-    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.7), frameMat);
-    tip.position.set(x, TY - 0.2, -0.1 - TL - 0.25); tip.rotation.x = -0.65; glasses.add(tip);
-    // Accent stripe along the outer face
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.02, TL * 0.6), glowMat(C.frame.clone().lerp(new THREE.Color("#ffffff"), 0.35), 0.5));   // neutral, so control colors stand out
-    stripe.position.set(x + side * 0.052, TY - 0.03, -0.25 - TL * 0.3); glasses.add(stripe);
+  anchors.display = new THREE.Object3D(); anchors.display.position.copy(P(R + 0.02, (D.p0 + D.p1) / 2, (D.t0 + D.t1) / 2)); helmet.add(anchors.display);
 
-    // Button on top of each temple, near the hinge
-    const btn = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.24, 6, 12), glowMat(ctrl3d(side === 1 ? "left" : "right")));
-    btn.rotation.x = Math.PI / 2;
-    btn.position.set(x, TY + 0.1, -0.6); glasses.add(btn);
-    const a = new THREE.Object3D(); a.position.set(x, TY + 0.14, -0.6); glasses.add(a);
-    anchors[side === 1 ? "left" : "right"] = a;
+  /* Ridge over the top, from the back to just above the visor */
+  const ridge = new THREE.Mesh(new THREE.TorusGeometry(R + 0.005, 0.05, 10, 64, Math.PI - 0.72), frameMat);
+  ridge.rotation.y = Math.PI / 2; helmet.add(ridge);
+
+  /* Helmet lamps on the upper front corners */
+  [-1, 1].forEach((side) => {
+    const n = new THREE.Vector3(side * 0.62, 0.62, 0.48).normalize();
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, 0.16), frameMat);
+    lamp.position.copy(n.clone().multiplyScalar(R + 0.04)); lamp.lookAt(n.clone().multiplyScalar(5)); helmet.add(lamp);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.05, 20), neutralGlow);
+    lens.position.copy(n.clone().multiplyScalar(R + 0.125)); lens.lookAt(n.clone().multiplyScalar(5)); helmet.add(lens);
   });
 
-  // Scroll knob: a small ribbed crown on the OUTER face of the right temple (-x), joined to it by a short axle
-  const KR = 0.095, KW = 0.06, AX = 0.035;            // knob radius, knob width, axle length
-  const armOuter = -(TX + 0.05);                       // outer face of the right arm
-  const knobX = armOuter - AX - KW / 2;
+  /* Ear modules: the two buttons sit on top, the scroll knob on the right one's outer face */
+  const EY = -0.02, EZ = -0.08, EX = 1.18, ER2 = 0.3, EW = 0.16;
+  [-1, 1].forEach((side) => {
+    const mod = new THREE.Mesh(new THREE.CylinderGeometry(ER2, ER2, EW, 40), frameMat);
+    mod.rotation.z = Math.PI / 2; mod.position.set(side * EX, EY, EZ); helmet.add(mod);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(ER2 - 0.03, 0.012, 8, 40), neutralGlow);
+    ring.rotation.y = Math.PI / 2; ring.position.set(side * (EX + EW / 2 + 0.002), EY, EZ); helmet.add(ring);
+
+    const name = side === 1 ? "left" : "right";
+    const btn = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.2, 6, 12), glowMat(ctrl3d(name)));
+    btn.rotation.x = Math.PI / 2;
+    btn.position.set(side * EX, EY + ER2 + 0.025, EZ); helmet.add(btn);
+    const a = new THREE.Object3D(); a.position.set(side * EX, EY + ER2 + 0.08, EZ); helmet.add(a);
+    anchors[name] = a;
+  });
+
+  // Scroll knob: a ribbed crown on the outer face of the right ear module (-x), joined by a short axle
+  const KR = 0.11, KW = 0.07, AX = 0.035;              // knob radius, knob width, axle length
+  const modOuter = -(EX + EW / 2);                      // outer face of the right module
+  const knobX = modOuter - AX - KW / 2;
   const knob = new THREE.Group();
   const metal = new THREE.MeshStandardMaterial({ color: C.frame.clone().multiplyScalar(3), metalness: 0.85, roughness: 0.25, flatShading: true });
   const wheel = new THREE.Mesh(new THREE.CylinderGeometry(KR, KR, KW, 24), metal);
   wheel.rotation.z = Math.PI / 2; knob.add(wheel);
   for (let i = 0; i < 12; i++) {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(KW + 0.006, 0.016, 0.02), frameMat);
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(KW + 0.006, 0.018, 0.022), frameMat);
     const t = (i / 12) * Math.PI * 2;
     rib.position.set(0, Math.cos(t) * (KR + 0.004), Math.sin(t) * (KR + 0.004)); rib.rotation.x = -t; knob.add(rib);
   }
   const knobGlow = glowMat(ctrl3d("knob"));
   [-1, 1].forEach((s) => {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(KR, 0.009, 8, 28), knobGlow);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(KR, 0.01, 8, 28), knobGlow);
     ring.rotation.y = Math.PI / 2; ring.position.x = s * (KW / 2 - 0.004); knob.add(ring);
   });
   const cap = new THREE.Mesh(new THREE.CircleGeometry(KR * 0.45, 20), knobGlow);   // lit centre on the outer face
   cap.rotation.y = -Math.PI / 2; cap.position.x = -KW / 2 - 0.002; knob.add(cap);
-  const KZ = -1.0;
-  knob.position.set(knobX, TY, KZ); glasses.add(knob);
-  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, AX + 0.01, 16), frameMat);
-  axle.rotation.z = Math.PI / 2; axle.position.set(armOuter - AX / 2 + 0.005, TY, KZ); glasses.add(axle);
-  anchors.knob = new THREE.Object3D(); anchors.knob.position.set(knobX - KW / 2, TY, KZ); glasses.add(anchors.knob);
+  knob.position.set(knobX, EY, EZ); helmet.add(knob);
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, AX + 0.01, 16), frameMat);
+  axle.rotation.z = Math.PI / 2; axle.position.set(modOuter - AX / 2 + 0.005, EY, EZ); helmet.add(axle);
+  anchors.knob = new THREE.Object3D(); anchors.knob.position.set(knobX - KW / 2, EY, EZ); helmet.add(anchors.knob);
 
-  // Rotate around the middle of the frame, not the lenses, so the temples stay in view
-  glasses.children.forEach((c) => { c.position.z += 1.3; });
-  glasses.position.z = -0.7;
+  /* Neck ring that locks onto the suit */
+  const neck = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.085, 16, 56), frameMat);
+  neck.rotation.x = Math.PI / 2; neck.position.y = -0.98; helmet.add(neck);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.86, 0.92, 0.24, 56), frameMat);
+  collar.position.y = -1.16; helmet.add(collar);
+  const collarGlow = new THREE.Mesh(new THREE.TorusGeometry(0.885, 0.012, 8, 56), neutralGlow);
+  collarGlow.rotation.x = Math.PI / 2; collarGlow.position.y = -1.08; helmet.add(collarGlow);
+
+  const CENTER = new THREE.Vector3(0, 0.05, -0.7);
+  helmet.position.copy(CENTER);
 
   /* Callouts: SVG arrows from each label to its projected anchor */
   const NS = "http://www.w3.org/2000/svg";
@@ -145,7 +189,7 @@
     dot.setAttribute("r", "4"); dot.setAttribute("class", "g3d-dot");
     dot.style.fill = color; dot.style.filter = `drop-shadow(0 0 6px ${color})`; svg.appendChild(dot);
     return { el, line, dot, anchor: anchors[el.dataset.target] };
-  });
+  }).filter((c) => c.anchor);
   const v = new THREE.Vector3();
   function drawCallouts(w, h) {
     const box = stage.getBoundingClientRect();
@@ -181,10 +225,10 @@
     w = stage.clientWidth; h = stage.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Pull back on narrow screens so both temples stay in frame
-    const d = 6.4 * Math.max(1, 1.3 / camera.aspect);
-    camera.position.set(0, 2.1 * d / 6.4, d);
-    camera.lookAt(0, 0, -0.7);
+    // Pull back on narrow screens so the whole helmet stays in frame
+    const d = 7 * Math.max(1, 1.2 / camera.aspect);
+    camera.position.set(0, 1.7 * d / 7, d - 0.7);
+    camera.lookAt(CENTER.x, CENTER.y - 0.1, CENTER.z);
     camera.updateProjectionMatrix();
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   }
@@ -198,7 +242,7 @@
     const dt = Math.min(0.05, (now - t0) / 1000); t0 = now;
     if (!dragging) idle += dt;
     const sway = reduced || idle < 2 ? 0 : Math.sin(now / 2600) * 0.25 * Math.min(1, (idle - 2) / 2);
-    glasses.rotation.set(0.12 + pitch, yaw + sway, 0);
+    helmet.rotation.set(0.1 + pitch, yaw + sway, 0);
     if (!reduced) knob.rotation.x = now / 900;   // knob turns slowly, hinting it scrolls
     renderer.render(scene, camera);
     drawCallouts(w, h);
