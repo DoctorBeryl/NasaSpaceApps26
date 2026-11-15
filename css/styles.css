@@ -406,7 +406,7 @@ body.hud-page .nebula, body.hud-page #starfield { display: none; }
 
 @media (max-width: 820px) {
   /* Stack panel and voice bar in normal flow so they can never overlap,
-     whatever the viewport height or VEGA response length. */
+     whatever the viewport height or ASTRA response length. */
   .hud-shell { display: flex; flex-direction: column; gap: 10px; padding: 104px 12px 12px; }
   .side-panel, .side-panel.left { position: relative; inset: auto; width: auto; flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(94,242,255,0.3) transparent; }
   .side-panel > * { flex: none; }
@@ -590,7 +590,7 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
 .zone-readout[data-zone="crit"] { border-color: rgba(255,93,115,.6); color: var(--crit); }
 
 /* ==========================================================
-   VEGA WARNING POPUP
+   ASTRA WARNING POPUP
    ========================================================== */
 .vega-pop {
   --sev: var(--warn); --sev-rgb: 255,198,92;

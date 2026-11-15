@@ -51,7 +51,7 @@
     loadVideo(tool.id);
   }
 
-  /* ---------------- reading slider + VEGA popup ---------------- */
+  /* ---------------- reading slider + ASTRA popup ---------------- */
   const tgt = (tool = current) => overrides[tool.id] ?? tool.base;
   const zone = () => zoneOf(current, tgt()).zone;
 

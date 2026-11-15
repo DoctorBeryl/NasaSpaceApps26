@@ -3,10 +3,10 @@
 
      node build-static.js        (or: npm run build:static)
 
-   No backend in the preview: sign-in, VEGA's AI and the ElevenLabs voice are off. Pages still
-   render, simulated vitals run, rule-based commands work, and VEGA uses the browser voice.
+   No backend in the preview: sign-in, ASTRA's AI and the ElevenLabs voice are off. Pages still
+   render, simulated vitals run, rule-based commands work, and ASTRA uses the browser voice.
    A real 404.html is written so Cloudflare Pages doesn't serve index.html for /api/* paths
-   (its default when there's no 404.html), which would make VEGA think an API is there. */
+   (its default when there's no 404.html), which would make ASTRA think an API is there. */
 const fs = require("fs");
 const path = require("path");
 

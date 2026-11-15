@@ -53,7 +53,7 @@
   }
 
   /* API base: this page's own origin when it's served by server.js, otherwise node server.js on
-     localhost:8000 (so pages from npx serve / Live Server still get sign-in and VEGA's AI). */
+     localhost:8000 (so pages from npx serve / Live Server still get sign-in and ASTRA's AI). */
   const API_FALLBACK = "http://localhost:8000";
   let apiBase = "";
   async function loadConfig() {

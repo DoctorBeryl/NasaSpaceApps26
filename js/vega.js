@@ -1,5 +1,5 @@
 /* ==========================================================
-   VEGA — Vital Evaluation & Guidance Assistant
+   ASTRA — Astronaut Support, Triage & Response Assistant
    Lightweight on-device intent model (rule-based prototype).
    parse(text) -> { intent, slots, confidence, normalized }
    ========================================================== */
@@ -40,8 +40,8 @@ const VEGA = (() => {
     ["simulate_alert", /\b(simulate|test|trigger)\b.*\b(alert|emergency|alarm)\b|\bemergency\b/, 0.9],
     ["show_log", /\b(show|open)\b.*\b(log|history|transcript)\b/, 0.9],
     ["show_vitals", /\b(show|open|back to)\b.*\b(vitals|dashboard)\b/, 0.9],
-    ["next_step", /^(vega,? )?(next|forward|continue|go on)( step| one| please)?$|\bnext (step|instruction)\b/, 0.9],
-    ["prev_step", /^(vega,? )?(back|previous|prev|go back)( step| one| please)?$|\b(previous|last) (step|instruction)\b|\bstep back\b/, 0.9],
+    ["next_step", /^((?:vega|astra),? )?(next|forward|continue|go on)( step| one| please)?$|\bnext (step|instruction)\b/, 0.9],
+    ["prev_step", /^((?:vega|astra),? )?(back|previous|prev|go back)( step| one| please)?$|\b(previous|last) (step|instruction)\b|\bstep back\b/, 0.9],
     ["full_scan", /\b(full|complete|whole|entire|all)\b.*\b(scan|diagnostic|diagnostics|check|systems)\b|\brun diagnostics\b|\bscan me\b/, 0.93],
     ["scan_tool", /\b(run|start|begin|do)\b.*\b(scan|test|check|reading)\b/, 0.86],
     ["status_report", /\b(status|report|summary|overview|how am i|am i ok|vitals report)\b/, 0.9],
@@ -62,7 +62,7 @@ const VEGA = (() => {
   function normalize(raw) {
     return raw.toLowerCase()
       .replace(/[’]/g, "'")
-      .replace(/^\s*(hey|ok|okay|hi)?\s*,?\s*vega\s*[,.!]?\s*/i, "")
+      .replace(/^\s*(hey|ok|okay|hi)?\s*,?\s*(?:vega|astra)\s*[,.!]?\s*/i, "")
       .replace(/[^\w\s'%₂]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -70,7 +70,7 @@ const VEGA = (() => {
 
   function parse(raw) {
     const text = normalize(raw || "");
-    const woke = /\bvega\b/i.test(raw || "");
+    const woke = /\b(?:vega|astra)\b/i.test(raw || "");
     const tool = findTool(text);
     let intent = "unknown", confidence = 0.2, symptom = null;
 
@@ -143,7 +143,7 @@ const VEGA = (() => {
   const ttsUrl = (location.protocol.startsWith("http") ? probe("/api/tts") : Promise.resolve(null))
     .then((u) => u || (location.origin === "http://localhost:8000" ? null : probe(TTS_FALLBACK)))
     .then((u) => {
-      if (!u) console.warn("VEGA: no ElevenLabs proxy found, using the browser voice. Run `node server.js` and open http://localhost:8000");
+      if (!u) console.warn("ASTRA: no ElevenLabs proxy found, using the browser voice. Run `node server.js` and open http://localhost:8000");
       return u;
     });
   let audio = null, seq = 0;
@@ -187,7 +187,7 @@ const VEGA = (() => {
       chatUrlP = (location.protocol.startsWith("http") ? probe("/api/chat") : Promise.resolve(null))
         .then((u) => u || (location.origin === "http://localhost:8000" ? null : probe(CHAT_FALLBACK)))
         .then((u) => {
-          if (!u) { console.warn("VEGA: Ollama chat not available. Start Ollama, pull the model, and run `node server.js`."); chatUrlP = null; }
+          if (!u) { console.warn("ASTRA: Ollama chat not available. Start Ollama, pull the model, and run `node server.js`."); chatUrlP = null; }
           return u;
         });
     }
@@ -267,7 +267,7 @@ const VEGA = (() => {
           const text = String((await r.json()).text || "").trim();
           text ? onResult(text) : onError && onError("no-speech");
         } catch (e) {
-          console.warn("VEGA: server transcription failed:", e.message || e);
+          console.warn("ASTRA: server transcription failed:", e.message || e);
           onError && onError("network");
         }
       };
@@ -299,7 +299,7 @@ const VEGA = (() => {
       if (e.error === "network" && recorder) {
         return sttUrl().then((u) => {
           if (!u) return onError && onError("network");
-          console.warn("VEGA: browser speech service unreachable, using server transcription (/api/stt)");
+          console.warn("ASTRA: browser speech service unreachable, using server transcription (/api/stt)");
           preferRecorder = switched = true;
           recorder.toggle();
         });

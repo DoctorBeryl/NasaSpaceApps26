@@ -14,7 +14,7 @@ const NAV_LINKS = [
   ["index.html", "Home"],
   ["interface.html", "Interface"],
   ["tools.html", "Diagnostics"],
-  ["vega.html", "VEGA AI"],
+  ["vega.html", "ASTRA AI"],
   ["report.html", "Report"],
 ];
 

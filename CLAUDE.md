@@ -4,8 +4,9 @@ Shared instructions for every Claude Code instance working on this repo. This fi
 
 ## What this is
 
-**AstraSight**, our NASA Space Apps Challenge 2026 entry for **"Create Health Monitoring Software for Astronauts on Space Missions"**. It's a concept website for smart glasses with an in-lens health HUD (a side panel) and **VEGA**, an on-device voice assistant that reads vitals, explains them, and suggests actions.
+**AstraSight**, our NASA Space Apps Challenge 2026 entry for **"Create Health Monitoring Software for Astronauts on Space Missions"**. It's a concept website for smart glasses with an in-lens health HUD (a side panel) and **ASTRA**, an on-device voice assistant that reads vitals, explains them, and suggests actions.
 
+- **Naming:** the assistant is **ASTRA** (Astronaut Support, Triage & Response Assistant). It was called VEGA until Nov 15. All user-visible text, the AI persona and the server prompts say ASTRA, and the wake word accepts both "ASTRA" and "VEGA". Code identifiers keep the old name on purpose, so no one's work breaks: `window.VEGA` / `VEGA.speak()`, `js/vega.js`, `vega.html`, `VegaBuddy`, `VegaAlerts`, and `.vega-*` CSS classes. Use ASTRA in new copy; don't rename identifiers.
 - Challenge page: https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/
 - The hackathon runs **Nov 14–15, 2026**. Time is short: favor working demos over refactors.
 - The full brief, research notes, and a gap analysis against the brief are in [docs/CHALLENGE.md](docs/CHALLENGE.md). **Read it before making product decisions.**
@@ -16,10 +17,10 @@ Shared instructions for every Claude Code instance working on this repo. This fi
 Several agents build these in parallel. Each piece has a contract doc; code against it, not against another agent's internals.
 
 1. **Sign-in:** face recognition (open-source face-api.js) plus Firebase Auth. New crew enter only a name and do a face scan. Done: `login.html`, `js/auth.js` (`window.AstraAuth`), and `server/auth.js`. See [docs/AUTH.md](docs/AUTH.md).
-2. **First visit:** after enrolling, crew land on `interface.html?welcome=1` with `onboarded: false` in their profile. Show a **tutorial** on using the site plus VEGA's **AI questionnaire**, which tailors baselines to that astronaut. When it's done, call `AstraAuth.saveProfile({ profile, onboarded: true })`.
-3. **AI backend:** Ollama running **Qwen 2.5**, behind `/api/ai/*` (onboarding, chat, brief). See [docs/AI-BACKEND.md](docs/AI-BACKEND.md). Its persona (`server/persona.md`) is the VEGA persona from the team's Gemini prototype.
-4. **Chat:** after tailoring, the VEGA chatbox is a **sidebar** available across the site (`/api/ai/chat`).
-5. **Critical-stats screen:** a *separate* feature from the chat. It's the VEGA persona's screen for visualizing critical stats (`report.html`, `/api/ai/brief`).
+2. **First visit:** after enrolling, crew land on `interface.html?welcome=1` with `onboarded: false` in their profile. Show a **tutorial** on using the site plus ASTRA's **AI questionnaire**, which tailors baselines to that astronaut. When it's done, call `AstraAuth.saveProfile({ profile, onboarded: true })`.
+3. **AI backend:** Ollama running **Qwen 2.5**, behind `/api/ai/*` (onboarding, chat, brief). See [docs/AI-BACKEND.md](docs/AI-BACKEND.md). Its persona (`server/persona.md`) is the ASTRA persona from the team's Gemini prototype.
+4. **Chat:** after tailoring, the ASTRA chatbox is a **sidebar** available across the site (`/api/ai/chat`).
+5. **Critical-stats screen:** a *separate* feature from the chat. It's the ASTRA persona's screen for visualizing critical stats (`report.html`, `/api/ai/brief`).
 
 ## Stack and running
 
@@ -27,33 +28,33 @@ The frontend has no build step: plain HTML, CSS, and vanilla JS loaded with `<sc
 
 ```sh
 cp .env.example .env      # add keys locally; .env is gitignored, never commit it
-ollama pull qwen2.5:3b    # for VEGA's AI routes (see docs/AI-BACKEND.md)
+ollama pull qwen2.5:3b    # for ASTRA's AI routes (see docs/AI-BACKEND.md)
 ollama pull medgemma1.5:4b   # medical model for body-map triage on report.html
 node server.js            # Node 18+, http://localhost:8000: static site + /api/*
 npm run dev               # same, plus starts Ollama first if it isn't running (dev.js)
 # frontend only, no AI or TTS:  python -m http.server 8000
 ```
 
-`server.js` serves the site and proxies VEGA's voice to ElevenLabs (`/api/tts`; it uses the shared key in `server/elevenlabs-key.js` unless `.env` sets `ELEVENLABS_API_KEY`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: VEGA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), VEGA uses the browser's robotic voice and logs a console warning.
+`server.js` serves the site and proxies ASTRA's voice to ElevenLabs (`/api/tts`; it uses the shared key in `server/elevenlabs-key.js` unless `.env` sets `ELEVENLABS_API_KEY`). Other static servers (`npx serve`, `python -m http.server`, Live Server) still get the ElevenLabs voice as long as `node server.js` is also running on port 8000: ASTRA falls back to `http://localhost:8000/api/tts`, and the server allows CORS from localhost origins only. If neither is reachable (or on `file://`), ASTRA uses the browser's robotic voice and logs a console warning.
 
-Free-form questions in the HUD's command box go to a local [Ollama](https://ollama.com) model through `server.js` (`/api/chat`; set `OLLAMA_URL` and `OLLAMA_MODEL` in `.env`, default `qwen2.5:3b`, the same model as `/api/ai/*`). The system prompt is fixed in `server.js` and keeps VEGA on AstraSight features and mission topics; the page sends only the conversation and the current simulated readings. Built-in commands are still handled by the rule-based parser. Without Ollama, questions get the built-in answer or "didn't catch that".
+Free-form questions in the HUD's command box go to a local [Ollama](https://ollama.com) model through `server.js` (`/api/chat`; set `OLLAMA_URL` and `OLLAMA_MODEL` in `.env`, default `qwen2.5:3b`, the same model as `/api/ai/*`). The system prompt is fixed in `server.js` and keeps ASTRA on AstraSight features and mission topics; the page sends only the conversation and the current simulated readings. Built-in commands are still handled by the rule-based parser. Without Ollama, questions get the built-in answer or "didn't catch that".
 
-Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome or Edge. Typed commands work everywhere. Without the server or keys, VEGA falls back to the browser's built-in voice.
+Voice input (Web Speech API) needs a secure origin (localhost counts) and Chrome or Edge. Typed commands work everywhere. Without the server or keys, ASTRA falls back to the browser's built-in voice.
 
 | File | Role |
 |------|------|
-| `index.html` | Landing page: product, the 8 tools, intro to VEGA |
+| `index.html` | Landing page: product, the 8 tools, intro to ASTRA |
 | `interface.html` + `js/hud.js` | Interactive lens HUD: simulated vitals, dockable side panel, voice and typed commands, alerts |
 | `tools.html` + `js/tools.js` | One demo stage per tool: procedural signal canvas, swapped for `media/<id>.mp4` if that file exists |
-| `vega.html` + `js/vega.js` | VEGA's rule-based intent parser (`VEGA.parse(text) → {intent, slots, confidence}`) and speech in/out |
-| `report.html` | Report screen (the team's "EVA-MED HUD" prototype): habitat/IVA and EVA modes, EVA clocks (time outside, plus a countdown that appears when a reading needs action), suit telemetry with manual override (sliders show low and high hazard lines from `LIMITS`; suit pressure hidden in the habitat), DCS risk heuristic, radiation shelter window, crew and habitat sensor modules, body-map triage with a rule-based review plus a VEGA medical AI note (`/api/ai/triage` on MedGemma 1.5 4B, falling back to Qwen, with telemetry and EVA clocks as context: possible causes to consider, what to check next, escalation; never a diagnosis), three tabs (internal view keys in brackets): **Ship display** (`dual`, habitat telemetry plus triage for your role), **EVA HUD** (`eva`, the visor; switches to EVA mode), and **Medical bay** (`ship`, triage full width, with no scenario or suit-control strip). A **Signed in as Crew / CMO** demo switch in the header sets the role for the whole page. Crew see only their own record. The Crew Medical Officer gets a compact crew roster on the Ship display. In the Medical bay the CMO gets the full console: a roster of 5 crew (4 simulated), every record, a whole-crew body-map heatmap with VEGA's pattern notes, and Send to flight surgeon; VEGA becomes "DR. VEGA" in a lab coat there only. `?role=cmo` and `?view=display|eva|medical` open these directly. VEGA as a 16-bit pixel companion, crew profile and ship-wide PA log. Uses the Tailwind CDN, unlike the rest of the site |
+| `vega.html` + `js/vega.js` | ASTRA's rule-based intent parser (`VEGA.parse(text) → {intent, slots, confidence}`) and speech in/out |
+| `report.html` | Report screen (the team's "EVA-MED HUD" prototype): habitat/IVA and EVA modes, EVA clocks (time outside, plus a countdown that appears when a reading needs action), suit telemetry with manual override (sliders show low and high hazard lines from `LIMITS`; suit pressure hidden in the habitat), DCS risk heuristic, radiation shelter window, crew and habitat sensor modules, body-map triage with a rule-based review plus a ASTRA medical AI note (`/api/ai/triage` on MedGemma 1.5 4B, falling back to Qwen, with telemetry and EVA clocks as context: possible causes to consider, what to check next, escalation; never a diagnosis), three tabs (internal view keys in brackets): **Ship display** (`dual`, habitat telemetry plus triage for your role), **EVA HUD** (`eva`, the visor; switches to EVA mode), and **Medical bay** (`ship`, triage full width, with no scenario or suit-control strip). A **Signed in as Crew / CMO** demo switch in the header sets the role for the whole page. Crew see only their own record. The Crew Medical Officer gets a compact crew roster on the Ship display. In the Medical bay the CMO gets the full console: a roster of 5 crew (4 simulated), every record, a whole-crew body-map heatmap with ASTRA's pattern notes, and Send to flight surgeon; ASTRA becomes "DR. ASTRA" in a lab coat there only. `?role=cmo` and `?view=display|eva|medical` open these directly. ASTRA as a 16-bit pixel companion (hold and drag to park her; reminder, caution and critical alerts lock her onto the reading, amber, until Acknowledge or recovery; double-click her portrait to let her place herself again), crew profile and ship-wide PA log. Uses the Tailwind CDN, unlike the rest of the site |
 | `js/crew.js` | `Crew` (rank and name for alerts; uses the signed-in name if `auth.js` is loaded), `ShipPA.announce()` (chime plus crew-wide spoken alert via `VEGA.speak`), `ReportBus` (report-screen heartbeat across tabs); `ShipPA.ack()` stops the voice and forgets the current alert, and turning the PA on re-reads the current alert from the start |
-| `js/onboarding.js` | First-visit questionnaire overlay on `interface.html?welcome=1` (or `?onboard=1` to rerun): VEGA asks the `/api/ai/onboard/*` questions one at a time; every answer can be typed or spoken (mic button, Web Speech API, matches spoken words to choice options); ends with a short tour and `AstraAuth.saveProfile({ profile, onboarded: true })` |
+| `js/onboarding.js` | First-visit questionnaire overlay on `interface.html?welcome=1` (or `?onboard=1` to rerun): ASTRA asks the `/api/ai/onboard/*` questions one at a time; every answer can be typed or spoken (mic button, Web Speech API, matches spoken words to choice options); ends with a short tour and `AstraAuth.saveProfile({ profile, onboarded: true })` |
 | `js/glasses3d.js` | Home-page 3D glasses (three.js 0.160.0 UMD from jsDelivr, procedural, no model files) with callout arrows to the left button, right button and scroll knob; drag to rotate, falls back to text cards without WebGL |
-| `js/companion.js` + `css/companion.css` | VEGA pop-up on the home and diagnostics pages: starts collapsed (avatar only) and greets by name when clicked. No background events: `VegaBuddy.fireHazard()` (the diagnostics page's "Random health event" button) shows a random simulated hazard. Every bubble has Acknowledge (`ShipPA.ack()`: stops the voice). Hidden while `report.html` is open in another tab, unless an event is forced |
+| `js/companion.js` + `css/companion.css` | ASTRA pop-up on the home and diagnostics pages: starts collapsed (avatar only) and greets by name when clicked. No background events: `VegaBuddy.fireHazard()` (the diagnostics page's "Random health event" button) shows a random simulated hazard. Every bubble has Acknowledge (`ShipPA.ack()`: stops the voice). Hidden while `report.html` is open in another tab, unless an event is forced |
 | `js/data.js` | **Single source of truth** for the tools: `TOOLS[]` (id, unit, base, jitter, warn thresholds, sensor, steps, voice cmd, wave type) and `ICONS` |
 | `js/common.js` | Shared nav and footer (`NAV_LINKS`), starfield, `.reveal` scroll-in, `drawSpark()` |
-| `server.js` + `server/` | Node dev server (no deps): static files, `/api/tts` (ElevenLabs), `/api/ai/*` (VEGA on Qwen 2.5 via local Ollama). API contract in [docs/AI-BACKEND.md](docs/AI-BACKEND.md); persona in `server/persona.md` |
+| `server.js` + `server/` | Node dev server (no deps): static files, `/api/tts` (ElevenLabs), `/api/ai/*` (ASTRA on Qwen 2.5 via local Ollama). API contract in [docs/AI-BACKEND.md](docs/AI-BACKEND.md); persona in `server/persona.md` |
 | `build-static.js` | `npm run build:static`: copies the frontend into gitignored `dist/` plus a real `404.html`, for the static preview on Cloudflare Pages (build command `node build-static.js`, output `dist`). No backend there: no AI, sign-in, or ElevenLabs |
 | `deploy/oracle-setup.sh` | One-shot setup of the full site on an Oracle Cloud Always Free ARM server: Node, Ollama with both models kept loaded, `astrasight` systemd service, pull from `main` every 10 min, Cloudflare Tunnel. Guide in [docs/DEPLOY-ORACLE.md](docs/DEPLOY-ORACLE.md) |
 | `dev.js` + `package.json` | `npm run dev`: starts Ollama if it isn't already running, then `server.js` (no npm deps) |
@@ -71,7 +72,7 @@ Script load order matters: `data.js` → `common.js` → `auth.js` → `vega.js`
 - **To add a page**, copy an existing page's `<head>`, include `<nav id="site-nav">` and `<footer id="site-footer">`, and register it in `NAV_LINKS`.
 - Use the existing CSS tokens (`--cyan`, `--ok`, `--warn`, `--crit`, `--surface`, …). Don't hard-code new colors. Status colors: ok = green, warn = amber, crit = red, matching the brief's "color coding at a glance".
 - Respect `prefers-reduced-motion`; `starfield()` already does.
-- All health data is **simulated**. Keep the "Concept prototype · Simulated data · Not a medical device" disclaimer. VEGA *flags and suggests* but never diagnoses, and serious findings escalate to the flight surgeon. This is part of the pitch and part of the brief.
+- All health data is **simulated**. Keep the "Concept prototype · Simulated data · Not a medical device" disclaimer. ASTRA *flags and suggests* but never diagnoses, and serious findings escalate to the flight surgeon. This is part of the pitch and part of the brief.
 - Copy is plain and specific: active voice, sentence case, no hype.
 - Before claiming a UI change works, run it and check it with the `webapp-testing` skill (Playwright screenshots).
 
@@ -93,7 +94,7 @@ Save screenshots and test output to `.screenshots/` or `.tmp/`. Both are gitigno
 Everything committed here is world-readable forever, git history included. Never commit:
 
 - API keys, tokens, passwords, `.env` files, cookies, or service account JSON. If a feature needs a key, read it from an environment variable or a gitignored `config.local.js`, and commit a `config.example.js` with placeholders.
-  - **Exception: the ElevenLabs API key (`ELEVENLABS_API_KEY`) may be committed.** The team decided it's low-value enough to be public. The shared key lives in `server/elevenlabs-key.js`, so every clone gets VEGA's voice without setup, and `ELEVENLABS_API_KEY` in `.env` overrides it. This exception covers only that key. Firebase credentials, service account JSON, and every other secret stay out of the repo.
+  - **Exception: the ElevenLabs API key (`ELEVENLABS_API_KEY`) may be committed.** The team decided it's low-value enough to be public. The shared key lives in `server/elevenlabs-key.js`, so every clone gets ASTRA's voice without setup, and `ELEVENLABS_API_KEY` in `.env` overrides it. This exception covers only that key. Firebase credentials, service account JSON, and every other secret stay out of the repo.
 - Personal data: email addresses, phone numbers, home addresses, real health data, or full names of people who haven't agreed to it. In docs, refer to collaborators by GitHub handle or first name.
 - Machine-specific paths (`C:\Users\<name>\...`, `/home/<name>/...`) or anything else from someone's local environment.
 - Content from private chats, Slack or Discord, or judges' feedback that wasn't meant to be public.
@@ -136,7 +137,7 @@ The aim is a **union** that keeps both sides working, not a pick between them.
 5. **Verify before committing the merge:**
    - Run `git grep -nE '^(<<<<<<<|=======|>>>>>>>)'`. It should return nothing.
    - Run `node --check` on every changed `.js` file.
-   - Start `node server.js` and load every page. Check for console errors with the `webapp-testing` skill if you can. At least make sure the HUD, tools, and VEGA pages render and a voice or typed command works.
+   - Start `node server.js` and load every page. Check for console errors with the `webapp-testing` skill if you can. At least make sure the HUD, tools, and ASTRA pages render and a voice or typed command works.
 
 ### Before pushing
 1. `git fetch origin` again. If `origin/main` moved since your last pull, repeat the pull and merge steps above, then verify again.

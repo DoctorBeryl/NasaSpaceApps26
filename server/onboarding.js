@@ -14,7 +14,7 @@ const opts = (...pairs) => pairs.map(([value, label]) => ({ value, label }));
 const QUESTIONS = [
   {
     id: "callsign", topic: "About you", kind: "text",
-    text: "Hi, I'm VEGA. What should I call you? A first name or a call sign is fine.",
+    text: "Hi, I'm ASTRA. What should I call you? A first name or a call sign is fine.",
     placeholder: "e.g. Nova",
     schema: { callsign: { type: "string", description: "Name or call sign to address them by, max 3 words" } },
   },
@@ -73,7 +73,7 @@ const QUESTIONS = [
     placeholder: "e.g. music, a call home, a short workout",
     schema: {
       copingPrefs: { type: "array", items: { type: "string" }, description: "Things that help them, as short phrases" },
-      wantsCheckIns: { type: "boolean", description: "True unless they said they don't want VEGA to check in on them" },
+      wantsCheckIns: { type: "boolean", description: "True unless they said they don't want ASTRA to check in on them" },
     },
   },
   {
@@ -192,7 +192,7 @@ function extractionPrompt(q, answer, isFollowUp) {
     ``,
     `Rules:`,
     `- Only use what the answer says. Never invent values. Use 0, "unknown", false or [] when the answer doesn't say.`,
-    `- "ack" is a short, warm reply from VEGA (max 15 words) that acknowledges the answer. Don't ask anything in it. Don't give medical advice.`,
+    `- "ack" is a short, warm reply from ASTRA (max 15 words) that acknowledges the answer. Don't ask anything in it. Don't give medical advice.`,
     isFollowUp
       ? `- "followUp" must be an empty string.`
       : `- "followUp": if the answer is too vague to fill the fields, write ONE short clarifying question. Otherwise an empty string. Never ask follow-ups about medical conditions or medications; the flight surgeon holds that record.`,
@@ -327,7 +327,7 @@ async function finish(ai, { profile: rawProfile }) {
         {
           role: "system",
           content: [
-            `You are VEGA, the on-board health assistant in an astronaut's smart glasses. Onboarding just finished.`,
+            `You are ASTRA, the on-board health assistant in an astronaut's smart glasses. Onboarding just finished.`,
             `Using ONLY the profile below, write the tailoring for this crew member.`,
             `- summary: 2-3 plain sentences for the flight surgeon describing the baseline and anything to watch.`,
             `- welcome: 1-2 warm sentences to the crew member, by call sign, saying what you'll focus on. No medical advice.`,

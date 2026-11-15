@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight: home-page VEGA pop-up (js/companion.js)
+   AstraSight: home-page ASTRA pop-up (js/companion.js)
    Uses the design tokens from styles.css.
    ========================================================== */
 .vega-buddy {
@@ -90,7 +90,7 @@
 .vega-buddy[data-mood="critical"] .vb-avatar { animation: vb-shake 0.45s ease-in-out infinite; }
 .vega-buddy.minimized .vb-avatar { width: 64px; height: 64px; }
 
-/* pixel "teleport-in" when VEGA pops up */
+/* pixel "teleport-in" when ASTRA pops up */
 .vega-buddy.pop .vb-avatar { animation: vb-teleport 0.45s steps(5) both, vb-float 3s ease-in-out 0.45s infinite; }
 .vega-buddy.pop .vb-bubble { animation: vb-rise 0.35s cubic-bezier(.2, .8, .2, 1) both; }
 .vega-buddy.pop[data-mood="critical"] .vb-avatar { animation: vb-teleport 0.45s steps(5) both, vb-shake 0.45s ease-in-out 0.45s infinite; }

@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight: VEGA AI routes (Qwen 2.5 via local Ollama)
+   AstraSight: ASTRA AI routes (Qwen 2.5 via local Ollama)
    Mounted by server.js. Stateless: the client sends the crew
    profile and live readings with each request, and stores the
    profile itself (e.g. in Firestore).
@@ -69,7 +69,7 @@ function persona() {
   try {
     return fs.readFileSync(PERSONA_FILE, "utf8").replace(/<!--[\s\S]*?-->/g, "").trim();
   } catch {
-    return "You are VEGA, an astronaut health assistant. You flag and suggest, never diagnose, and escalate serious findings to the flight surgeon.";
+    return "You are ASTRA, an astronaut health assistant. You flag and suggest, never diagnose, and escalate serious findings to the flight surgeon.";
   }
 }
 
@@ -223,7 +223,7 @@ const TRIAGE_SCHEMA = {
 function triagePrompt(profile, rows, context) {
   const facts = onboarding.profileForModel(profile);
   return [
-    "You are VEGA's medical reasoning module on a crewed deep-space mission. The crew can't reach a hospital; the flight surgeon is on a delayed link.",
+    "You are ASTRA's medical reasoning module on a crewed deep-space mission. The crew can't reach a hospital; the flight surgeon is on a delayed link.",
     "A crew member marked symptoms on a body map. Help the crew medical officer think it through.",
     "Rules:",
     "- You do NOT diagnose. List 2 to 4 possible causes to consider, most likely first, each with one short sentence on why it fits.",
@@ -274,7 +274,7 @@ async function triage(req, res) {
   json(res, 200, { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis. Confirm with the flight surgeon." });
 }
 
-/* Critical-stats screen: a short VEGA briefing. Status and escalation are decided in code, the words by Qwen. */
+/* Critical-stats screen: a short ASTRA briefing. Status and escalation are decided in code, the words by Qwen. */
 async function brief(req, res) {
   const body = await readJson(req);
   const profile = onboarding.cleanProfile(body.profile);

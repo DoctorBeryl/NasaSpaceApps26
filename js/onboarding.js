@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight — first-visit questionnaire (VEGA onboarding)
+   AstraSight — first-visit questionnaire (ASTRA onboarding)
    Shows on interface.html?welcome=1 (new crew from login.html),
    or ?onboard=1 to run it again. Talks to /api/ai/onboard/*
    (docs/AI-BACKEND.md). Every question can be answered by typing
@@ -15,7 +15,7 @@
   const SKIP_KEY = "astrasight.onboarding.skipped";
   if (!forced && !window.AstraAuth) return;
 
-  // vega.js declares VEGA with const, so it is a global but not a window property
+  // vega.js declares ASTRA with const, so it is a global but not a window property
   const V = typeof VEGA !== "undefined" ? VEGA : null;
   const STT = !!(V && V.supported && V.supported.recognition);
   const LOCAL_KEY = "astrasight.onboarding.profile";
@@ -36,7 +36,7 @@
       <header class="ob-head">
         <div>
           <span class="eyebrow" id="ob-step">Crew setup</span>
-          <h2 id="ob-title">Tailor VEGA to you</h2>
+          <h2 id="ob-title">Tailor ASTRA to you</h2>
         </div>
         <button class="ob-skip" type="button">Skip for now</button>
       </header>
@@ -54,14 +54,14 @@
 
   function bubble(who, html, cls = "") {
     const b = document.createElement("div");
-    b.className = `bubble ${who === "VEGA" ? "ai" : "user"} ${cls}`;
+    b.className = `bubble ${who === "ASTRA" ? "ai" : "user"} ${cls}`;
     b.innerHTML = `<span class="who">${who}</span>${html}`;
     log.appendChild(b);
     log.scrollTop = log.scrollHeight;
     return b;
   }
   function say(text, html) {
-    bubble("VEGA", html || esc(text));
+    bubble("ASTRA", html || esc(text));
     if (V && !V.muted) V.speak(text);
   }
   function progress() {
@@ -98,7 +98,7 @@
   function startMic(onText) {
     if (!STT) return;
     if (listening) return stopMic();
-    if (V.stop) V.stop();                   // don't let the mic hear VEGA reading the question
+    if (V.stop) V.stop();                   // don't let the mic hear ASTRA reading the question
     const btn = $(".ob-mic");
     listener = V.createListener({
       onState(on) {
@@ -119,7 +119,7 @@
     try { listener.toggle(); } catch { setHint("Couldn't start the microphone. You can type instead.", true); }
   }
 
-  // Map a spoken phrase to option values: label words, the value itself, and VEGA's tool aliases
+  // Map a spoken phrase to option values: label words, the value itself, and ASTRA's tool aliases
   const norm = (s) => String(s).toLowerCase().replace(/₂/g, "2").replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
   function matchOptions(spoken, options) {
     const t = ` ${norm(spoken)} `;
@@ -210,18 +210,18 @@
     busy = true; stopMic();
     bubble("You", esc(shown));
     area.querySelectorAll("button, textarea").forEach((el) => (el.disabled = true));
-    const thinking = bubble("VEGA", `<span class="ob-dots"><i></i><i></i><i></i></span>`, "ob-thinking");
+    const thinking = bubble("ASTRA", `<span class="ob-dots"><i></i><i></i><i></i></span>`, "ob-thinking");
     try {
       const r = await api("onboard/answer", { questionId: current.id, answer, profile });
       profile = r.profile || profile;
       try { localStorage.setItem(LOCAL_KEY, JSON.stringify(profile)); } catch {}
       thinking.remove();
-      if (r.ack) bubble("VEGA", esc(r.ack));
+      if (r.ack) bubble("ASTRA", esc(r.ack));
       if (!current.id.endsWith(".followup")) answered++;
       if (r.followUp) queue.unshift(r.followUp);
     } catch (e) {
       thinking.remove();
-      bubble("VEGA", `I couldn't save that (${esc(e.message)}). Try again.`, "ob-error");
+      bubble("ASTRA", `I couldn't save that (${esc(e.message)}). Try again.`, "ob-error");
       busy = false;
       return ask(current);
     }
@@ -239,7 +239,7 @@
     $("#ob-step").textContent = "All set";
     $(".ob-skip").hidden = true;
     area.innerHTML = "";
-    const thinking = bubble("VEGA", `<span class="ob-dots"><i></i><i></i><i></i></span>`, "ob-thinking");
+    const thinking = bubble("ASTRA", `<span class="ob-dots"><i></i><i></i><i></i></span>`, "ob-thinking");
     try {
       const r = await api("onboard/finish", { profile });
       profile = r.profile || profile;
@@ -249,11 +249,11 @@
     thinking.remove();
     const t = profile.tailoring || {};
     say(t.welcome || "You're all set. I'll keep an eye on your readings.");
-    if (t.summary) bubble("VEGA", `<span class="dim">${esc(t.summary)}</span>`);
-    bubble("VEGA", `<b>Quick tour</b>
+    if (t.summary) bubble("ASTRA", `<span class="dim">${esc(t.summary)}</span>`);
+    bubble("ASTRA", `<b>Quick tour</b>
       <ul class="ob-tour">
         <li>Your vitals sit in the <b>side panel</b>. Say “move panel left” or “hide panel”.</li>
-        <li>To talk, press both side buttons or say <b>“Hey VEGA”</b>. On this page, press <b>V</b> or type in the command box.</li>
+        <li>To talk, press both side buttons or say <b>“Hey ASTRA”</b>. On this page, press <b>V</b> or type in the command box.</li>
         <li>Alerts are color coded. Green is normal, amber needs attention, red goes to the flight surgeon.</li>
         <li>Any personal thresholds I suggested stay <b>proposed</b> until a flight surgeon signs off.</li>
       </ul>`);
@@ -296,7 +296,7 @@
     let data;
     try { data = await api("onboard/questions"); }
     catch {
-      bubble("VEGA", "I can't reach the AstraSight server, so I can't run the setup questions. Start it with <code>node server.js</code> and reload, or skip for now.", "ob-error");
+      bubble("ASTRA", "I can't reach the AstraSight server, so I can't run the setup questions. Start it with <code>node server.js</code> and reload, or skip for now.", "ob-error");
       area.innerHTML = `<div class="ob-row ob-row-end"><button type="button" class="btn btn-ghost">Skip for now</button></div>`;
       area.querySelector("button").addEventListener("click", () => close(false));
       return;

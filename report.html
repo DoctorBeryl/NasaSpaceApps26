@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#060b14" />
-  <title>VEGA // EVA-MED HUD · AstraSight</title>
+  <title>ASTRA // EVA-MED HUD · AstraSight</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="js/data.js"></script>
   <script src="js/vega.js"></script>
@@ -135,7 +135,7 @@
     .architecture-details[open] summary { margin-bottom:12px; }
     @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario{padding:7px 8px;font-size:9px}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
   
-    /* VEGA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
+    /* ASTRA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
     body {
       background-color:#050a12;
       background-image:
@@ -273,6 +273,14 @@
     .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
     .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
     .name-link:hover { color:#fff; }
+    /* Moving ASTRA: hold and drag her card or portrait; she locks (amber) onto an alert until Acknowledge. */
+    .astra-handle { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .companion.dragging { transition:none; opacity:1; }
+    .companion.dragging .astra-handle { cursor:grabbing; }
+    .companion.locked { transition-duration:.15s; }
+    .companion.locked .astra-handle { cursor:not-allowed; }
+    .companion.locked .sprite-frame { border-color:var(--amber); box-shadow:0 0 12px rgba(255,184,0,.35); }
+    .companion.locked .companion-card { border-color:rgba(255,184,0,.6); }
     .compact-row { width:100%; display:grid; grid-template-columns:auto minmax(0,9.5em) auto minmax(0,1fr) auto; align-items:center; gap:8px; text-align:left; border:1px solid rgba(63,103,130,.3); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.85); border-radius:6px; padding:5px 8px; font:500 9px 'JetBrains Mono',monospace; color:#a9c5d6; }
     .compact-row:hover { border-color:rgba(0,240,255,.5); border-left-color:var(--lvl,#34d399); color:#eaffff; }
     .compact-row .c-name { color:#eaf6ff; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -295,7 +303,7 @@
           <svg viewBox="0 0 40 40" class="w-7 h-7" fill="none" aria-hidden="true"><path d="M20 3 34 11v18L20 37 6 29V11L20 3Z" stroke="#00F0FF" stroke-width="1.4"/><path d="m20 9 7 11-7 11-7-11 7-11Z" stroke="#00F0FF"/><circle cx="20" cy="20" r="3" fill="#FF2A85"/><path d="M3 20h9m16 0h9M20 1v8m0 22v8" stroke="#00F0FF" stroke-width="1.3"/></svg>
         </div>
         <div>
-          <div class="flex items-center gap-2 flex-wrap"><h1 class="text-lg sm:text-xl font-extrabold tracking-[.08em] text-white">VEGA <span class="text-cyan">//</span> EVA-MED HUD</h1><span class="chip rounded px-2 py-1 text-[9px] mono tracking-widest text-cyan">PROTOTYPE 1.0.0</span></div>
+          <div class="flex items-center gap-2 flex-wrap"><h1 class="text-lg sm:text-xl font-extrabold tracking-[.08em] text-white">ASTRA <span class="text-cyan">//</span> EVA-MED HUD</h1><span class="chip rounded px-2 py-1 text-[9px] mono tracking-widest text-cyan">PROTOTYPE 1.0.0</span></div>
           <p class="eyebrow mt-1">AstraSight · Suit telemetry, crew triage &amp; ship PA</p>
         </div>
       </div>
@@ -310,15 +318,15 @@
           <button type="button" class="btn role-btn rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW</button>
           <button type="button" class="btn role-btn cmo rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO</button>
         </div>
-        <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch VEGA between automatic and custom appearance modes">VEGA: <span class="text-cyan">AUTO</span></button>
+        <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch ASTRA between automatic and custom appearance modes">ASTRA: <span class="text-cyan">AUTO</span></button>
         <button id="voiceToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono">VOICE: <span class="text-cyan">ON</span></button>
       </div>
     </header>
 
-    <!-- TOP-MOUNTED VEGA CUSTOM MODE -->
+    <!-- TOP-MOUNTED ASTRA CUSTOM MODE -->
     <section id="astraCustomPanel" class="custom-panel p-3 mb-3 hidden-view">
       <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
-        <div><div class="eyebrow">COMPANION SETTINGS / CUSTOM MODE</div><div class="text-xs text-white font-semibold mt-1">Configure VEGA appearance</div></div>
+        <div><div class="eyebrow">COMPANION SETTINGS / CUSTOM MODE</div><div class="text-xs text-white font-semibold mt-1">Configure ASTRA appearance</div></div>
         <span class="text-[9px] mono text-cyan">LOCAL DISPLAY ONLY</span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
@@ -604,7 +612,7 @@
         </div>
 
         <div class="panel rounded-xl overflow-hidden" id="triageReviewPanel">
-          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">VEGA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
+          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">ASTRA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
           <div class="p-4">
             <div id="triageOutput" class="rounded-lg border border-line/70 bg-[#07111d] p-3 min-h-[128px]">
               <div class="flex gap-2 items-center text-cyan"><span class="text-lg">✦</span><span class="text-xs font-bold tracking-wider">READY FOR CREW REPORT</span></div>
@@ -625,7 +633,7 @@
         <div class="panel rounded-xl overflow-hidden" id="crewPaPanel">
           <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span id="pa-count" class="text-[9px] mono text-slate-500">0 announcements</span></div>
           <div class="p-4 space-y-3">
-            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, VEGA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on VEGA's card. Turning the PA on reads the current alert again from the start.</p>
+            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, ASTRA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on ASTRA's card. Turning the PA on reads the current alert again from the start.</p>
             <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-2" autocomplete="off">
               <label class="sr-only" for="crew-rank">Rank</label>
               <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
@@ -645,22 +653,22 @@
       </section>
     </main>
 
-    <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>VEGA // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
+    <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>ASTRA // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
   </div>
 
-  <!-- FLOATING VEGA -->
+  <!-- FLOATING ASTRA -->
   <img id="astraSpriteSource" alt="" hidden src="data:image/png;base64,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">
   <div id="companion" class="companion" style="left:calc(100vw - 312px);top:145px;">
     <div class="companion-layout">
       <div class="companion-card">
-        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● <span id="companionName">VEGA</span> <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● <span id="companionName">ASTRA</span> <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
         <div id="companionMessage" class="text-[9px] leading-[1.45] text-slate-200 mt-1.5">Link established with Ship Core AI Server. All EVA parameters nominal. Cabin-exit radiation and DCS exposure timers are actively tracking.</div>
         <button id="companionAck" type="button" class="companion-ack">Acknowledge</button>
         <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span id="companionLoc" class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
       </div>
       <div class="sprite-frame">
         <div class="sprite-stage"><canvas id="floatingSprite" width="36" height="36" class="companion-sprite"></canvas><canvas id="floatingEmote" width="18" height="24" class="floating-emote float"></canvas></div>
-        <div id="spriteCaption" class="sprite-caption">VEGA</div>
+        <div id="spriteCaption" class="sprite-caption">ASTRA</div>
       </div>
     </div>
   </div>
@@ -708,7 +716,7 @@ const ReportLink = (() => {
     protonFlux:2.4, neutronFlux:0.04, cabinTemp:21.4, humidity:42, pm25:4.2, voc:0.12
   };
   const baseline = {psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:0.08};
-  // Safe lines for each manual-override reading: lo/hi = [warn, hazard]. Past "warn" VEGA flags it (amber);
+  // Safe lines for each manual-override reading: lo/hi = [warn, hazard]. Past "warn" ASTRA flags it (amber);
   // past "hazard" it's an emergency (red), and in EVA mode the countdown starts. A reading with no lo or hi
   // can't be dangerous on that side (a full O₂ tank or a quiet radiation sensor is fine).
   // Body temp and low heart rate match js/data.js (thermal, cardio); the rest are demo lines, not flight rules.
@@ -1116,7 +1124,7 @@ const ReportLink = (() => {
     renderLimitOutputs();
     renderEvaClocks();
   }
-  // VEGA's voice (ElevenLabs via server.js when configured, else the browser voice). Tone follows the mood.
+  // ASTRA's voice (ElevenLabs via server.js when configured, else the browser voice). Tone follows the mood.
   function speak(message, mood='nominal'){
     if(!state.voiceOn) return;
     const tone=typeof VEGA!=='undefined'&&VEGA.toneFor?VEGA.toneFor(mood):'calm';
@@ -1126,15 +1134,17 @@ const ReportLink = (() => {
     try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(said); u.rate={urgent:1.12,caution:1.05,calm:1.02}[tone]; u.pitch={urgent:.92,caution:1,calm:1.05}[tone]; speechSynthesis.speak(u); }catch(e){}
   }
   const esc=(t)=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review',evaClocks:'EVA countdown'};
-  // priv: a CMO-only note (about another crew member's record). VEGA tells the CMO; nothing goes on the ship PA.
+  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review',evaClocks:'EVA countdown',
+    'card-o2':'O₂ reserve','card-co2':'CO₂ scrubber','card-hr':'Heart rate','card-temp':'Core temperature',crewOverlayPane:'Crew-wide patterns',surgeonBox:'Flight surgeon',triagePanel:'Crew health review'};
+  // priv: a CMO-only note (about another crew member's record). ASTRA tells the CMO; nothing goes on the ship PA.
   function companionWarn(message,target,mood,priv){
     mood=mood||state.expression||'nominal';
     if(priv){
       $('companionMessage').textContent=message;
       $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
       $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
-      teleportCompanion(target||'triagePanel'); speak(message,mood); return;
+      if(mood==='nominal') moveCompanion(target||'triagePanel'); else lockCompanion(target||'triagePanel');
+      speak(message,mood); return;
     }
     if(mood!=='nominal' && state.operatingMode==='eva'){   // say the new EVA countdown in the same breath as the hazard
       updateEmergencies();
@@ -1144,15 +1154,17 @@ const ReportLink = (() => {
     $('companionMessage').textContent=message;
     $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
     $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
-    teleportCompanion(target || 'card-psi');
-    if(mood==='nominal'){ ReportLink.clear(); speak(message,mood); return; }
+    if(mood==='nominal'){ unlockCompanion(); moveCompanion(target||'card-psi'); ReportLink.clear(); speak(message,mood); return; }
+    lockCompanion(target||'card-psi');   // out of the ordinary: ASTRA stays on this reading until Acknowledge
     const alert={key:target||'alert',mood,msg:message,loc:ALERT_LOC[target]||'Visor HUD'};
     ReportLink.setActive(alert); ReportLink.announce(alert);
     if(!ReportLink.paOn) speak(message,mood);   // with the PA on, the PA voice says it once
   }
   function teleportCompanion(targetId){
-    const el=$(targetId); const comp=$('companion');
-    const rect=el?el.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
+    let el=$(targetId); const comp=$('companion');
+    // A hidden target (e.g. suit pressure in the habitat, or the triage in the EVA HUD) has no box: use a visible panel.
+    if(el && !el.getClientRects().length) el=['metricsGrid','bodyMap','triagePanel'].map($).find(x=>x&&x.getClientRects().length)||null;
+    const rect=el?el.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0,bottom:window.innerHeight/2};
     const width=comp.offsetWidth||304, height=comp.offsetHeight||150;
     let left=rect.left+rect.width-width*.42;
     let top=rect.top-height-12;
@@ -1161,6 +1173,78 @@ const ReportLink = (() => {
     top=clamp(top,8,Math.max(8,window.innerHeight-height-8));
     comp.style.left=left+'px'; comp.style.top=top+'px';
   }
+
+  // ---------- Moving ASTRA ----------
+  // Hold and drag ASTRA (her card or her portrait) to park her where she doesn't cover what you're reading.
+  // Routine messages and tab switches leave her parked. Anything out of the ordinary (a reminder, caution or
+  // critical alert) locks her onto the reading that needs attention, following it as you scroll, until someone
+  // presses Acknowledge or the reading recovers; then she returns to her parking spot. Double-click her
+  // portrait to let her place herself again. The spot is remembered per browser.
+  const astraPos={user:null, lock:null};
+  try{ const s=JSON.parse(localStorage.getItem('astrasight.astraPos')||'null'); if(s&&Number.isFinite(s.left)&&Number.isFinite(s.top)) astraPos.user=s; }catch(e){}
+  function placeCompanion(left,top){
+    const comp=$('companion'), w=comp.offsetWidth||304, h=comp.offsetHeight||150;
+    comp.style.left=clamp(left,8,Math.max(8,window.innerWidth-w-8))+'px';
+    comp.style.top=clamp(top,8,Math.max(8,window.innerHeight-h-8))+'px';
+  }
+  function moveCompanion(targetId){   // routine placement: alert lock first, then the parking spot, then automatic
+    if(astraPos.lock) return teleportCompanion(astraPos.lock);
+    if(astraPos.user) return placeCompanion(astraPos.user.left,astraPos.user.top);
+    teleportCompanion(targetId);
+  }
+  function lockCompanion(targetId){
+    astraPos.lock=targetId; $('companion').classList.add('locked');
+    teleportCompanion(targetId); renderCompanionLoc();
+  }
+  function unlockCompanion(){
+    if(!astraPos.lock) return;
+    astraPos.lock=null; $('companion').classList.remove('locked');
+    if(astraPos.user) placeCompanion(astraPos.user.left,astraPos.user.top);
+    renderCompanionLoc();
+  }
+  function renderCompanionLoc(){
+    const el=$('companionLoc');
+    if(astraPos.lock){ el.textContent='LOCKED ON: '+(ALERT_LOC[astraPos.lock]||'alert').toUpperCase(); el.style.color='#ffb800'; return; }
+    el.style.color='';
+    el.textContent=isDoctor()?'LOC: MED BAY · CMO CONSOLE':astraPos.user?'LOC: PARKED · DRAG TO MOVE':'LOC: VISOR HUD STANDBY';
+  }
+  let followFrame=0;   // while locked, stay on the reading as the page scrolls
+  window.addEventListener('scroll',()=>{
+    if(!astraPos.lock||followFrame) return;
+    followFrame=requestAnimationFrame(()=>{ followFrame=0; if(astraPos.lock) teleportCompanion(astraPos.lock); });
+  },{passive:true});
+  (()=>{
+    const comp=$('companion'); let drag=null;
+    comp.querySelectorAll('.sprite-frame,.companion-card').forEach(h=>{ h.classList.add('astra-handle'); h.title='Hold and drag to move ASTRA. Double-click her portrait to let her place herself again.'; });
+    comp.addEventListener('pointerdown',e=>{
+      const h=e.target.closest('.astra-handle'); if(!h||e.button!==0||e.target.closest('button')) return;
+      if(astraPos.lock){ comp.classList.remove('glitch'); void comp.offsetWidth; comp.classList.add('glitch'); return; }   // locked on an alert until Acknowledge
+      const r=comp.getBoundingClientRect();
+      drag={dx:e.clientX-r.left,dy:e.clientY-r.top,sx:e.clientX,sy:e.clientY,moved:false};
+      h.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    comp.addEventListener('pointermove',e=>{
+      if(!drag) return;
+      if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4) return;   // a plain click isn't a drag
+      drag.moved=true; comp.classList.add('dragging');
+      placeCompanion(e.clientX-drag.dx,e.clientY-drag.dy);
+    });
+    const end=()=>{
+      if(!drag) return;
+      comp.classList.remove('dragging');
+      if(drag.moved){
+        astraPos.user={left:parseFloat(comp.style.left),top:parseFloat(comp.style.top)};
+        try{ localStorage.setItem('astrasight.astraPos',JSON.stringify(astraPos.user)); }catch(e){}
+        renderCompanionLoc();
+      }
+      drag=null;
+    };
+    comp.addEventListener('pointerup',end); comp.addEventListener('pointercancel',end);
+    comp.querySelector('.sprite-frame').addEventListener('dblclick',()=>{
+      astraPos.user=null; try{ localStorage.removeItem('astrasight.astraPos'); }catch(e){}
+      renderCompanionLoc(); if(!astraPos.lock) teleportCompanion(state.view==='ship'?'bodyMap':'metricsGrid');
+    });
+  })();
 
   // The reference character is embedded in this HTML and rendered into a 36x36 pixel canvas.
   const characterImage = $('astraSpriteSource');
@@ -1196,7 +1280,7 @@ const ReportLink = (() => {
       ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
     }
   }
-  // For the CMO in the MEDICAL BAY tab (view 'ship'; not the ship display or EVA HUD) VEGA is the ship's doctor:
+  // For the CMO in the MEDICAL BAY tab (view 'ship'; not the ship display or EVA HUD) ASTRA is the ship's doctor:
   // glasses, lab coat, stethoscope, red-cross clip.
   const isDoctor=()=>state.role==='cmo' && state.view==='ship';
   function drawDoctor(ctx){
@@ -1246,12 +1330,12 @@ const ReportLink = (() => {
   function updateCompanion(){
     if($('companionState')) $('companionState').textContent=state.expression.toUpperCase()+' / '+state.palette.toUpperCase();
     const modeButton=$('astraModeToggle');
-    if(modeButton){modeButton.innerHTML='VEGA: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
+    if(modeButton){modeButton.innerHTML='ASTRA: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
     const customPanel=$('astraCustomPanel'); if(customPanel) customPanel.classList.toggle('hidden-view',state.companionMode!=='custom');
     setText('companionExpressionLabel',state.expression.toUpperCase());
     const doc=isDoctor();
-    setText('companionName',doc?'DR. VEGA':'VEGA'); setText('spriteCaption',doc?'DR. VEGA':'VEGA');
-    setText('companionLoc',doc?'LOC: MED BAY · CMO CONSOLE':'LOC: VISOR HUD STANDBY');
+    setText('companionName',doc?'DR. ASTRA':'ASTRA'); setText('spriteCaption',doc?'DR. ASTRA':'ASTRA');
+    renderCompanionLoc();
     setText('companionPaletteLabel',state.palette.toUpperCase());
     const emotes={nominal:'✦',reminder:'❗',caution:'💧',critical:'💢'};
     const e=emotes[state.expression]; $('emote').textContent=e;
@@ -1384,7 +1468,7 @@ const ReportLink = (() => {
       // A crew-report alert (state.triageHold) is about symptoms, not telemetry: keep it until Acknowledge.
       if(recovered && !state.triageHold){
         const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
-        state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert) ReportLink.clear();
+        state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert){ ReportLink.clear(); unlockCompanion(); }
         if(!state.exited) state.safeSeconds=1800;
         if(state.companionMode==='auto') state.expression='nominal';
         syncButtons();
@@ -1434,8 +1518,8 @@ const ReportLink = (() => {
     // inside the habitat. If the astronaut is already outside, the ship display keeps watching the EVA.
     if(view==='eva' && state.operatingMode==='habitat'){ state.operatingMode='eva'; state.timerActive=false; syncLocationMode(); render(); }
     else if(view!=='eva' && state.operatingMode==='eva' && !state.exited){ state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render(); }
-    if(view==='ship') teleportCompanion('bodyMap'); else teleportCompanion('metricsGrid');
-    syncTriageContext();   // which records this tab and role may show; also redraws VEGA (DR. VEGA only in the CMO medical bay)
+    moveCompanion(view==='ship'?'bodyMap':'metricsGrid');
+    syncTriageContext();   // which records this tab and role may show; also redraws ASTRA (DR. ASTRA only in the CMO medical bay)
   }
 
   function zoneSvg(z){
@@ -1572,7 +1656,7 @@ const ReportLink = (() => {
     if(level==='none'){ $('vegaNote').hidden=true; }
     else askVega(`Crew report from the ${rec.live?(state.operatingMode==='habitat'?'habitat':'post-EVA'):rec.setting} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
     if(!rec.live){
-      // Another crew member's record, reviewed by the CMO: VEGA tells the CMO privately, no ship PA.
+      // Another crew member's record, reviewed by the CMO: ASTRA tells the CMO privately, no ship PA.
       const who=recName(rec);
       if(level==='critical') companionWarn(`${who}'s report needs urgent flight-surgeon review. Use Send case to flight surgeon below the review.`,'triageOutput','critical',true);
       else if(level==='caution') companionWarn(`${who}'s report is logged for medical review. Keep watching for changes.`,'triageOutput','caution',true);
@@ -1583,7 +1667,7 @@ const ReportLink = (() => {
     renderRoster();
   }
 
-  // Second opinion from VEGA's medical model (MedGemma on the local server, /api/ai/triage,
+  // Second opinion from ASTRA's medical model (MedGemma on the local server, /api/ai/triage,
   // docs/AI-BACKEND.md; falls back to Qwen if MedGemma isn't pulled).
   // The rule-based review always shows; this note is added when the AI backend answers.
   // One request per crew record, so switching records in the CMO view doesn't cancel or misplace a review:
@@ -1597,8 +1681,8 @@ const ReportLink = (() => {
       if(state.patient===pid){ box.hidden=false; box.innerHTML=html; }
       else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
     };
-    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">VEGA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report (the first run can take a minute while the model loads)…</p>');
+    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
+    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report (the first run can take a minute while the model loads)…</p>');
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
@@ -1637,13 +1721,13 @@ const ReportLink = (() => {
         +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>');
     }catch(e){
       if(e.name==='AbortError') return;
-      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">VEGA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
+      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
     }
   }
 
   // ---------- Ship triage roles ----------
   // CREW: you see only your own record. CMO (Crew Medical Officer): a roster of every crew member, each
-  // record's body map, vitals snapshot and review, a whole-crew body map with VEGA's pattern notes, and
+  // record's body map, vitals snapshot and review, a whole-crew body map with ASTRA's pattern notes, and
   // "send to flight surgeon". The other four crew are simulated. state.symptoms and state.painLevels point
   // at the open record, so the body map, symptom input and triage engine work on whoever is open.
   const LEVEL_COLOR={critical:'#ff2a4b',caution:'#ffb800',low:'#00f0ff',none:'#34d399'};
@@ -1706,7 +1790,7 @@ const ReportLink = (() => {
   function renderSnapshot(){
     const r=currentRec(), v=recVitals(r);
     setText('triageR',String(v.r).padStart(2,'0')); setText('triagePsi',v.psi.toFixed(2)); setText('triageHr',Math.round(v.peakHr)); setText('triageO2',Math.round(v.o2)+'%');
-    setText('snapshotTitle',r.live?'RECORDED EVA SNAPSHOT':`SNAPSHOT AT LAST REPORT · ${r.name.toUpperCase()}`);
+    setText('snapshotTitle',!r.live?`SNAPSHOT AT LAST REPORT · ${r.name.toUpperCase()}`:state.operatingMode==='eva'?'RECORDED EVA SNAPSHOT':'LIVE VITALS · HABITAT');
     setText('snapshotState',r.live?(state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD'):'STORED ON SHIP SERVER');
   }
   function renderBanner(){
@@ -1754,7 +1838,7 @@ const ReportLink = (() => {
       <div class="flex items-center justify-between gap-2"><span class="roster-name">◎ WHOLE CREW</span><span class="roster-level">${patterns} PATTERN${patterns===1?'':'S'}</span></div>
       <div class="roster-meta mt-0.5">Combined body map</div>
       <div class="roster-top">${totalAreas} reported area${totalAreas===1?'':'s'} across ${rows.length} crew</div>
-      <div class="roster-meta mt-1">VEGA looks for shared causes</div></button>`;
+      <div class="roster-meta mt-1">ASTRA looks for shared causes</div></button>`;
     $('rosterCards').innerHTML=whole+rows.map(({r,lvl,zones})=>{
       const z=zones[0], pain=z?Number(r.painLevels[z]||0):0, sym=z?[...(r.symptoms.get(z)||[])][0]:'';
       const top=z?`${cap(zoneMeta[z]?.label||z)}${sym?' · '+sym:''}${pain?` · ${pain}/10`:''}${zones.length>1?` <span class="text-slate-500">+${zones.length-1} more</span>`:''}`
@@ -1769,7 +1853,7 @@ const ReportLink = (() => {
     $('rosterCards').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>b.dataset.open==='__whole'?openWholeCrew():openRecord(b.dataset.open)));
   }
 
-  // Whole-crew view: who reports what, where, and VEGA's notes on patterns that point to a shared cause.
+  // Whole-crew view: who reports what, where, and ASTRA's notes on patterns that point to a shared cause.
   function crewZoneCounts(){
     const map=new Map();
     CREW_ORDER.forEach(id=>{const r=crewRecords[id]; recZones(r).forEach(z=>{ if(!map.has(z)) map.set(z,[]); map.get(z).push({id,pain:Number(r.painLevels[z]||0),symptoms:[...(r.symptoms.get(z)||[])]}); });});
@@ -1800,7 +1884,7 @@ const ReportLink = (() => {
         <div class="flex items-center justify-between gap-2"><button type="button" class="text-[10px] text-slate-100 text-left hover:text-cyan" data-zone-pick="${z}">${esc(cap(zoneMeta[z]?.label||z))}</button><span class="text-[8px] mono font-bold" style="color:${heat(list.length)}">${list.length} CREW</span></div>
         <div class="text-[9px] text-slate-400 mt-0.5 leading-relaxed">${list.map(p=>`${nameBtn(p.id)}${p.pain?` ${p.pain}/10`:''}${p.symptoms.length?` <span class="text-slate-500">(${esc(p.symptoms.join(', '))})</span>`:''}`).join(' · ')}</div></li>`).join('');
     $('crewOverlayPane').innerHTML=`
-      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">${isDoctor()?'DR. VEGA':'VEGA'} · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
+      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">${isDoctor()?'DR. ASTRA':'ASTRA'} · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
       <div class="space-y-2">${patHTML}</div>
       <div class="flex justify-between gap-2 items-center mt-4 mb-2"><div class="eyebrow">REPORTED AREAS · ALL CREW</div><span class="text-[8px] mono text-slate-500">CLICK AN AREA OR A NAME</span></div>
       <ul class="space-y-1.5">${rows||'<li class="text-[10px] text-slate-500">No crew member has reported symptoms.</li>'}</ul>`;
@@ -1819,7 +1903,7 @@ const ReportLink = (() => {
       setText('surgeonStatus',`Sent to the flight surgeon at ${hhmm(r.sentAt)}. The signal takes about ${EARTH_DELAY_MIN} min each way (simulated), so the earliest reply is around ${hhmm(r.sentAt+EARTH_DELAY_MIN*2*60000)}. Keep monitoring ${r.live?'yourself':shortName(r)} until then.`);
     } else {
       $('sendSurgeon').textContent='SEND CASE TO FLIGHT SURGEON ↗';
-      setText('surgeonStatus',"Packages this record (body map, pain scores, onset, notes, vitals snapshot and VEGA's review) for the flight surgeon on Earth. Replies are delayed by the signal time.");
+      setText('surgeonStatus',"Packages this record (body map, pain scores, onset, notes, vitals snapshot and ASTRA's review) for the flight surgeon on Earth. Replies are delayed by the signal time.");
     }
   }
   function saveOpenRecord(){
@@ -1927,13 +2011,13 @@ const ReportLink = (() => {
   }));
   $('resetSensors').addEventListener('click',()=>{
     Object.assign(state,baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
-    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';ReportLink.clear();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';state.triageHold=false;ReportLink.clear();unlockCompanion();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
     state.outsideSeconds=0;state.lastOutside=0;emergencies.clear();emergencyCleared=null;
     syncButtons();syncLocationMode();updateCompanion();render();
   });
   $('habitatMode').addEventListener('click',()=>{
     if(state.exited){
-      $('companionMessage').textContent='Simulate airlock re-entry before switching back to habitat monitoring.'; teleportCompanion('safeTimer');
+      $('companionMessage').textContent='Simulate airlock re-entry before switching back to habitat monitoring.'; moveCompanion('safeTimer');
       return;
     }
     state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render();
@@ -1961,7 +2045,7 @@ const ReportLink = (() => {
   document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(!(zoneMeta[state.selectedZone]?.views||[]).includes(state.bodyView)) state.selectedZone=state.bodyView==='front'?'forehead':'crown';renderBodyMap();renderSymptoms();}));
   $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
   $('analyzeButton').addEventListener('click',runTriage);
-  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; });   // the voice/PA side is handled in the crew script below
+  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; unlockCompanion(); });   // the voice/PA side is handled in the crew script below
   document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.role!==state.role) setRole(b.dataset.role); }));
   $('sendSurgeon').addEventListener('click',()=>{
     const r=currentRec(); r.sentAt=Date.now(); renderSurgeon(); renderRoster();
@@ -1973,7 +2057,7 @@ const ReportLink = (() => {
   setInterval(()=>{ if(state.role==='cmo'){ renderRoster(); if(inOverlay()) renderBanner(); } },30000);   // "18 min ago" and your live risk
   document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{state.palette=b.dataset.palette;updateCompanion();}));
   document.querySelectorAll('[data-expression]').forEach(b=>b.addEventListener('click',()=>{state.expression=b.dataset.expression;updateCompanion();}));
-  window.addEventListener('resize',()=>teleportCompanion(state.expression==='critical'?'card-psi':'metricsGrid'));
+  window.addEventListener('resize',()=>moveCompanion(state.view==='ship'?'bodyMap':'metricsGrid'));
 
   // Redraw once the embedded reference sprite is decoded.
   if(characterImage && !characterImage.complete) characterImage.addEventListener('load',updateCompanion,{once:true});
@@ -1989,7 +2073,7 @@ const ReportLink = (() => {
   if(VIEW_PARAM) setView(VIEW_PARAM);
   setInterval(tickSensors,1000);
   setInterval(sensorTimerTick,1000);
-  setTimeout(()=>teleportCompanion('metricsGrid'),350);
+  setTimeout(()=>moveCompanion('metricsGrid'),350);
 })();
 </script>
 <script>
@@ -2038,7 +2122,7 @@ const ReportLink = (() => {
     $('crewPaPanel').hidden = true;
   }
 
-  // Tell other tabs (the home-page VEGA pop-up) that the report screen is open.
+  // Tell other tabs (the home-page ASTRA pop-up) that the report screen is open.
   if (typeof ReportBus !== 'undefined') {
     ReportBus.send({ type: 'heartbeat' });
     setInterval(() => ReportBus.send({ type: 'heartbeat' }), 1000);

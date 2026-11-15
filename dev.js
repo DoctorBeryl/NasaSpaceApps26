@@ -4,7 +4,7 @@
    - [ollama]  `ollama serve`, only if Ollama isn't already running
                (the Windows/macOS desktop app usually runs it already)
    - [server]  node server.js: static site, face/email sign-in (/api/auth/*),
-               VEGA AI (/api/ai/*, /api/chat), voice (/api/tts, /api/stt).
+               ASTRA AI (/api/ai/*, /api/chat), voice (/api/tts, /api/stt).
                Face recognition itself runs in the browser (face-api.js);
                the server only matches descriptors, so there's no extra process.
    Ctrl+C stops everything this script started.
@@ -87,7 +87,7 @@ process.on("SIGTERM", () => shutdown(0));
   } else {
     log("starting Ollama (ollama serve)...");
     const o = run("ollama", "ollama", ["serve"]);
-    o.on("error", () => log("Ollama isn't installed or not on PATH: VEGA will answer built-in commands only (https://ollama.com)"));
+    o.on("error", () => log("Ollama isn't installed or not on PATH: ASTRA will answer built-in commands only (https://ollama.com)"));
     if (!(await waitFor(ollamaUp, 10000))) log("Ollama didn't come up within 10 s; starting the server anyway");
   }
   run("server", process.execPath, ["server.js"], { critical: true });

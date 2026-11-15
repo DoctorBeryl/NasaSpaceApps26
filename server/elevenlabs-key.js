@@ -1,4 +1,4 @@
-/* Shared ElevenLabs key for VEGA's voice (/api/tts) and speech-to-text (/api/stt).
+/* Shared ElevenLabs key for ASTRA's voice (/api/tts) and speech-to-text (/api/stt).
    Committed on purpose: the team chose to make this one key public so every clone gets
    the voice with no setup (see CLAUDE.md "Public repo rules"). ELEVENLABS_API_KEY in
    .env overrides it. No other secret belongs in this file. */

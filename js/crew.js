@@ -1,7 +1,7 @@
 /* ==========================================================
    AstraSight: crew profile, ship PA, and report-screen bus
    Load after vega.js. Used by report.html and the home-page
-   VEGA pop-up (js/companion.js).
+   ASTRA pop-up (js/companion.js).
 
    Crew.get()            { rank, name }  (signed-in name wins if js/auth.js is loaded)
    Crew.set(patch)       save rank / name in this browser

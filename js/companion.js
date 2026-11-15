@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight: home-page VEGA pop-up (16-bit pixel companion)
+   AstraSight: home-page ASTRA pop-up (16-bit pixel companion)
    Load after vega.js and crew.js on index.html.
 
    - Starts collapsed (avatar only); clicking the avatar greets the
@@ -7,10 +7,10 @@
    - No background events. VegaBuddy.fireHazard() (the "Random health
      event" button on tools.html) pops up a random hazard, announces it
      on the ship PA, and links to the report screen with that scenario.
-   - Every bubble has Acknowledge: stops VEGA's voice and collapses.
+   - Every bubble has Acknowledge: stops ASTRA's voice and collapses.
    - Stays hidden while report.html is open in another tab (that
      page sends heartbeats on ReportBus and does its own alerts).
-   The sprite and moods match VEGA on the report screen.
+   The sprite and moods match ASTRA on the report screen.
    ========================================================== */
 (() => {
   /* ---------------- sprite (36x36, "Cobalt" palette) ---------------- */
@@ -157,12 +157,12 @@
   root.className = "vega-buddy";
   root.dataset.mood = "nominal";
   root.hidden = true;
-  root.setAttribute("aria-label", "VEGA assistant");
+  root.setAttribute("aria-label", "ASTRA assistant");
   root.innerHTML = `
     <div class="vb-bubble" role="status" aria-live="polite">
       <div class="vb-head">
-        <span class="vb-badge"><i></i><span class="vb-badge-text">VEGA · NOMINAL</span></span>
-        <button type="button" class="vb-x" aria-label="Minimize VEGA">✕</button>
+        <span class="vb-badge"><i></i><span class="vb-badge-text">ASTRA · NOMINAL</span></span>
+        <button type="button" class="vb-x" aria-label="Minimize ASTRA">✕</button>
       </div>
       <p class="vb-msg"></p>
       <form class="vb-name" hidden>
@@ -177,9 +177,9 @@
       </div>
       <p class="vb-foot">Simulated data · not a medical device</p>
     </div>
-    <button type="button" class="vb-avatar" aria-label="Talk to VEGA">
+    <button type="button" class="vb-avatar" aria-label="Talk to ASTRA">
       <canvas width="36" height="36"></canvas>
-      <span>VEGA</span>
+      <span>ASTRA</span>
     </button>`;
   document.body.appendChild(root);
 
@@ -196,7 +196,7 @@
   function setMood(m) {
     mood = m;
     root.dataset.mood = m;
-    $(".vb-badge-text").textContent = `VEGA · ${LABEL[m] || "NOMINAL"}`;
+    $(".vb-badge-text").textContent = `ASTRA · ${LABEL[m] || "NOMINAL"}`;
     redraw();
   }
 
@@ -227,9 +227,9 @@
   function greet() {
     const first = Crew.firstName();
     if (!first) {
-      show({ html: "Hi, I'm <b>VEGA</b>, your on-board health assistant. What should I call you? I use your name in alerts and ship PA announcements.", askName: true });
+      show({ html: "Hi, I'm <b>ASTRA</b>, your on-board health assistant. What should I call you? I use your name in alerts and ship PA announcements.", askName: true });
     } else {
-      show({ html: `Hi <b>${esc(first)}</b>, VEGA here. ${esc(TIPS[tipIdx++ % TIPS.length])}` });
+      show({ html: `Hi <b>${esc(first)}</b>, ASTRA here. ${esc(TIPS[tipIdx++ % TIPS.length])}` });
     }
   }
 
@@ -302,7 +302,7 @@
   setInterval(() => { if (mood === "nominal") { redraw(true); setTimeout(() => redraw(), 150); } }, 4000);
   redraw();
 
-  /* start: ask whether the report screen is open; if it isn't, show VEGA collapsed (no greeting) */
+  /* start: ask whether the report screen is open; if it isn't, show ASTRA collapsed (no greeting) */
   ReportBus.send({ type: "ping" });
   setTimeout(() => {
     collapsed();

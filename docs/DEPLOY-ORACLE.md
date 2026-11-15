@@ -1,6 +1,6 @@
 # Hosting the full site on Oracle Cloud (free)
 
-This runs everything (site, sign-in, VEGA chat on Qwen 2.5 3B, body-map triage on MedGemma 1.5 4B, ElevenLabs voice) on an Oracle Cloud **Always Free** server. A Cloudflare Tunnel puts it on your own subdomain with HTTPS, so no ports need opening.
+This runs everything (site, sign-in, ASTRA chat on Qwen 2.5 3B, body-map triage on MedGemma 1.5 4B, ElevenLabs voice) on an Oracle Cloud **Always Free** server. A Cloudflare Tunnel puts it on your own subdomain with HTTPS, so no ports need opening.
 
 **Cost:** $0 within the Always Free limits. Sign-up needs a card for verification.
 **Time:** about an hour, mostly waiting for the models to download.
