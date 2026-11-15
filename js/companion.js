@@ -227,7 +227,8 @@
   function greet() {
     const first = Crew.firstName();
     if (!first) {
-      show({ html: "Hi, I'm <b>ASTRA</b>, your on-board health assistant. What should I call you? I use your name in alerts and ship PA announcements.", askName: true });
+      // Guest: never ask for a name. Signed-in crew get theirs from sign-in and the questionnaire.
+      show({ html: `Hi, I'm <b>ASTRA</b>, your on-board health assistant. You're browsing as a guest. <a href="login.html" style="color:var(--cyan)">Sign in</a> and I'll use your name in alerts and ship PA announcements. ${esc(TIPS[tipIdx++ % TIPS.length])}` });
     } else {
       show({ html: `Hi <b>${esc(first)}</b>, ASTRA here. ${esc(TIPS[tipIdx++ % TIPS.length])}` });
     }
@@ -271,8 +272,8 @@
     show({ html: `Nice to meet you, <b>${esc(Crew.callSign())}</b>. ${esc(TIPS[0])}` });
   });
 
-  // The signed-in name (js/auth.js) can arrive after the greeting asked for one.
-  Crew.onChange(() => { if (!nameForm.hidden && Crew.firstName() && !root.hidden) greet(); });
+  // The signed-in name (js/auth.js) or questionnaire call sign can arrive after a guest greeting.
+  Crew.onChange(() => { if (Crew.firstName() && !root.hidden && !root.classList.contains("minimized") && mood === "nominal" && /as a guest/.test(msgEl.textContent)) greet(); });
 
   const paBtn = $(".vb-pa");
   function paLabel() {

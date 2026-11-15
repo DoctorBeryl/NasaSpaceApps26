@@ -3,8 +3,10 @@
    Load after vega.js. Used by report.html and the home-page
    ASTRA pop-up (js/companion.js).
 
-   Crew.get()            { rank, name }  (signed-in name wins if js/auth.js is loaded)
-   Crew.set(patch)       save rank / name in this browser
+   Crew.get()            { rank, name, guest }. Name = questionnaire call sign, else the
+                         signed-in name (js/auth.js); "" for guests. Never asked for.
+   Crew.set(patch)       save rank in this browser (a stored name is ignored)
+   Crew.isGuest()        true when nobody is signed in
    Crew.callSign()       "Commander Alex", or "" when no name is set
    Crew.firstName()      "Alex", or ""
    Crew.onChange(fn)     fn() when the profile changes in any tab
@@ -27,13 +29,24 @@ const Crew = (() => {
   function read() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
   }
-  function authName() {
-    const u = window.AstraAuth && window.AstraAuth.user;
-    return (u && u.name) || "";
+  /* The name comes only from the sign-in: the onboarding questionnaire's call sign if they gave one,
+     else the name they enrolled with. Nobody signed in = guest (no name; alerts say "EVA crew member").
+     ASTRA never asks for a name, and names typed into this browser earlier are ignored. */
+  let profileName = "";
+  function authUser() { return (window.AstraAuth && window.AstraAuth.user) || null; }
+  function authName() { const u = authUser(); return (u && u.name) || ""; }
+  function loadProfileName() {
+    const u = authUser();
+    if (!u || !window.AstraAuth.getProfile) { if (profileName) { profileName = ""; emit(); } return; }
+    window.AstraAuth.getProfile().then((doc) => {
+      const cs = ((doc && doc.profile && doc.profile.callsign) || "").trim();
+      if (cs !== profileName) { profileName = cs; emit(); }
+    }).catch(() => {});
   }
   function get() {
     const p = read();
-    return { rank: p.rank || "", name: (p.name || authName() || "").trim() };
+    const signedIn = !!authUser();
+    return { rank: p.rank || "", name: signedIn ? (profileName || authName()).trim() : "", guest: !signedIn };
   }
   function emit() { listeners.forEach((fn) => { try { fn(get()); } catch (e) { console.error(e); } }); }
   function set(patch) {
@@ -48,9 +61,12 @@ const Crew = (() => {
   function firstName() { return get().name.split(/\s+/)[0] || ""; }
 
   window.addEventListener("storage", (e) => { if (e.key === KEY) emit(); });
-  document.addEventListener("astra:auth", emit);
+  document.addEventListener("astra:auth", () => { emit(); loadProfileName(); });
+  if (authUser()) loadProfileName();
 
-  return { RANKS, get, set, callSign, firstName, onChange: (fn) => listeners.add(fn) };
+  function isGuest() { return !authUser(); }
+
+  return { RANKS, get, set, callSign, firstName, isGuest, onChange: (fn) => listeners.add(fn) };
 })();
 
 const ShipPA = (() => {
