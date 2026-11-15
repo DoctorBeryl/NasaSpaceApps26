@@ -2,13 +2,19 @@
    AstraSight: thin Ollama client (no dependencies, Node 18+)
    Talks to a local Ollama server running Qwen 2.5 (chat, onboarding,
    brief) and MedGemma (body-map triage, /api/ai/triage).
-   Env: OLLAMA_URL, OLLAMA_MODEL, OLLAMA_MED_MODEL, OLLAMA_TIMEOUT_MS, OLLAMA_NUM_CTX
+   Env: OLLAMA_URL, OLLAMA_MODEL, OLLAMA_MED_MODEL, OLLAMA_TIMEOUT_MS, OLLAMA_NUM_CTX, OLLAMA_KEEP_ALIVE
    ========================================================== */
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
 const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 const MED_MODEL = process.env.OLLAMA_MED_MODEL || "medgemma1.5:4b";   // medical model for triage
 const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 120000;
 const NUM_CTX = Number(process.env.OLLAMA_NUM_CTX) || 8192;
+// How long Ollama keeps a model loaded after a request: "30m" on laptops; "-1" (forever) on the
+// hosted server, so a judge never waits for MedGemma to reload. Numbers are seconds (-1 = forever).
+const KEEP_ALIVE = (() => {
+  const v = (process.env.OLLAMA_KEEP_ALIVE || "30m").trim();
+  return /^-?\d+$/.test(v) ? Number(v) : v;
+})();
 
 class OllamaError extends Error {
   constructor(message, { status = 503, code = "ollama_unavailable" } = {}) {
@@ -24,7 +30,7 @@ function body({ model = MODEL, messages, format, temperature, stream }) {
     messages,
     stream,
     ...(format ? { format } : {}),
-    keep_alive: "30m",                      // keep the model loaded between requests
+    keep_alive: KEEP_ALIVE,                 // keep the model loaded between requests
     options: { temperature, num_ctx: NUM_CTX },
   });
 }

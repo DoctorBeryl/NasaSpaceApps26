@@ -97,6 +97,9 @@ ExecStart=$(command -v node) server.js
 Restart=always
 RestartSec=3
 Environment=NODE_ENV=production
+# server/ollama.js sends keep_alive with every request; -1 keeps both models loaded for good.
+Environment=OLLAMA_KEEP_ALIVE=-1
+Environment=OLLAMA_TIMEOUT_MS=300000
 
 [Install]
 WantedBy=multi-user.target

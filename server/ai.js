@@ -34,8 +34,27 @@ const ESCALATION_LINE = "This needs the flight surgeon. Tell your crew medical o
 
 /* ---------------- helpers ---------------- */
 function json(res, code, obj) {
+  if (res.headersSent) return res.end(JSON.stringify(obj));   // after keepAlive(): status is already 200
   res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   res.end(JSON.stringify(obj));
+}
+
+/* Slow model calls (MedGemma on a CPU server can take 1–3 minutes) would hit Cloudflare's
+   100 s limit for a silent origin. After `after` ms this sends 200 headers and then a space every
+   15 s; JSON.parse ignores leading whitespace. An error after that point arrives as 200 with an
+   `error` field, so clients must check `j.error` as well as `r.ok`. Returns a stop function. */
+function keepAlive(res, after = 10000) {
+  let iv = null;
+  const start = setTimeout(() => {
+    if (res.headersSent || res.writableEnded) return;
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
+    res.keepAliveJson = true;   // fail() reads this: headers from writeHead() aren't visible to getHeader()
+    res.write(" ");
+    iv = setInterval(() => { if (!res.writableEnded) res.write(" "); }, 15000);
+  }, after);
+  const stop = () => { clearTimeout(start); clearInterval(iv); };
+  res.on("close", stop);
+  return stop;
 }
 
 async function readJson(req) {
@@ -52,8 +71,13 @@ async function readJson(req) {
 }
 
 function fail(res, e) {
-  if (res.headersSent) return res.end();
   const status = e.status || 500;
+  if (res.headersSent) {
+    // keepAlive() already sent 200 + JSON headers: report the error in the body (unless streaming).
+    if (!res.writableEnded && res.keepAliveJson) res.end(JSON.stringify({ error: e.code || "server_error", status, message: e.message }));
+    else res.end();
+    return;
+  }
   if (status >= 500 && !(e instanceof ollama.OllamaError)) console.error("[ai]", e);
   json(res, status, { error: e.code || (status >= 500 ? "server_error" : "bad_request"), message: e.message });
 }
@@ -268,16 +292,19 @@ async function triage(req, res) {
     { role: "user", content: `${report}${body.flag ? `\nThe rule-based screen flagged: ${str(body.flag, 200)}.` : ""}` },
   ];
   const signal = abortOnClose(res);
+  const stopKeepAlive = keepAlive(res);
 
   let out, model = ollama.MED_MODEL, fallback = false;
   try {
     out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
   } catch (e) {
-    if (e.code !== "model_missing" || ollama.MED_MODEL === ollama.MODEL) throw e;
+    if (e.code !== "model_missing" || ollama.MED_MODEL === ollama.MODEL) { stopKeepAlive(); throw e; }
     console.warn(`[ai] ${e.message}. Triage is using ${ollama.MODEL} instead.`);
     model = ollama.MODEL; fallback = true;
-    out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
+    try { out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal }); }
+    catch (e2) { stopKeepAlive(); throw e2; }
   }
+  stopKeepAlive();
 
   const possibleCauses = (Array.isArray(out.possibleCauses) ? out.possibleCauses : [])
     .filter((c) => c && str(c.name, 80))

@@ -45,7 +45,7 @@
     }
     const r = await fetch(path, { method: "POST", headers, body: JSON.stringify(body), signal });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.message || `the server answered ${r.status}`);
+    if (!r.ok || j.error) throw new Error(j.message || `the server answered ${j.status || r.status}`);   // j.error: failed after the keep-alive (server/ai.js)
     return j;
   }
 
