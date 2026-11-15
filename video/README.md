@@ -4,8 +4,8 @@ A 30-second promo built from code. There's no music, so you can add a song in yo
 
 | Time | Shot |
 |------|------|
-| 0–4 s | Side shot, camera on the right: a white 3D stickman wearing AstraSight glasses pushes off the smart handrails and drifts diagonally left, away from the camera |
-| 4–7 s | Hyper-zoom on his hand at rail **3B**, with car-edit strobe readouts: rail linked to the lens, push-off force, grip force against his pre-flight baseline, heart rate (PPG), skin conductance (EDA) |
+| 0–4 s | Side shot, camera on the right: a white 3D stickman wearing the AstraSight helmet pushes off the smart handrails and drifts diagonally left, away from the camera |
+| 4–7 s | Hyper-zoom on his hand at rail **3B**, with car-edit strobe readouts: rail linked to the helmet, push-off force, grip force against his pre-flight baseline, heart rate (PPG), skin conductance (EDA) |
 | 7–12 s | Locked-off back shot: he floats to the hatch, it opens on an observation window, and a reticle locks onto a small cyan light far out in space |
 | 12–14 s | Warp zoom into the light, white flash, then hard silence |
 | 14–15 s | Black, silent |

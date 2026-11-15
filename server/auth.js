@@ -69,15 +69,22 @@ function loadServiceAccount() {
 }
 
 const SA = loadServiceAccount();
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || SA?.projectId || "";
-/* The web config is public by design (it ships to every browser), but we keep
-   it in .env so each teammate can point at their own Firebase project. */
-const WEB_CONFIG = process.env.FIREBASE_API_KEY && PROJECT_ID ? {
-  apiKey: process.env.FIREBASE_API_KEY,
+/* The web config is public by design (it ships to every browser; the same values are in
+   .env.example). It defaults to the team's project, so email and password sign-in works on
+   every clone and on the live server. Set FIREBASE_* in .env to use your own project, or
+   FIREBASE_API_KEY=off to turn Firebase off. */
+const TEAM_WEB = { apiKey: "AIzaSyCbfssOIZ20erZ3lKAUGEfl9OMYuFT0g64", projectId: "nasa-space-app-challange", appId: "1:75019919525:web:b8319531e9afb7a7316d4c" };
+const ownProject = !!process.env.FIREBASE_API_KEY;
+const API_KEY = ownProject ? process.env.FIREBASE_API_KEY : TEAM_WEB.apiKey;
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || SA?.projectId || (ownProject ? "" : TEAM_WEB.projectId);
+const WEB_CONFIG = API_KEY && API_KEY !== "off" && PROJECT_ID ? {
+  apiKey: API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${PROJECT_ID}.firebaseapp.com`,
   projectId: PROJECT_ID,
-  appId: process.env.FIREBASE_APP_ID || undefined,
+  appId: process.env.FIREBASE_APP_ID || (ownProject ? undefined : TEAM_WEB.appId),
 } : null;
+/* "firebase" = face sign-in mints Firebase tokens (needs the service account too).
+   Email and password only need WEB_CONFIG, so they work in "local" mode as well. */
 const MODE = WEB_CONFIG && SA ? "firebase" : "local";
 
 const b64url = (buf) => Buffer.from(buf).toString("base64url");
@@ -245,7 +252,7 @@ function session(user, isNew, dist) {
 
 /* ---------------- handlers ---------------- */
 function config() {
-  return { mode: MODE, firebase: MODE === "firebase" ? WEB_CONFIG : null, faceModels: FACE_MODELS, threshold: THRESHOLD, enrolled: load().users.length, roles: ROLES };
+  return { mode: MODE, firebase: WEB_CONFIG, faceModels: FACE_MODELS, threshold: THRESHOLD, enrolled: load().users.length, roles: ROLES };
 }
 
 function verify(body) {

@@ -11,7 +11,7 @@ This prompt is for a text-to-video AI (Veo, Sora, Kling, Runway). It describes t
 ```
 Style: clean stylized 3D render, cinematic, high contrast, 16:9, subtle film grain, light letterbox bars.
 Character: a sleek matte-white 3D stickman astronaut with smooth rounded limbs and a round head, no face,
-wearing thin wraparound smart glasses that glow soft cyan (#00f0ff) across the front of the head.
+wearing a clear bubble helmet with a small soft-cyan (#00f0ff) display glowing inside the visor.
 Setting: a futuristic space-station corridor with an octagonal cross-section: grey-white wall panels
 with thin dark gaps between them, darker metal rib frames every two metres, white ceiling light panels,
 thin glowing cyan light strips along the upper corners, occasional magenta strips low on the walls,
@@ -44,7 +44,7 @@ then he pushes off and glides to the next. The round hatch glows small at the fa
 in a fraction of a second, ending on a close-up of the stickman's white hand gripping the rail, in slow
 motion. A small square label plate on the wall beside the rail glows cyan. The rail's sensor band glows
 brighter as the fingers close around it, and thin light pulses run along the rail toward the wall. His
-forearm and the cyan glow of his glasses are visible, soft and out of focus, at the edge of the frame.
+forearm and the cyan glow of his helmet display are visible, soft and out of focus, at the edge of the frame.
 Shallow depth of field, punchy contrast, a little camera shake on the impact.
 ```
 
@@ -52,7 +52,7 @@ Shallow depth of field, punchy contrast, a little camera shake on the impact.
 
 | Time | Label | Value | Small line |
 |------|-------|-------|------------|
-| 4.48 s | RAIL 3B · NODE 2 | LINKED → LENS | LOAD CELL · PPG · EDA · TEMP |
+| 4.48 s | RAIL 3B · NODE 2 | LINKED → HELMET | LOAD CELL · PPG · EDA · TEMP |
 | 4.98 s | PUSH-OFF FORCE | 184 N | |
 | 5.48 s | GRIP FORCE | 31 kgf | −6 % VS PRE-FLIGHT BASELINE |
 | 5.98 s | HEART RATE · PPG | 96 bpm | |
@@ -75,7 +75,7 @@ relaxed microgravity posture, silhouetted against space. Far away in space, in t
 window, one tiny cyan point of light glows and pulses gently.
 ```
 
-**In the edit:** at 11.05 s, a small rotating cyan/pink reticle locks onto the distant light. In the top-left corner, type out: `NODE 2 · ARTEMIS-HAB 04` / `MET 003:14:22:41` / `HANDRAILS LIVE · LENS ONLINE`.
+**In the edit:** at 11.05 s, a small rotating cyan/pink reticle locks onto the distant light. In the top-left corner, type out: `NODE 2 · ARTEMIS-HAB 04` / `MET 003:14:22:41` / `HANDRAILS LIVE · HELMET ONLINE`.
 
 ## Shot 4: the warp (0:12–0:14, about 2 s)
 
@@ -95,7 +95,7 @@ Not AI-generated: screen-record the AstraSight site at 1920×1080, then add fast
 | Time | Page and action | Zoom on | Caption (label / line) |
 |------|-----------------|---------|------------------------|
 | 15.0–16.15 | `interface.html` turns on like an old CRT (a horizontal cyan line opens into the picture) | full HUD | |
-| 16.15–17.45 | Heart-rate slider pushed to 128 → ASTRA's popup "Heart rate too high · Step 1 of 3: Stop exercise or heavy work and rest for five minutes" | the popup | INTERFACE · LENS HUD / ASTRA flags a reading the moment it drifts |
+| 16.15–17.45 | Heart-rate slider pushed to 128 → ASTRA's popup "Heart rate too high · Step 1 of 3: Stop exercise or heavy work and rest for five minutes" | the popup | INTERFACE · VISOR HUD / ASTRA flags a reading the moment it drifts |
 | 17.45–18.35 | Vitals panel: "1 reading needs attention", Cardiac Rhythm climbing past 110 bpm | summary + heart card | (same) |
 | 18.35–20.05 | Type "ASTRA, status report" → ASTRA answers | command box and reply | ASK ASTRA / Speak or type: "status report" (caption at the top) |
 | 20.05–22.15 | `report.html?view=eva`: click **Heavy exertion** → heart rate 148, core temp 37.9, metabolic load 412 W, ASTRA caution | scenario row, then the vitals row | REPORT · EVA HUD / Heavy exertion: heart rate, heat and CO₂ climb |
@@ -107,9 +107,9 @@ Not AI-generated: screen-record the AstraSight site at 1920×1080, then add fast
 Dark navy background (#040912) with a faint cyan grid fading out toward the edges. On a clean bass hit with a white flash:
 
 - small pink pixel-font line: **NASA SPACE APPS CHALLENGE 2026**
-- the AstraSight glasses logo + **AstraSight** (large, bold, white)
+- the AstraSight helmet logo + **AstraSight** (large, bold, white)
 - **Your health, in your line of sight.** (cyan)
-- *Health monitoring for astronauts · smart lens, smart handrails and ASTRA, the on-board assistant*
+- *Health monitoring for astronauts · smart helmet, smart handrails and ASTRA, the on-board assistant*
 - bottom, small amber: **CONCEPT PROTOTYPE · SIMULATED DATA · NOT A MEDICAL DEVICE**
 
 Fade to black over the last half second.

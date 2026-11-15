@@ -3,7 +3,7 @@
 Crew choose how to sign in on their first visit, and the choice is remembered:
 
 - **Face scan.** Returning crew look at the lens and turn their head slightly. New crew type a name, then do a ten-second guided scan. Before the camera turns on, the page says that face data is **stored locally on this device and is for demo purposes only**. The same note stays under the camera.
-- **Email and password.** A standard Firebase Email/Password account (create, sign in, reset by email), for anyone who'd rather not scan their face. It needs Firebase mode.
+- **Email and password.** A standard Firebase Email/Password account (create, sign in, reset by email), for anyone who'd rather not scan their face. It needs only the Firebase web config, which `server/auth.js` defaults to the team project (override with `FIREBASE_*` in `.env`, or `FIREBASE_API_KEY=off`), so it also works when face sign-in runs in local mode.
 
 Face and password accounts are separate Firebase users, even for the same person.
 

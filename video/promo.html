@@ -121,7 +121,7 @@
       <span>AstraSight</span>
     </div>
     <div class="tag t-c">Your health, in your line of sight.</div>
-    <div class="what t-d">Health monitoring for astronauts · smart lens, smart handrails<br />and ASTRA, the on-board assistant</div>
+    <div class="what t-d">Health monitoring for astronauts · smart helmet, smart handrails<br />and ASTRA, the on-board assistant</div>
     <div class="disc t-d">CONCEPT PROTOTYPE · SIMULATED DATA · NOT A MEDICAL DEVICE</div>
   </div>
 
@@ -417,13 +417,16 @@ const parts = {
 const head = new THREE.Group(); man.add(head);
 {
   const h = new THREE.Mesh(sphGeo, M.body); h.scale.set(R.head, R.head * 1.08, R.head); head.add(h);
-  // AstraSight glasses: a glowing band wrapping the front of the head, and two lens bars
-  const band = new THREE.Mesh(new THREE.TorusGeometry(R.head + 0.012, 0.011, 8, 48, Math.PI * 1.05), M.visor);
-  band.rotation.x = Math.PI / 2; band.rotation.z = -Math.PI * 0.025 + Math.PI; band.position.y = 0.015; head.add(band);
-  for (const s of [-1, 1]) {
-    const lens = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.034, 0.02), M.visor);
-    lens.position.set(s * 0.05, 0.016, R.head + 0.006); head.add(lens);
-  }
+  // AstraSight helmet: clear bubble, a glowing visor display on the wearer's right (-x), metal neck ring
+  const HB = R.head * 1.5;
+  const bubble = new THREE.Mesh(sphGeo, new THREE.MeshStandardMaterial({ color: 0xcfe8ff, transparent: true, opacity: 0.14, roughness: 0.05, metalness: 0.3, depthWrite: false }));
+  bubble.scale.setScalar(HB); bubble.position.y = 0.02; head.add(bubble);
+  const rim = new THREE.Mesh(sphGeo, new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.18, side: THREE.BackSide, depthWrite: false }));
+  rim.scale.setScalar(HB * 1.02); rim.position.y = 0.02; head.add(rim);
+  const hud = new THREE.Mesh(new THREE.SphereGeometry(HB - 0.012, 12, 8, Math.PI / 2 - 0.62, 0.42, 1.32, 0.36), M.visor);
+  hud.position.y = 0.02; head.add(hud);
+  const neckRing = new THREE.Mesh(new THREE.TorusGeometry(HB * 0.72, 0.016, 10, 40), M.metal);
+  neckRing.rotation.x = Math.PI / 2; neckRing.position.y = 0.02 - HB * 0.7; head.add(neckRing);
 }
 
 function twoBone(S, T, a, b, pole) {
@@ -572,7 +575,7 @@ cue(3.1, "riser", { dur: 0.9 });
 cue(4.0, "drop");
 cue(4.0, "zoom");
 const READOUTS = [
-  { t: 4.48, lbl: "RAIL 3B · NODE 2", val: "LINKED", unit: "→ LENS", sub: "LOAD CELL · PPG · EDA · TEMP" },
+  { t: 4.48, lbl: "RAIL 3B · NODE 2", val: "LINKED", unit: "→ HELMET", sub: "LOAD CELL · PPG · EDA · TEMP" },
   { t: 4.98, lbl: "PUSH-OFF FORCE", val: "184", unit: "N" },
   { t: 5.48, lbl: "GRIP FORCE", val: "31", unit: "kgf", sub: "−6 % VS PRE-FLIGHT BASELINE" },
   { t: 5.98, lbl: "HEART RATE · PPG", val: "96", unit: "bpm" },
@@ -599,7 +602,7 @@ const SITE_EDL = [
   { a: 24.35, b: 26.0, seg: "medical", s0: 0.6, sp: 2.4, z: [[24.35, 960, 560, 1.12], [26.0, 1280, 440, 1.6]] },
 ];
 const CAPTIONS = [
-  { a: 16.15, b: 18.35, k: "INTERFACE · LENS HUD", t: "ASTRA flags a reading the moment it drifts" },
+  { a: 16.15, b: 18.35, k: "INTERFACE · VISOR HUD", t: "ASTRA flags a reading the moment it drifts" },
   { a: 18.35, b: 20.05, k: "ASK ASTRA", t: "Speak or type: “status report”", top: true },
   { a: 20.05, b: 22.15, k: "REPORT · EVA HUD", t: "Heavy exertion: heart rate, heat and CO₂ climb" },
   { a: 22.15, b: 24.35, k: "SUIT CHECK", t: "A failed life-support sensor means NO-GO" },
@@ -657,7 +660,7 @@ const rEls = READOUTS.map((r) => {
   el.innerHTML = `<span class="lbl">${r.lbl}</span><span class="val">${r.val}<small>${r.unit}</small></span>${r.sub ? `<span class="sub">${r.sub}</span>` : ""}`;
   readoutsEl.appendChild(el); return el;
 });
-const CORNER = "NODE 2 · ARTEMIS-HAB 04\nMET <b>003:14:22:41</b>\nHANDRAILS <b>LIVE</b> · LENS <b>ONLINE</b>";
+const CORNER = "NODE 2 · ARTEMIS-HAB 04\nMET <b>003:14:22:41</b>\nHANDRAILS <b>LIVE</b> · HELMET <b>ONLINE</b>";
 const siteImg = $("#siteimg");
 let manifest = null; const imgCache = new Map();
 function loadImg(src) {
