@@ -240,3 +240,15 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Changed:** `report.html`. In the **Ship triage** view, the control strip (operating zone, live sensors, the four emergency scenarios, manual override, data bus, cabin exit and re-entry) is hidden. It drives the suit telemetry panel, which this view doesn't show. Dual link and EVA HUD keep it. VEGA's doctor look and the "DR. VEGA" labels now appear only in the CMO role **and** the Ship triage view. Dual link shows the normal VEGA, as the team asked. On switching to Ship triage, VEGA's bubble is placed beside the body map; before, it covered the header buttons once the strip was gone. The empty PA log now says to inject hazards from EVA HUD or Dual link.
 **Decisions:** Dual link = the suit's EVA visor telemetry and the ship server's crew triage side by side, linked over the local mesh. Ship triage = the medical-bay console, so it shows no hazard injection.
 **Gotchas:** A scenario started in another view keeps running after you switch to Ship triage, and its PA alerts still repeat. That's intended: the alerts are ship-wide.
+
+## 2026-11-15: Alex (+ Claude): Ship display, EVA HUD, Medical bay; role chosen once in the header
+**Changed:** `report.html`.
+- The tabs are now **Ship display** (was Dual link, view key `dual`), **EVA HUD** (`eva`) and **Medical bay** (was Ship triage, `ship`). The internal keys are unchanged.
+- A **Signed in as Crew / CMO** demo switch in the header replaces the View as switch inside the triage panel, so one role applies to every tab.
+- **Ship display:** crew get the habitat telemetry and their own triage. The CMO also gets a **compact crew roster**: one line per crew member, most urgent first, plus a Whole crew line with VEGA's top pattern. Clicking a line opens that record, or the whole-crew view, in the Medical bay. There's also an Open medical bay button.
+- **Medical bay:** crew get their own record full width. The CMO gets the full console (big roster, every record, whole-crew heatmap, Send to flight surgeon) and DR. VEGA.
+- Outside the CMO Medical bay the triage always shows your own record (`syncTriageContext()`).
+- **EVA HUD** switches the page to EVA mode. Ship display and Medical bay switch back to habitat, unless the astronaut is already outside, in which case the Ship display keeps watching the EVA.
+- New deep link: `?view=display|eva|medical`. It can be combined with `?role=cmo`.
+**Decisions:** Each tab is a place: the visor outside, the wall console inside, the medical console. "Dual link" described the wiring, not what the screen is for. The CMO's Ship display shows a compact roster, not the full console, so the wall display stays readable and the Medical bay is where the CMO goes to work. The suit-to-ship mesh story stays in the Edge architecture panel.
+**Gotchas:** `cmoFull()` (CMO and Medical bay) gates the full console; `inOverlay()` builds on it. If you add CMO features, check which tab they belong to.

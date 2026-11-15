@@ -273,6 +273,12 @@
     .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
     .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
     .name-link:hover { color:#fff; }
+    .compact-row { width:100%; display:grid; grid-template-columns:auto minmax(0,9.5em) auto minmax(0,1fr) auto; align-items:center; gap:8px; text-align:left; border:1px solid rgba(63,103,130,.3); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.85); border-radius:6px; padding:5px 8px; font:500 9px 'JetBrains Mono',monospace; color:#a9c5d6; }
+    .compact-row:hover { border-color:rgba(0,240,255,.5); border-left-color:var(--lvl,#34d399); color:#eaffff; }
+    .compact-row .c-name { color:#eaf6ff; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .compact-row .c-top { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#8fb0c3; font-family:Inter,sans-serif; font-size:9.5px; }
+    .compact-row .c-lvl { color:var(--lvl,#34d399); font-weight:700; letter-spacing:.06em; }
+    @media (max-width:520px) { .compact-row { grid-template-columns:auto minmax(0,1fr) auto; } .compact-row .c-top, .compact-row .c-ago { display:none; } }
 
 </style>
 </head>
@@ -295,9 +301,14 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="View mode">
-          <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual">DUAL LINK</button>
-          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva">EVA HUD</button>
-          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship">SHIP TRIAGE</button>
+          <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual" title="The habitat wall console: telemetry and triage for your role">SHIP DISPLAY</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva" title="The astronaut's visor during an EVA">EVA HUD</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship" title="The medical console, full width">MEDICAL BAY</button>
+        </div>
+        <div class="flex items-center gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="Signed in as (demo switch)" title="Demo switch: a real ship server would set your role when you sign in">
+          <span class="soft-label px-1.5">SIGNED IN AS</span>
+          <button type="button" class="btn role-btn rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW</button>
+          <button type="button" class="btn role-btn cmo rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO</button>
         </div>
         <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch VEGA between automatic and custom appearance modes">VEGA: <span class="text-cyan">AUTO</span></button>
         <button id="voiceToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono">VOICE: <span class="text-cyan">ON</span></button>
@@ -536,21 +547,19 @@
       <section id="triagePanel" class="space-y-5 min-w-0">
         <div class="panel rounded-xl p-3 sm:p-4" id="triageRoleBar">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="soft-label">VIEW AS</span>
-              <div class="flex gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="View the ship triage as">
-                <button type="button" class="btn role-btn rounded-md px-3 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW · MY RECORD</button>
-                <button type="button" class="btn role-btn cmo rounded-md px-3 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO · ALL CREW</button>
-              </div>
-            </div>
-            <span id="roleAccess" class="text-[9px] mono text-slate-400">CREW ACCESS · YOUR RECORD ONLY</span>
+            <div><div class="eyebrow" id="triageRoleEyebrow">CREW HEALTH · YOUR ROLE</div><div id="roleAccess" class="text-[10px] mono text-slate-300 mt-1">CREW ACCESS · YOUR RECORD ONLY</div></div>
+            <button id="openMedBay" type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono hidden-view">OPEN MEDICAL BAY ↗</button>
+          </div>
+          <div id="compactRoster" class="mt-3 hidden-view">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5"><div class="eyebrow">CREW STATUS · MOST URGENT FIRST</div><span class="text-[8px] mono text-slate-500">CLICK A NAME TO OPEN IT IN THE MEDICAL BAY</span></div>
+            <ul id="compactRows" class="space-y-1"></ul>
           </div>
           <div id="cmoRoster" class="mt-3 hidden-view">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div class="eyebrow">CREW ROSTER · MOST URGENT FIRST</div><span class="text-[8px] mono text-slate-500">OPEN A CARD TO SEE THAT RECORD</span></div>
             <div id="rosterCards" class="roster-grid"></div>
           </div>
           <div id="viewingBanner" class="viewing-banner rounded-lg px-3 py-2 mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"></div>
-          <p class="text-[8px] mono text-slate-600 mt-2">Demo switch. A real ship server would check the CMO role before opening anyone else's record. Crew members other than you are simulated.</p>
+          <p class="text-[8px] mono text-slate-600 mt-2">Your role comes from "Signed in as" at the top, a demo switch. A real ship server would check the CMO role before opening anyone else's record. Crew members other than you are simulated.</p>
         </div>
 
         <div class="panel rounded-xl overflow-hidden">
@@ -628,7 +637,7 @@
               <button id="pa-test" type="button" class="btn rounded-md px-3 py-2 text-[9px] mono">TEST ANNOUNCEMENT</button>
             </div>
             <p id="pa-who" class="text-[10px] mono text-cyan"></p>
-            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard in the EVA HUD or Dual link view to hear one.</li></ol>
+            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard in the Ship display or EVA HUD view to hear one.</li></ol>
           </div>
         </div>
 
@@ -1187,7 +1196,8 @@ const ReportLink = (() => {
       ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
     }
   }
-  // In the CMO view of SHIP TRIAGE (not dual link) VEGA is the ship's doctor: glasses, lab coat, stethoscope, red-cross clip.
+  // For the CMO in the MEDICAL BAY tab (view 'ship'; not the ship display or EVA HUD) VEGA is the ship's doctor:
+  // glasses, lab coat, stethoscope, red-cross clip.
   const isDoctor=()=>state.role==='cmo' && state.view==='ship';
   function drawDoctor(ctx){
     const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
@@ -1420,9 +1430,12 @@ const ReportLink = (() => {
     $('quickControlPanel').classList.toggle('hidden-view',view==='ship');   // scenarios and suit controls belong to the EVA telemetry, not the medical bay
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
     $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
+    // Each tab is a place: the EVA HUD is the visor outside (EVA mode); the ship display and the medical bay are
+    // inside the habitat. If the astronaut is already outside, the ship display keeps watching the EVA.
+    if(view==='eva' && state.operatingMode==='habitat'){ state.operatingMode='eva'; state.timerActive=false; syncLocationMode(); render(); }
+    else if(view!=='eva' && state.operatingMode==='eva' && !state.exited){ state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render(); }
     if(view==='ship') teleportCompanion('bodyMap'); else teleportCompanion('metricsGrid');
-    updateCompanion();   // DR. VEGA only in the ship triage view
-    if(inOverlay()) renderOverlay();
+    syncTriageContext();   // which records this tab and role may show; also redraws VEGA (DR. VEGA only in the CMO medical bay)
   }
 
   function zoneSvg(z){
@@ -1659,7 +1672,10 @@ const ReportLink = (() => {
   const CREW_ORDER=['you',...SEED_CREW.map(s=>s.id)];
   const DEFAULT_OUT={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:'',vegaHidden:true};
 
-  const inOverlay=()=>state.role==='cmo'&&state.overlay;
+  // The full CMO console (every record, whole-crew view, flight surgeon) lives in the MEDICAL BAY tab (view 'ship').
+  // The SHIP DISPLAY tab (view 'dual') gives the CMO their own record plus a compact crew roster.
+  const cmoFull=()=>state.role==='cmo'&&state.view==='ship';
+  const inOverlay=()=>cmoFull()&&state.overlay;
   const currentRec=()=>crewRecords[state.patient]||crewRecords.you;
   const recName=(r)=>r.live?(typeof Crew!=='undefined'&&Crew.callSign()||'You'):`${r.rank} ${r.name}`;
   const shortName=(r)=>r.live?'You':r.name.split(' ').pop();
@@ -1704,14 +1720,35 @@ const ReportLink = (() => {
       left=`VIEWING: ${recName(r).toUpperCase()} · ${r.role.toUpperCase()}`; right='Not your record. Opened with CMO access.'; color='text-amber';
     } else {
       left=`MY RECORD · ${recName(r).toUpperCase()}`; color='text-cyan';
-      right=cmo?'Your own record.':"Only you and the Crew Medical Officer (CMO) can see this. Other crew can't open it.";
+      right=!cmo?"Only you and the Crew Medical Officer (CMO) can see this. Other crew can't open it."
+        :cmoFull()?'Your own record.':'Your own record. Every crew record is in the Medical bay.';
     }
     b.innerHTML=`<span class="text-[10px] mono font-bold ${color}">${esc(left)}</span><span class="text-[9px] text-slate-400">${esc(right)}</span>`;
   }
+  function rosterRows(){   // every crew member, most urgent first
+    const rows=CREW_ORDER.map(id=>{const r=crewRecords[id];return {r,lvl:recLevel(r),zones:recZones(r)};});
+    return rows.sort((a,b)=>LEVEL_RANK[b.lvl]-LEVEL_RANK[a.lvl]||Math.max(0,...Object.values(b.r.painLevels).map(Number))-Math.max(0,...Object.values(a.r.painLevels).map(Number)));
+  }
+  // Ship display, CMO: one line per crew member. A click opens that record (or the whole crew) in the medical bay.
+  function renderCompactRoster(){
+    const rows=rosterRows(), pats=crewPatterns();
+    const line=(id,color,name,lvl,top,ago)=>`<li><button type="button" class="compact-row" data-open="${id}" style="--lvl:${color}">
+      <span class="dot" style="color:${color};background:${color}"></span><span class="c-name">${esc(name)}</span><span class="c-lvl">${esc(lvl)}</span><span class="c-top">${esc(top)}</span><span class="c-ago text-slate-500">${esc(ago)}</span></button></li>`;
+    $('compactRows').innerHTML=rows.map(({r,lvl,zones})=>{
+      const z=zones[0], pain=z?Number(r.painLevels[z]||0):0;
+      const top=z?`${cap(zoneMeta[z]?.label||z)}${pain?` ${pain}/10`:''}${zones.length>1?` +${zones.length-1} more`:''}`:(recNotes(r).trim()?'Free-text note only':'No complaints');
+      return line(r.id,LEVEL_COLOR[lvl],r.live?'YOU':`${r.rank} ${r.name}`,LEVEL_LABEL[lvl],top,r.sentAt?'↗ surgeon':agoText(r.reportedAt));
+    }).join('')+line('__whole','#ff2a85','◎ Whole crew',`${pats.length} PATTERN${pats.length===1?'':'S'}`,pats[0]?pats[0].text:'No shared pattern right now','open →');
+    $('compactRows').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{
+      setView('ship');
+      if(b.dataset.open==='__whole') openWholeCrew(); else openRecord(b.dataset.open);
+    }));
+  }
   function renderRoster(){
     if(state.role!=='cmo') return;
-    const rows=CREW_ORDER.map(id=>{const r=crewRecords[id];return {r,lvl:recLevel(r),zones:recZones(r)};});
-    rows.sort((a,b)=>LEVEL_RANK[b.lvl]-LEVEL_RANK[a.lvl]||Math.max(0,...Object.values(b.r.painLevels).map(Number))-Math.max(0,...Object.values(a.r.painLevels).map(Number)));
+    if(state.view==='dual') renderCompactRoster();
+    if(!cmoFull()) return;
+    const rows=rosterRows();
     const totalAreas=rows.reduce((n,x)=>n+x.zones.length,0), patterns=crewPatterns().filter(p=>p.ids.length).length;
     const whole=`<button type="button" class="roster-card ${state.overlay?'active':''}" data-open="__whole" style="--lvl:#ff2a85">
       <div class="flex items-center justify-between gap-2"><span class="roster-name">◎ WHOLE CREW</span><span class="roster-level">${patterns} PATTERN${patterns===1?'':'S'}</span></div>
@@ -1817,30 +1854,46 @@ const ReportLink = (() => {
     companionWarn(p?`Whole-crew view. ${pats.length>1?`I see ${pats.length} things to check. First: `:''}${p.text}`:'Whole-crew view. No shared pattern right now.','crewOverlayPane',p?p.mood:'nominal',true);
   }
   function renderTriageRole(){
-    const cmo=state.role==='cmo', ov=inOverlay();
+    const cmo=state.role==='cmo', full=cmoFull(), ov=inOverlay(), compact=cmo&&state.view==='dual';
     document.querySelectorAll('[data-role]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.role===state.role)));
-    $('cmoRoster').classList.toggle('hidden-view',!cmo);
-    setText('roleAccess',cmo?'CMO ACCESS · ALL CREW RECORDS':'CREW ACCESS · YOUR RECORD ONLY');
+    $('cmoRoster').classList.toggle('hidden-view',!full);
+    $('compactRoster').classList.toggle('hidden-view',!compact);
+    $('openMedBay').classList.toggle('hidden-view',!compact);
+    setText('triageRoleEyebrow',full?'MEDICAL BAY · CMO CONSOLE':state.view==='ship'?'MEDICAL BAY · YOUR RECORD':'SHIP DISPLAY · CREW HEALTH');
+    setText('roleAccess',full?'CMO ACCESS · ALL CREW RECORDS':cmo?'CMO · ALL RECORDS OPEN IN THE MEDICAL BAY':'CREW ACCESS · YOUR RECORD ONLY');
     $('roleAccess').style.color=cmo?'#ff7ab0':'';
     $('symptomColumn').classList.toggle('hidden-view',ov);
     $('crewOverlayPane').classList.toggle('hidden-view',!ov);
     $('triageSnapshot').classList.toggle('hidden-view',ov);
     $('triageReviewPanel').classList.toggle('hidden-view',ov);
-    $('surgeonBox').classList.toggle('hidden-view',!cmo);
+    $('surgeonBox').classList.toggle('hidden-view',!full);
     setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
     renderBanner(); renderSurgeon(); renderSnapshot();
     renderBodyMap(); renderSymptoms(); renderReported();
     if(ov) renderOverlay();
     updateCompanion();
   }
+  // Outside the CMO medical bay the triage only ever shows your own record.
+  function syncTriageContext(){
+    if(!cmoFull() && state.patient!=='you') openRecord('you');   // openRecord re-renders
+    else renderTriageRole();
+  }
+  // "Signed in as" in the header: one role for the whole page (a demo switch; a real server would assign it).
   function setRole(role,quiet){
     state.role=role==='cmo'?'cmo':'crew';
     try{ localStorage.setItem('astrasight.triageRole',state.role); }catch(e){}
-    if(state.role==='crew'){ state.overlay=false; if(state.patient!=='you') openRecord('you'); else renderTriageRole(); }
-    else if(quiet){ state.overlay=true; renderTriageRole(); }
-    else openWholeCrew();
-    if(quiet) return;
-    if(state.role==='crew') companionWarn("Crew view. You see only your own record, and only you and the CMO can open it.",'triageSnapshot','nominal',true);
+    const near=state.view==='eva'?'metricsGrid':'triageSnapshot';
+    if(state.role==='crew'){
+      state.overlay=false; syncTriageContext();
+      if(!quiet) companionWarn('Signed in as crew. You see only your own health record, and only you and the CMO can open it.',near,'nominal',true);
+    } else if(state.view==='ship' && !quiet){
+      openWholeCrew();   // the CMO lands on the whole crew in the medical bay
+    } else {
+      state.overlay=true; syncTriageContext();
+      if(!quiet) companionWarn(state.view==='dual'
+        ?'Signed in as the Crew Medical Officer. The ship display now lists every crew member. Open the Medical bay for their full records and the whole-crew view.'
+        :'Signed in as the Crew Medical Officer. All crew records are in the Medical bay.',state.view==='dual'?'triageRoleBar':near,'nominal',true);
+    }
   }
 
   // Wire view controls.
@@ -1914,6 +1967,7 @@ const ReportLink = (() => {
     const r=currentRec(); r.sentAt=Date.now(); renderSurgeon(); renderRoster();
     companionWarn(`Case for ${recName(r)} sent to the flight surgeon. With the signal delay, expect a reply in about ${EARTH_DELAY_MIN*2} minutes. Keep monitoring until then.`,'surgeonBox','reminder',true);
   });
+  $('openMedBay').addEventListener('click',()=>setView('ship'));
   $('triageText').addEventListener('input',()=>{ if(state.role==='cmo') renderRoster(); });
   $('onsetSelect').addEventListener('change',()=>{ if(state.role==='cmo') renderRoster(); });
   setInterval(()=>{ if(state.role==='cmo'){ renderRoster(); if(inOverlay()) renderBanner(); } },30000);   // "18 min ago" and your live risk
@@ -1930,6 +1984,9 @@ const ReportLink = (() => {
   let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
   const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
   setRole(startRole,true);
+  // ?view=display|eva|medical opens a tab directly (handy for the demo).
+  const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship'}[new URLSearchParams(location.search).get('view')];
+  if(VIEW_PARAM) setView(VIEW_PARAM);
   setInterval(tickSensors,1000);
   setInterval(sensorTimerTick,1000);
   setTimeout(()=>teleportCompanion('metricsGrid'),350);
