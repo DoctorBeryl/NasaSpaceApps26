@@ -563,3 +563,8 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 ## 2026-11-15: Alex (+ Claude): ultrasound launcher below the body map (replaces the scan suggestion)
 **Changed:** Alex wanted the two simpler options, not the body-map scan suggestion, so `#scanSuggest` (and `ZONE_SCANS` / `renderScanSuggest()`) is removed from `report.html`. The Medical bay now has two ways in: the small "◎ GUIDED ULTRASOUND ▶" button in the role bar (`#openUltrasound`, unchanged) and a pink glowing launcher right after the health form panel, before ASTRA's review (`#ultrasoundPanel`, an `<a>` reusing the `.health-launcher`/`.hl-*` styles with a probe icon, `.us-launcher`/`.us-icon`). Both show only in the Medical bay. `ultrasound.html?organ=` support in `js/ultrasound.js` stays (harmless; nothing links with it now).
 **Verified:** Playwright at 1440 and 390 px: Medical bay order is role bar, health form, ultrasound launcher, review, PA; both entry points are hidden on display, EVA and suit check; the launcher opens `ultrasound.html`; no sideways scroll, no page errors.
+
+## 2026-11-15: Alex (+ Claude): one "?" on the home page
+**Changed:** `index.html` no longer loads `js/companion.js` or `css/companion.css`, so the draggable ASTRA "?" in the bottom corner is gone from the home page. The nav "?" next to Sign in (`AstraHelp`) opens the same guide and is the only help button left there. The companion stays on `tools.html` (its "Random health event" button uses `VegaBuddy.fireHazard()`) and `vega.html`.
+**Why:** Alex: two "?" buttons on one page doing the same thing.
+**Verified:** Playwright at 1280 px: no `.vega-buddy` on the home page, one nav "?", no page errors.
