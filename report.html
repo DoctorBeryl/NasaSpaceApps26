@@ -273,6 +273,24 @@
     .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
     .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
     .name-link:hover { color:#fff; }
+    /* Suit check: sensor health per suit, go/no-go gate for cabin exit. */
+    .suit-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; }
+    .suit-card { border:1px solid rgba(63,103,130,.38); border-top:3px solid var(--verdict,#34d399); background:rgba(6,16,28,.9); border-radius:10px; padding:10px 11px; min-width:0; position:relative; }
+    .suit-card.checking::after { content:"RUNNING CHECKOUT…"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(4,9,18,.82); color:var(--cyan); font:700 10px 'JetBrains Mono',monospace; letter-spacing:.14em; border-radius:10px; }
+    .verdict { font:800 10px 'JetBrains Mono',monospace; letter-spacing:.1em; padding:3px 7px; border-radius:5px; border:1px solid currentColor; color:var(--verdict,#34d399); white-space:nowrap; }
+    .sensor-row { display:grid; grid-template-columns:14px minmax(0,1fr) auto; gap:2px 7px; align-items:baseline; padding:5px 0; border-top:1px solid rgba(63,103,130,.18); }
+    .sensor-row .s-icon { font:700 10px 'JetBrains Mono',monospace; text-align:center; }
+    .sensor-row .s-name { font-size:10.5px; color:#d6e6f1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sensor-row .s-val { font:600 10px 'JetBrains Mono',monospace; color:#9fc0d3; text-align:right; white-space:nowrap; }
+    .sensor-row .s-detail { grid-column:2 / 4; font-size:9.5px; line-height:1.35; }
+    .crit-tag { font:700 7px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#7c9bb0; border:1px solid rgba(124,155,176,.45); border-radius:3px; padding:0 3px; margin-left:4px; vertical-align:1px; }
+    .s-fix { font:700 8px 'JetBrains Mono',monospace; letter-spacing:.06em; color:var(--cyan); border:1px solid rgba(0,240,255,.45); border-radius:4px; padding:1px 6px; margin-left:6px; background:transparent; cursor:pointer; }
+    .s-fix:hover { background:rgba(0,240,255,.1); }
+    .suit-gate { border:1px solid rgba(52,211,153,.5); color:#6ee7b7; background:rgba(52,211,153,.07); cursor:pointer; }
+    .suit-gate.limited { border-color:rgba(255,184,0,.55); color:#ffd46a; background:rgba(255,184,0,.07); }
+    .suit-gate.nogo { border-color:rgba(255,42,75,.65); color:#ff8094; background:rgba(255,42,75,.08); }
+    .metric.sensor-fault { border-color:rgba(255,184,0,.7); }
+    .metric.sensor-fault::before { content:"SENSOR FAULT · DON'T TRUST"; position:absolute; right:10px; bottom:8px; font:700 7.5px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#ffb800; z-index:2; }
     /* Moving ASTRA: hold and drag her card or portrait to park her. */
     .astra-handle { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
     .companion.dragging { transition:none; opacity:1; }
@@ -308,6 +326,7 @@
           <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual" title="The habitat wall console: telemetry and triage for your role">SHIP DISPLAY</button>
           <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva" title="The astronaut's visor during an EVA">EVA HUD</button>
           <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship" title="The medical console, full width">MEDICAL BAY</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="suits" title="Sensor health of every EVA suit, and the go/no-go for cabin exit">SUIT CHECK</button>
         </div>
         <div class="flex items-center gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="Signed in as (demo switch)" title="Demo switch: a real ship server would set your role when you sign in">
           <span class="soft-label px-1.5">SIGNED IN AS</span>
@@ -388,6 +407,7 @@
       
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <div class="flex-1 min-w-[230px] rounded-lg border border-line/65 bg-[#060e19] px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden"><span class="text-[9px] mono text-emerald-300">[BUS // 1Hz]</span><span id="jsonPacket" class="mono text-[9px] sm:text-[10px] text-cyan/90 whitespace-nowrap overflow-x-auto bus-scroll flex-1">{"psi":4.30,"o2":96,"co2":98,"hr":78,"rad_msv_h":0.08,"r_val":8}</span><span class="text-[8px] mono text-slate-500">SEQ <span id="packetSeq">000001</span></span></div>
+        <button id="suitGateChip" type="button" class="suit-gate rounded-md px-2.5 py-2 text-[9px] mono" title="Open Suit check">SUIT · CHECKING</button>
         <button id="exitButton" class="btn warn rounded-md px-3 py-2 text-[9px] mono">↗ CABIN EXIT</button>
         <button id="reentryButton" class="btn rounded-md px-3 py-2 text-[9px] mono opacity-40" disabled>↙ AIRLOCK RE-ENTRY</button>
       </div>
@@ -646,6 +666,46 @@
         </div>
 
 
+      </section>
+
+      <!-- SUIT CHECK PANEL: sensor health of every EVA suit; feeds the go/no-go gate on CABIN EXIT -->
+      <section id="suitPanel" class="space-y-5 min-w-0 hidden-view">
+        <div class="panel rounded-xl overflow-hidden">
+          <div class="panel-head p-4 flex flex-wrap items-center justify-between gap-3">
+            <div><div class="eyebrow">06 / SUIT CHECK · SENSOR HEALTH</div><h2 class="text-white font-bold mt-1">EVA SUIT CHECKOUT</h2></div>
+            <div class="flex flex-wrap items-center gap-2"><span id="suitSummary" class="text-[9px] mono text-slate-400"></span><button id="runCheckout" type="button" class="btn active rounded-md px-3 py-2 text-[10px] mono">RUN FULL CHECKOUT ↻</button></div>
+          </div>
+          <div class="p-4">
+            <p class="text-[10px] text-slate-400 leading-relaxed mb-3">ASTRA watches every sensor in every suit, not just the readings. A suit with a failed or untrustworthy <b class="text-slate-200">life-support</b> sensor (marked LS) is <b class="text-rose-300">NO-GO</b>: its wearer can't leave through the airlock until the sensor is replaced or they swap to a suit that passes. A fault in a health sensor alone gives <b class="text-amber-200">GO · LIMITED</b>: the EVA can go ahead, but ASTRA can't watch that reading.</p>
+            <div id="suitGrid" class="suit-grid"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl overflow-hidden">
+            <div class="panel-head p-4"><div class="eyebrow">DEMO · BREAK A SENSOR</div><h2 class="text-white font-bold mt-1">FAULT INJECTION</h2></div>
+            <div class="p-4 space-y-2">
+              <p class="text-[10px] text-slate-400 leading-relaxed">Simulates a broken sensor so you can watch the checks catch it. Detection times are shortened for the demo.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label class="text-[8px] mono text-slate-500">SUIT<select id="faultSuit" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+                <label class="text-[8px] mono text-slate-500">SENSOR<select id="faultSensor" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+                <label class="text-[8px] mono text-slate-500">FAULT<select id="faultType" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+              </div>
+              <div class="flex flex-wrap gap-2 pt-1"><button id="injectFault" type="button" class="btn danger rounded-md px-3 py-2 text-[10px] mono">BREAK THIS SENSOR</button><button id="clearFaults" type="button" class="btn rounded-md px-3 py-2 text-[10px] mono">CLEAR INJECTED FAULTS</button></div>
+            </div>
+          </div>
+          <div class="panel rounded-xl overflow-hidden">
+            <div class="panel-head p-4"><div class="eyebrow">HOW ASTRA CHECKS A SENSOR</div><h2 class="text-white font-bold mt-1">FAULT DETECTION RULES</h2></div>
+            <ul class="p-4 space-y-2 text-[10px] text-slate-300 leading-relaxed">
+              <li><b class="text-rose-300">No signal:</b> no data from the sensor for 5 s.</li>
+              <li><b class="text-rose-300">Impossible reading:</b> a value no working sensor can give, such as 130 % O₂.</li>
+              <li><b class="text-rose-300">Stuck:</b> the value hasn't changed at all for 6 s. Real sensors always jitter a little. A real suit would wait longer.</li>
+              <li><b class="text-rose-300">Disagreement:</b> the primary and backup O₂ sensors differ by more than 3 %. If only one is outside its normal range, that one is blamed.</li>
+              <li><b class="text-amber-200">Noisy:</b> readings jump far more than the sensor's normal jitter.</li>
+              <li><b class="text-amber-200">Out of checkout range:</b> a suit on the rack should read inside a known band. Skipped while the suit is outside on an EVA, where readings really change.</li>
+              <li><b class="text-amber-200">Calibration overdue.</b></li>
+            </ul>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -1187,7 +1247,7 @@ const ReportLink = (() => {
   }
   function renderCompanionLoc(){
     const el=$('companionLoc');
-    el.textContent=isDoctor()?'LOC: MED BAY · CMO CONSOLE':astraPos.user?'LOC: PARKED · DRAG TO MOVE':'LOC: VISOR HUD STANDBY';
+    el.textContent=isDoctor()?'LOC: MED BAY · CMO CONSOLE':isEngineer()?'LOC: SUIT LOCKER · CHECKOUT':astraPos.user?'LOC: PARKED · DRAG TO MOVE':'LOC: VISOR HUD STANDBY';
   }
   (()=>{
     const comp=$('companion'); let drag=null;
@@ -1276,13 +1336,30 @@ const ReportLink = (() => {
     // Red-cross clip replaces the grey hair clip.
     px(shade,[[22,3,7,7]]); px(white,[[23,4,5,5]]); px(red,[[25,5,1,3],[24,6,3,1]]);
   }
+  // In the SUIT CHECK tab ASTRA is the suit engineer: hard hat, hi-vis vest, and a wrench in hand.
+  const isEngineer=()=>state.view==='suits';
+  function drawEngineer(ctx){
+    const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
+    const line='#2a2000', hat='#ffc21a', hatShade='#d99a00', hatLight='#ffe680';
+    px(line,[[10,0,16],[8,1,2],[26,1,2],[6,7,24],[4,9,28]]);                       // hard hat outline and brim edge
+    px(hat,[[10,1,16],[8,2,20],[7,3,22,4]]); px(hatLight,[[11,2,3,2]]); px(hatShade,[[17,1,2,6],[4,8,28]]);
+    const vest='#ff7a1a', vestShade='#c45200', band='#fff3a6', shirt='#24323f';   // hi-vis vest with reflective bands
+    px(line,[[8,31,21],[7,32,23],[6,33,1,3],[30,33,1,3]]);
+    px(vest,[[9,31,19],[8,32,21],[7,33,23,3]]); px(shirt,[[16,31,5,2],[17,33,3],[18,34]]);
+    px(vestShade,[[15,31],[21,31],[15,32],[21,32],[16,33],[20,33],[17,34],[19,34]]); px(band,[[7,34,9],[21,34,9]]);
+    const steel='#b9c6d2', steelShade='#6b7986', steelLight='#f2f7fb';          // wrench: outlined handle, open jaw
+    const handle=[...Array(9)].map((_,i)=>[24+i,35-i]);
+    px(line,handle.flatMap(([x,y])=>[[x-1,y],[x+2,y]])); px(steel,handle.map(([x,y])=>[x,y])); px(steelShade,handle.map(([x,y])=>[x+1,y]));
+    px(steelLight,[[26,33],[28,31]]);
+    px(line,[[29,20,7,8]]); px(steel,[[30,21,6,6]]); px(steelShade,[[30,26,6,1]]); px(steelLight,[[30,21,2,1]]); px(line,[[32,20,2,4]]);
+  }
   function drawSprite(canvas){
     if(!canvas || !characterImage || !characterImage.complete || !characterImage.naturalWidth) return;
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,36,36); ctx.imageSmoothingEnabled=false;
     ctx.drawImage(characterImage,0,0,36,36);
     drawFaceExpression(ctx);
-    if(isDoctor()) drawDoctor(ctx);
+    if(isDoctor()) drawDoctor(ctx); else if(isEngineer()) drawEngineer(ctx);
     canvas.style.filter=paletteFilters[state.palette]||'none';
   }
   function drawEmote(canvas){
@@ -1309,7 +1386,7 @@ const ReportLink = (() => {
     const customPanel=$('astraCustomPanel'); if(customPanel) customPanel.classList.toggle('hidden-view',state.companionMode!=='custom');
     setText('companionExpressionLabel',state.expression.toUpperCase());
     const doc=isDoctor();
-    setText('companionName',doc?'DR. ASTRA':'ASTRA'); setText('spriteCaption',doc?'DR. ASTRA':'ASTRA');
+    const nm=doc?'DR. ASTRA':isEngineer()?'ENG. ASTRA':'ASTRA'; setText('companionName',nm); setText('spriteCaption',nm);
     renderCompanionLoc();
     setText('companionPaletteLabel',state.palette.toUpperCase());
     const emotes={nominal:'✦',reminder:'❗',caution:'💧',critical:'💢'};
@@ -1485,15 +1562,17 @@ const ReportLink = (() => {
   function setView(view){
     state.view=view; renderEvaClocks();
     const eva=$('evaPanel'),triage=$('triagePanel');
-    eva.classList.toggle('hidden-view',view==='ship'); triage.classList.toggle('hidden-view',view==='eva');
-    $('quickControlPanel').classList.toggle('hidden-view',view==='ship');   // scenarios and suit controls belong to the EVA telemetry, not the medical bay
+    eva.classList.toggle('hidden-view',view==='ship'||view==='suits'); triage.classList.toggle('hidden-view',view==='eva'||view==='suits');
+    $('suitPanel').classList.toggle('hidden-view',view!=='suits');
+    $('quickControlPanel').classList.toggle('hidden-view',view==='ship'||view==='suits');   // scenarios and suit controls belong to the EVA telemetry
+    if(view==='suits') renderSuits(true);
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
     $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
     // Each tab is a place: the EVA HUD is the visor outside (EVA mode); the ship display and the medical bay are
     // inside the habitat. If the astronaut is already outside, the ship display keeps watching the EVA.
     if(view==='eva' && state.operatingMode==='habitat'){ state.operatingMode='eva'; state.timerActive=false; syncLocationMode(); render(); }
     else if(view!=='eva' && state.operatingMode==='eva' && !state.exited){ state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render(); }
-    moveCompanion(view==='ship'?'bodyMap':'metricsGrid');
+    moveCompanion(view==='ship'?'bodyMap':view==='suits'?'suitGrid':'metricsGrid');
     syncTriageContext();   // which records this tab and role may show; also redraws ASTRA (DR. ASTRA only in the CMO medical bay)
   }
 
@@ -1796,7 +1875,8 @@ const ReportLink = (() => {
     $('compactRows').innerHTML=rows.map(({r,lvl,zones})=>{
       const z=zones[0], pain=z?Number(r.painLevels[z]||0):0;
       const top=z?`${cap(zoneMeta[z]?.label||z)}${pain?` ${pain}/10`:''}${zones.length>1?` +${zones.length-1} more`:''}`:(recNotes(r).trim()?'Free-text note only':'No complaints');
-      return line(r.id,LEVEL_COLOR[lvl],r.live?'YOU':`${r.rank} ${r.name}`,LEVEL_LABEL[lvl],top,r.sentAt?'↗ surgeon':agoText(r.reportedAt));
+      const suitNoGo=suits.some(x=>x.crew===r.id&&suitEval[x.id]&&suitEval[x.id].verdict==='nogo');
+      return line(r.id,LEVEL_COLOR[lvl],r.live?'YOU':`${r.rank} ${r.name}`,LEVEL_LABEL[lvl],(suitNoGo?'Suit no-go · ':'')+top,r.sentAt?'↗ surgeon':agoText(r.reportedAt));
     }).join('')+line('__whole','#ff2a85','◎ Whole crew',`${pats.length} PATTERN${pats.length===1?'':'S'}`,pats[0]?pats[0].text:'No shared pattern right now','open →');
     $('compactRows').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{
       setView('ship');
@@ -1955,6 +2035,190 @@ const ReportLink = (() => {
     }
   }
 
+  // ---------- Suit check: sensor health for every EVA suit, and the go/no-go gate on CABIN EXIT ----------
+  // Each suit's sensors stream simulated self-test readings once a second. ASTRA checks the sensors themselves,
+  // not just the values (rules listed on the page). A failed or untrustworthy life-support (LS) sensor makes the
+  // suit NO-GO and blocks CABIN EXIT for its wearer; a fault in a health-only sensor gives GO · LIMITED.
+  // Detection times are shortened for the demo. Suits are equipment, not medical records, so every role sees them.
+  const DAY=86400000;
+  const SUIT_SENSORS=[
+    {id:'o2a',  name:'primary O₂ sensor',     ls:true,  unit:' %',     dp:1, nominal:96.4, jitter:.25, bench:[94.5,98.5], phys:[0,100],    pair:'o2b', card:'card-o2'},
+    {id:'o2b',  name:'backup O₂ sensor',      ls:true,  unit:' %',     dp:1, nominal:96.2, jitter:.25, bench:[94.5,98.5], phys:[0,100],    pair:'o2a', card:'card-o2'},
+    {id:'co2',  name:'CO₂ sensor',            ls:true,  unit:' mmHg',  dp:2, nominal:1.6,  jitter:.06, bench:[0.4,3.5],   phys:[0,40],     card:'card-co2'},
+    {id:'psi',  name:'suit pressure sensor',  ls:true,  unit:' PSI',   dp:2, nominal:4.30, jitter:.012,bench:[4.15,4.45], phys:[0,8],      card:'card-psi'},
+    {id:'comms',name:'comms / telemetry link',ls:true,  unit:' dBm',   dp:0, nominal:-61,  jitter:1.2, bench:[-78,-45],   phys:[-120,0]},
+    {id:'hr',   name:'heart-rate sensor',     ls:false, unit:' bpm',   dp:0, nominal:71,   jitter:1.6, bench:[45,105],    phys:[25,230],   card:'card-hr'},
+    {id:'temp', name:'core temperature probe',ls:false, unit:' °C',    dp:1, nominal:36.9, jitter:.04, bench:[36.0,37.8], phys:[30,43],    card:'card-temp'},
+    {id:'spo2', name:'SpO₂ sensor',           ls:false, unit:' %',     dp:1, nominal:98.1, jitter:.2,  bench:[94,100],    phys:[50,100]},
+    {id:'dose', name:'radiation dosimeter',   ls:false, unit:' mSv/h', dp:2, nominal:.08,  jitter:.01, bench:[.01,.3],    phys:[0,50]},
+  ];
+  const FAULTS={stuck:'Stuck (frozen value)',nosignal:'No signal',drift:'Drifting',noisy:'Noisy',impossible:'Impossible reading'};
+  const VERDICT={go:{label:'GO',color:'#34d399'},limited:{label:'GO · LIMITED',color:'#ffb800'},nogo:{label:'NO-GO',color:'#ff2a4b'}};
+  const ST={ok:{icon:'✓',color:'#34d399'},warn:{icon:'◐',color:'#ffb800'},fail:{icon:'✕',color:'#ff2a4b'}};
+  const suits=['EMU-1','EMU-2','EMU-3','EMU-4'].map((id,i)=>({id,crew:['you','ortega','okafor',null][i],sensors:{}}));
+  suits.forEach((su,i)=>SUIT_SENSORS.forEach(d=>{ su.sensors[d.id]={v:d.nominal,lastAt:Date.now(),hist:[],fault:null,still:0,calDue:Date.now()+(40+i*25)*DAY}; }));
+  suits[3].sensors.hr.calDue=Date.now()-9*DAY;   // the spare's heart-rate sensor is overdue for calibration: GO · LIMITED
+  const suitEval={};
+  let checkoutUntil=0, suitSig='';
+  const lc=(t)=>t.charAt(0).toLowerCase()+t.slice(1);
+  const sensorDef=(id)=>SUIT_SENSORS.find(d=>d.id===id);
+  const wearer=(su)=>su.crew==='you'?'you':su.crew?shortName(crewRecords[su.crew]):'';
+  function spread(a){ const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length); }
+
+  function suitTick(){
+    const now=Date.now();
+    suits.forEach(su=>SUIT_SENSORS.forEach(d=>{
+      const x=su.sensors[d.id];
+      if(x.fault==='nosignal') return;                                  // nothing arrives
+      const prev=x.v;
+      if(x.fault==='impossible') x.v=d.phys[1]+(d.phys[1]-d.phys[0])*.3;
+      else if(x.fault==='drift') x.v+=(['o2a','o2b','psi'].includes(d.id)?-1:1)*(d.bench[1]-d.bench[0])*.12+(Math.random()-.5)*d.jitter;
+      else if(x.fault!=='stuck'){ const j=d.jitter*(x.fault==='noisy'?14:1); x.v=clamp(x.v+(d.nominal-x.v)*.3+(Math.random()-.5)*2*j,d.phys[0],d.phys[1]); }
+      x.still=x.v===prev?x.still+1:0;
+      x.lastAt=now; x.hist.push(x.v); if(x.hist.length>8) x.hist.shift();
+    }));
+    evaluateSuits();
+  }
+  function sensorStatus(su,d){
+    const x=su.sensors[d.id], now=Date.now(), fmt=(v)=>v.toFixed(d.dp)+d.unit, age=(now-x.lastAt)/1000;
+    if(age>=5) return {st:'fail',why:`Is sending no data (silent for ${Math.round(age)} s).`};
+    if(x.v<d.phys[0]||x.v>d.phys[1]) return {st:'fail',why:`Reads ${fmt(x.v)}, which no working sensor can give.`};
+    if(x.still>=6) return {st:'fail',why:`Is stuck at ${fmt(x.v)}: no change for ${x.still} s.`};
+    const out=(dd,v)=>v<dd.bench[0]||v>dd.bench[1];
+    if(d.pair){
+      const p=sensorDef(d.pair), y=su.sensors[d.pair];
+      const pairAlive=(now-y.lastAt)/1000<5 && y.v>=p.phys[0] && y.v<=p.phys[1] && y.still<6;
+      if(pairAlive && Math.abs(x.v-y.v)>3){
+        const meOut=out(d,x.v), otherOut=out(p,y.v);
+        if(meOut&&!otherOut) return {st:'fail',why:`Disagrees with the ${p.name} by ${Math.abs(x.v-y.v).toFixed(1)} % and is the one outside the normal range.`};
+        if(meOut===otherOut) return {st:'fail',why:`Disagrees with the ${p.name} by ${Math.abs(x.v-y.v).toFixed(1)} %. Can't tell which one is right.`};
+      }
+    }
+    if(x.hist.length>=6 && spread(x.hist)>d.jitter*4) return {st:'warn',why:`Is noisy: readings jump by up to ${(Math.max(...x.hist)-Math.min(...x.hist)).toFixed(d.dp)}${d.unit}.`};
+    const onEva=su.crew==='you'&&state.exited;                         // outside, real readings move: no rack range
+    if(!onEva && out(d,x.v)) return {st:'warn',why:`Reads ${fmt(x.v)}, outside the checkout range (${d.bench[0]} to ${d.bench[1]}${d.unit}).`};
+    if(x.calDue<now) return {st:'warn',why:`Is overdue for calibration (due ${new Date(x.calDue).toLocaleDateString([],{day:'numeric',month:'short'})}).`};
+    return {st:'ok',why:''};
+  }
+  function evaluateSuits(){
+    suits.forEach(su=>{
+      const rows={}, problems=[];
+      SUIT_SENSORS.forEach(d=>{ const r=sensorStatus(su,d); rows[d.id]=r; if(r.st!=='ok') problems.push({d,...r}); });
+      problems.sort((a,b)=>(b.d.ls-a.d.ls)||((b.st==='fail')-(a.st==='fail')));
+      const verdict=problems.some(p=>p.d.ls)?'nogo':problems.length?'limited':'go';
+      const prev=suitEval[su.id]&&suitEval[su.id].verdict;
+      suitEval[su.id]={verdict,rows,problems};
+      if(prev&&prev!==verdict) onVerdictChange(su,prev,verdict);
+    });
+    renderGate(); markFaultyCards();
+    if(state.view==='suits') renderSuits();
+  }
+  function spareFor(su){
+    const rank={go:0,limited:1};
+    return suits.filter(x=>!x.crew&&x!==su&&suitEval[x.id]&&suitEval[x.id].verdict!=='nogo').sort((a,b)=>rank[suitEval[a.id].verdict]-rank[suitEval[b.id].verdict])[0]||null;
+  }
+  function gateMessage(su){
+    const lead=suitEval[su.id].problems.find(p=>p.d.ls), sp=spareFor(su);
+    const who=su.crew==='you'?'Your suit':`${recName(crewRecords[su.crew])}, suit`;
+    return `No-go. ${who} ${su.id}: the ${lead.d.name} ${lc(lead.why)} ${sp?`Swap to ${sp.id}, which ${suitEval[sp.id].verdict==='go'?'passes all checks':'passes its life-support checks'}, or replace the sensor.`:'Replace the sensor before going outside.'}`;
+  }
+  function onVerdictChange(su,prev,verdict){
+    const e=suitEval[su.id], lead=e.problems[0], mine=su.crew==='you';
+    if(verdict==='nogo'){
+      if(mine&&state.exited){   // a life-support sensor failed while outside
+        const backupOk=lead.d.pair&&e.rows[lead.d.pair].st==='ok';
+        companionWarn(`Your ${lead.d.name} in ${su.id} has failed: it ${lc(lead.why)} Don't trust that reading.${backupOk?` I'm using the ${sensorDef(lead.d.pair).name} instead.`:''} Head back to the airlock.`,lead.d.card||'metricsGrid','critical');
+      } else if(state.view==='suits'||mine) companionWarn(su.crew?gateMessage(su):`Spare suit ${su.id} is now no-go: the ${lead.d.name} ${lc(lead.why)}`,state.view==='suits'?'suitGrid':'suitGateChip','caution',true);
+    } else if(verdict==='limited'&&prev==='go'&&state.view==='suits'){
+      companionWarn(`${su.id} is go, but limited: the ${lead.d.name} ${lc(lead.why)} The EVA can go ahead, but I can't watch that reading.`,'suitGrid','reminder',true);
+    } else if(prev==='nogo'&&state.view==='suits'){
+      companionWarn(`${su.id} passes its life-support checks again.`,'suitGrid','nominal',true);
+    }
+  }
+  function renderGate(){
+    const su=suits.find(x=>x.crew==='you'), chip=$('suitGateChip'), base=' rounded-md px-2.5 py-2 text-[9px] mono';
+    const v=su?suitEval[su.id].verdict:'nogo';
+    chip.className='suit-gate'+(v==='nogo'?' nogo':v==='limited'?' limited':'')+base;
+    chip.textContent=su?`SUIT ${su.id} · ${VERDICT[v].label}`:'NO SUIT ASSIGNED';
+    chip.title=!su?'Assign yourself a suit in Suit check.':v==='go'?'Every sensor in your suit passes. Open Suit check.':suitEval[su.id].problems.map(p=>`${cap(p.d.name)}: ${lc(p.why)}`).join('\n');
+    if(!state.exited) $('exitButton').textContent=v==='nogo'?'✕ CABIN EXIT · NO-GO':'↗ CABIN EXIT';
+  }
+  function markFaultyCards(){   // your suit's broken sensors flag the matching telemetry card while you wear it
+    const su=suits.find(x=>x.crew==='you'), bad=new Set();
+    if(su&&state.operatingMode==='eva') SUIT_SENSORS.forEach(d=>{ if(d.card&&suitEval[su.id].rows[d.id].st==='fail') bad.add(d.card); });
+    ['card-o2','card-co2','card-psi','card-hr','card-temp'].forEach(id=>{ const el=$(id); if(el) el.classList.toggle('sensor-fault',bad.has(id)); });
+  }
+  function renderSuits(force){
+    const checking=Date.now()<checkoutUntil;
+    const sig=JSON.stringify([checking,state.role,suits.map(su=>[su.crew,suitEval[su.id].verdict,su.crew&&(state.role==='cmo'||su.crew==='you')&&recLevel(crewRecords[su.crew]),SUIT_SENSORS.map(d=>[suitEval[su.id].rows[d.id].st,su.sensors[d.id].fault])])]);
+    if(force||sig!==suitSig){
+      suitSig=sig;
+      $('suitGrid').innerHTML=suits.map(su=>{
+        const e=suitEval[su.id], V=VERDICT[e.verdict], rec=su.crew&&crewRecords[su.crew], sp=e.verdict==='nogo'&&su.crew?spareFor(su):null;
+        const who=su.crew==='you'?`You${typeof Crew!=='undefined'&&Crew.callSign()?' · '+Crew.callSign():''}`:rec?`${recName(rec)} · ${rec.role}`:'Spare · not assigned';
+        const rows=SUIT_SENSORS.map(d=>{
+          const r=e.rows[d.id], c=ST[r.st].color, x=su.sensors[d.id];
+          const fix=r.st==='ok'?'':x.fault?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">REPLACE</button>`:x.calDue<Date.now()?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">RECALIBRATE</button>`:'';
+          return `<div class="sensor-row"><span class="s-icon" style="color:${c}">${ST[r.st].icon}</span><span class="s-name">${esc(cap(d.name))}${d.ls?'<span class="crit-tag" title="Life support: a fault here means no-go">LS</span>':''}</span><span class="s-val" id="sv-${su.id}-${d.id}"></span>${r.st!=='ok'?`<div class="s-detail" style="color:${c}"><span id="sw-${su.id}-${d.id}">${esc(r.why)}</span>${fix}</div>`:''}</div>`;
+        }).join('');
+        return `<article class="suit-card ${checking?'checking':''}" style="--verdict:${V.color}">
+          <div class="flex items-start justify-between gap-2"><div class="min-w-0"><div class="text-white font-bold mono text-sm">${su.id}</div><div class="text-[10px] text-slate-400 truncate">${esc(who)}</div></div><span class="verdict">${V.label}</span></div>
+          ${rec&&(state.role==='cmo'||su.crew==='you')&&recLevel(rec)==='critical'?`<div class="text-[9px] mono text-amber-200 mt-1">MEDICAL HOLD · ${esc(su.crew==='you'?'your':shortName(rec)+"'s")} triage is urgent (Medical bay)</div>`:''}
+          <div class="mt-2">${rows}</div>
+          ${sp?`<button type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono mt-2 w-full" data-swap="${su.id}|${sp.id}">SWAP ${esc(su.crew==='you'?'YOUR':shortName(rec).toUpperCase()+"'S")} SUIT TO ${sp.id} ↗</button>`:''}
+          ${e.verdict==='nogo'&&su.crew&&!sp?'<p class="text-[9px] text-rose-300 mt-2">No spare suit passes. Replace the sensor before going outside.</p>':''}
+        </article>`;
+      }).join('');
+    }
+    suits.forEach(su=>SUIT_SENSORS.forEach(d=>{   // live values and counters, every tick
+      const x=su.sensors[d.id], v=document.getElementById(`sv-${su.id}-${d.id}`), w=document.getElementById(`sw-${su.id}-${d.id}`);
+      if(v) v.textContent=(Date.now()-x.lastAt)/1000>=5?'—':x.v.toFixed(d.dp)+d.unit;
+      if(w) w.textContent=suitEval[su.id].rows[d.id].why;
+    }));
+    const n={go:0,limited:0,nogo:0}; suits.forEach(su=>n[suitEval[su.id].verdict]++);
+    setText('suitSummary',`${n.go} GO · ${n.limited} LIMITED · ${n.nogo} NO-GO`);
+  }
+  function fillFaultSuits(){
+    const sel=$('faultSuit'), keep=sel.value;
+    sel.innerHTML=suits.map(su=>`<option value="${su.id}">${su.id} · ${esc(su.crew==='you'?'You':su.crew?shortName(crewRecords[su.crew]):'spare')}</option>`).join('');
+    sel.value=keep||(suits.find(x=>x.crew==='okafor')||suits[0]).id;
+  }
+  evaluateSuits();   // first verdicts before anything renders (e.g. a ?view=suits deep link)
+  fillFaultSuits();
+  $('faultSensor').innerHTML=SUIT_SENSORS.map(d=>`<option value="${d.id}">${esc(cap(d.name))}${d.ls?' (LS)':''}</option>`).join('');
+  $('faultType').innerHTML=Object.entries(FAULTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  $('injectFault').addEventListener('click',()=>{
+    const su=suits.find(x=>x.id===$('faultSuit').value), x=su.sensors[$('faultSensor').value];
+    x.fault=$('faultType').value; x.still=0; x.hist=[];
+    $('injectFault').textContent='BROKEN · WATCH ASTRA CATCH IT'; setTimeout(()=>{$('injectFault').textContent='BREAK THIS SENSOR';},2500);
+  });
+  $('clearFaults').addEventListener('click',()=>{ suits.forEach(su=>SUIT_SENSORS.forEach(d=>{ const x=su.sensors[d.id]; if(x.fault){ x.fault=null; x.v=d.nominal; x.still=0; x.hist=[]; x.lastAt=Date.now(); } })); evaluateSuits(); });
+  $('suitGrid').addEventListener('click',e=>{
+    const fix=e.target.closest('[data-fix]'), swap=e.target.closest('[data-swap]');
+    if(fix){
+      const [sid,did]=fix.dataset.fix.split('|'), su=suits.find(x=>x.id===sid), x=su.sensors[did], d=sensorDef(did), wasFault=!!x.fault;
+      Object.assign(x,{fault:null,v:d.nominal,still:0,hist:[],lastAt:Date.now()}); if(x.calDue<Date.now()) x.calDue=Date.now()+180*DAY;
+      evaluateSuits(); renderSuits(true);
+      companionWarn(`${cap(d.name)} in ${sid} ${wasFault?'replaced':'recalibrated'}. ${VERDICT[suitEval[sid].verdict].label==='GO'?`${sid} passes all checks.`:`${sid} is ${VERDICT[suitEval[sid].verdict].label}.`}`,'suitGrid','nominal',true);
+    }
+    if(swap){
+      const [from,to]=swap.dataset.swap.split('|'), a=suits.find(x=>x.id===from), b=suits.find(x=>x.id===to), lead=suitEval[from].problems.find(p=>p.d.ls);
+      b.crew=a.crew; a.crew=null; fillFaultSuits(); evaluateSuits(); renderSuits(true);
+      companionWarn(`${b.crew==='you'?"You're":cap(wearer(b))+' is'} now in ${to}. ${from} is out of service until the ${lead?lead.d.name:'faulty sensor'} is fixed.`,'suitGrid','nominal',true);
+    }
+  });
+  $('runCheckout').addEventListener('click',()=>{
+    checkoutUntil=Date.now()+2500; renderSuits(true);
+    setTimeout(()=>{
+      checkoutUntil=0; renderSuits(true);
+      const parts=suits.map(su=>{ const e=suitEval[su.id], p=e.problems[0];
+        return e.verdict==='go'?`${su.id} go`:e.verdict==='limited'?`${su.id} go, limited: ${p.d.name}`:`${su.id} no-go: ${p.d.name} ${lc(p.why).replace(/\.$/,'')}`; });
+      const fix=suits.filter(su=>su.crew&&suitEval[su.id].verdict==='nogo').map(su=>{ const sp=spareFor(su); return sp?` Move ${wearer(su)==='you'?'yourself':wearer(su)} to ${sp.id}.`:''; }).join('');
+      companionWarn(`Checkout done. ${parts.join('. ')}.${fix}`,'suitGrid',suits.some(su=>suitEval[su.id].verdict==='nogo')?'caution':'nominal',true);
+    },2500);
+  });
+  $('suitGateChip').addEventListener('click',()=>setView('suits'));
+
   // Wire view controls.
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   $('voiceToggle').addEventListener('click',()=>{state.voiceOn=!state.voiceOn;$('voiceToggle').innerHTML='VOICE: <span class="'+(state.voiceOn?'text-cyan':'text-slate-500')+'">'+(state.voiceOn?'ON':'OFF')+'</span>';if(!state.voiceOn){ if(typeof VEGA!=='undefined'&&VEGA.stop) VEGA.stop(); else if('speechSynthesis'in window) speechSynthesis.cancel(); }});
@@ -2003,6 +2267,10 @@ const ReportLink = (() => {
   });
   $('exitButton').addEventListener('click',()=>{
     if(state.exited||state.operatingMode!=='eva')return;
+    // Go/no-go gate: no cabin exit in a suit with a failed or untrustworthy life-support sensor.
+    const mySuit=suits.find(x=>x.crew==='you');
+    if(!mySuit){ companionWarn('You have no EVA suit assigned. Pick one in Suit check before going outside.','suitGateChip','caution',true); return; }
+    if(suitEval[mySuit.id].verdict==='nogo'){ companionWarn(gateMessage(mySuit),'suitGateChip','critical',true); return; }
     state.exited=true; state.timerActive=true; state.outsideSeconds=0;
     state.exitAt=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
     if(state.rad>=1)state.safeSeconds=Math.min(state.safeSeconds,165);
@@ -2044,9 +2312,10 @@ const ReportLink = (() => {
   const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
   setRole(startRole,true);
   // ?view=display|eva|medical opens a tab directly (handy for the demo).
-  const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship'}[new URLSearchParams(location.search).get('view')];
+  const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship',suits:'suits',suit:'suits'}[new URLSearchParams(location.search).get('view')];
   if(VIEW_PARAM) setView(VIEW_PARAM);
   setInterval(tickSensors,1000);
+  setInterval(suitTick,1000);   // suit sensor health (Suit check tab and the cabin-exit gate)
   setInterval(sensorTimerTick,1000);
   setTimeout(()=>moveCompanion('metricsGrid'),350);
 })();

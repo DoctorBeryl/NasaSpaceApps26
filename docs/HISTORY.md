@@ -263,3 +263,19 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 
 ## 2026-11-15: Alex (+ Claude): ASTRA's alert lock removed
 **Changed:** `report.html`. The team tried the alert lock and didn't like it, so it's gone: no amber locked state, no following the reading on scroll, no drag block. Dragging and parking stay. Once parked, ASTRA stays put for every message, alerts included; the alert still shows in her bubble, voice and the ship PA. Unparked, she moves next to the reading as before. Double-click her portrait to unpark her.
+
+## 2026-11-15: Alex (+ Claude): Suit check tab, go/no-go gate on cabin exit, engineer ASTRA
+**Changed:** `report.html`.
+- New **Suit check** tab (view key `suits`, deep link `?view=suits`). Four suits: EMU-1 is yours, EMU-2 Ortega's, EMU-3 Okafor's, and EMU-4 is a spare whose heart-rate sensor is overdue for calibration. Each suit has nine sensors. Five are life-support (LS): primary O₂, backup O₂, CO₂, suit pressure, and the comms link. Four are health: heart rate, core temp, SpO₂, and the dosimeter. All stream simulated self-test values at 1 Hz.
+- **Detection rules:**
+  - Failed: no data for 5 s; physically impossible reading; stuck (no change for 6 s); primary and backup O₂ disagreeing by more than 3 % (blames the one outside its normal range, or says it can't tell).
+  - Degraded: noisy (spread more than 4× normal jitter); outside the rack checkout range (skipped for your suit while you're outside); calibration overdue.
+- **Verdicts:** any LS problem → **NO-GO**; health-only problems → **GO · LIMITED**; otherwise **GO**.
+- **Gate:** CABIN EXIT checks your assigned suit. On NO-GO the button reads "✕ CABIN EXIT · NO-GO", ASTRA names the exact sensor, suit and fault, and she suggests a spare that passes. A chip beside the button shows your suit's verdict and opens Suit check.
+- **During an EVA:** if an LS sensor in your suit fails outside, ASTRA raises a critical alert. She says not to trust the reading, switches to the backup O₂ sensor if it's healthy, and tells you to head back. The matching telemetry card shows "SENSOR FAULT · DON'T TRUST".
+- **Actions:** REPLACE or RECALIBRATE a sensor; SWAP a crew member to the spare suit; RUN FULL CHECKOUT, after which ASTRA reads a per-suit summary.
+- **Demo fault injection:** pick a suit, sensor and fault (stuck, no signal, drifting, noisy, impossible). It defaults to Okafor's primary O₂ stuck.
+- **CMO touches:** the compact roster on the Ship display prefixes "Suit no-go" for a crew member whose suit fails. A suit card shows "MEDICAL HOLD" when its wearer's triage is urgent, but only to the CMO, or on your own suit, so medical status doesn't leak to the crew.
+- In this tab ASTRA becomes **ENG. ASTRA**: a hard hat, a hi-vis vest and a wrench, drawn as pixels by `drawEngineer`.
+**Decisions:** Suits are equipment, not medical records, so every role sees all suits; only the medical hold is CMO-only. Detection times are shortened for the demo, and the rules panel says so. A sensor fault on a health-only sensor doesn't block the EVA, because life support is what must be trusted outside.
+**Gotchas:** `evaluateSuits()` runs once when the module loads, so a `?view=suits` deep link has verdicts to draw. Suit sensor values are their own simulated channels, not the live telemetry in `state`. Only the fault badges link the two.
