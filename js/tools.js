@@ -52,7 +52,10 @@
   }
 
   /* ---------------- reading slider + ASTRA popup ---------------- */
-  const tgt = (tool = current) => overrides[tool.id] ?? tool.base;
+  /* A connected sensor (js/watch.js) replaces the simulated reading while it's fresh.
+     The slider still overrides it, so "Simulate anomaly" works with a sensor on. */
+  const live = (tool) => overrides[tool.id] == null && typeof AstraWatch !== "undefined" ? AstraWatch.get(tool.id) : null;
+  const tgt = (tool = current) => overrides[tool.id] ?? live(tool) ?? tool.base;
   const zone = () => zoneOf(current, tgt()).zone;
 
   function updateReadout() {
@@ -289,9 +292,40 @@
       { tone: VEGA.toneFor(z) });
   };
 
+  /* ---------------- live sensor ---------------- */
+  // Real readings go through the same zone rules as the slider, so ASTRA warns on them too.
+  function sensorTick() {
+    if (typeof AstraWatch === "undefined") return;
+    const s = AstraWatch.status();
+    TOOLS.forEach((tool) => {
+      const v = live(tool);
+      document.querySelector(`.tool-item[data-id="${tool.id}"]`)?.classList.toggle("live", v != null);
+      if (v != null) popup.check(tool, v);
+    });
+    if (current) updateReadout();
+    const curLive = current && live(current) != null;
+    $("#st-live").textContent = curLive ? `LIVE · ${s.device.toUpperCase()}` : "LIVE SIMULATION";
+    const bar = $("#sensor-bar");
+    bar.dataset.live = s.live;
+    $("#sensor-state").textContent = s.live
+      ? `Live from ${s.device}: ${s.liveIds.map((id) => toolById(id).name).join(", ")}. The rest are simulated.`
+      : s.waiting ? `Paired (code ${s.code}). Waiting for the device's first reading…` : "No sensor connected. Readings are simulated.";
+    $("#btn-sensor").textContent = s.live || s.waiting ? "Manage sensor" : "Connect a sensor or device";
+    const ex = AstraWatch.extras();
+    $("#device-extras").hidden = !ex.length;
+    $("#device-extras-list").innerHTML = ex.map((e) =>
+      `<div class="we-item" title="${e.note}"><span>${e.label}</span><b>${e.text}</b></div>`).join("");
+  }
+  if (typeof AstraWatch !== "undefined") {
+    $("#btn-sensor").onclick = () => AstraWatch.openDialog();
+    AstraWatch.onChange(sensorTick);
+    setInterval(sensorTick, 1000);
+  } else $("#sensor-bar").hidden = true;
+
   addEventListener("resize", resize);
   addEventListener("hashchange", () => select(location.hash.slice(1)));
   resize();
   select(location.hash.slice(1));
+  sensorTick();
   requestAnimationFrame(frame);
 })();

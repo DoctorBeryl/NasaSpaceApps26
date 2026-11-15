@@ -5,6 +5,7 @@
       phone; this page polls /api/watch/<pair code>. HR, HRV, SpO2, respiration, stress.
    2. Bluetooth heart-rate broadcast (any watch or strap, no watch code): Web Bluetooth,
       Chrome or Edge on a secure origin. HR, plus HRV when the strap sends beat intervals.
+   UI: AstraWatch.openDialog() ("Connect a sensor or device"), used by tools.html.
    AstraWatch.get(toolId) returns a live value for a TOOLS id, or null when there is no
    fresh reading, so callers fall back to simulated data on their own. Docs: docs/GARMIN.md
    ========================================================== */
@@ -17,7 +18,7 @@ const AstraWatch = (() => {
   /* Watch field -> TOOLS id. Garmin's stress score (0-100) stands in for the
      cognitive-load index; both are "higher = more strained" on the same scale. */
   const MAP = { hr: "cardio", hrv: "hrv", spo2: "spo2", resp: "resp", stress: "cog" };
-  const LABEL = { cardio: "watch optical HR", hrv: "watch beat intervals (RMSSD)", spo2: "watch Pulse Ox", resp: "watch respiration", cog: "Garmin stress score" };
+  const LABEL = { cardio: "optical heart-rate sensor", hrv: "beat-to-beat intervals (RMSSD)", spo2: "pulse oximeter", resp: "respiration sensor", cog: "device stress score" };
 
   let code = null;
   try { code = localStorage.getItem(CODE_KEY); } catch {}
@@ -175,5 +176,54 @@ const AstraWatch = (() => {
   setInterval(() => { const s = status().live; if (s !== lastLive) { lastLive = s; emit(); } }, 3000);
   if (code) { startPolling(); pollOnce(); }
 
-  return { get, status, extras, onChange, pair, unpair, connectBluetooth, disconnectBluetooth, label: (id) => LABEL[id] || "watch", hasBluetooth: () => !!navigator.bluetooth };
+  /* ---------- "Connect a sensor or device" dialog ---------- */
+  let dlg = null;
+  function openDialog() {
+    if (!dlg) {
+      dlg = document.createElement("dialog");
+      dlg.className = "watch-dlg";
+      dlg.setAttribute("aria-labelledby", "wd-title");
+      dlg.innerHTML = `
+        <h3 id="wd-title">Connect a sensor or device</h3>
+        <p class="wd-status" role="status"></p>
+        <section>
+          <strong>Device with a pair code</strong>
+          <p>Start the AstraLink app on the device (a phone nearby carries its data), then type the 6-character code it shows. Sends heart rate, HRV, SpO₂, breathing, stress and more.</p>
+          <form class="wd-pair"><input name="code" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC123" aria-label="Pair code"><button type="submit">Pair</button><button type="button" class="wd-unpair">Disconnect</button></form>
+        </section>
+        <section>
+          <strong>Bluetooth heart-rate sensor</strong>
+          <p>Any chest strap, or a watch in heart-rate broadcast mode, straight to this browser (Chrome or Edge). Heart rate only.</p>
+          <button type="button" class="wd-ble">Connect over Bluetooth</button>
+        </section>
+        <p class="wd-note">Readings without a live source stay simulated. Not a medical device.</p>
+        <button type="button" class="wd-close">Close</button>`;
+      document.body.appendChild(dlg);
+      const msg = dlg.querySelector(".wd-status");
+      dlg.querySelector(".wd-pair").onsubmit = (e) => {
+        e.preventDefault();
+        msg.textContent = pair(e.target.code.value) ? "Paired. Waiting for the first reading…" : "The code is 6 letters or digits, shown on the device.";
+      };
+      dlg.querySelector(".wd-unpair").onclick = () => { unpair(); disconnectBluetooth(); };
+      dlg.querySelector(".wd-ble").onclick = async () => {
+        msg.textContent = "Pick the sensor in the browser's list…";
+        try { msg.textContent = `Connected to ${await connectBluetooth()}.`; }
+        catch (err) { msg.textContent = err.name === "NotFoundError" ? "No sensor picked. Is it broadcasting heart rate?" : err.message; }
+      };
+      dlg.querySelector(".wd-close").onclick = () => dlg.close();
+      onChange(refreshDialog);
+    }
+    refreshDialog();
+    dlg.showModal();
+  }
+  function refreshDialog() {
+    if (!dlg) return;
+    const s = status();
+    dlg.querySelector(".wd-status").textContent = s.live ? `Live from ${s.device}.`
+      : s.waiting ? `Paired with code ${s.code}. Waiting for data… (is the device's app open and its phone nearby?)` : "No sensor connected. Showing simulated readings.";
+    dlg.querySelector(".wd-unpair").hidden = !s.code && !s.bluetoothName;
+    if (s.code) dlg.querySelector("input").value = s.code;
+  }
+
+  return { get, status, extras, onChange, openDialog, pair, unpair, connectBluetooth, disconnectBluetooth, label: (id) => LABEL[id] || "watch", hasBluetooth: () => !!navigator.bluetooth };
 })();

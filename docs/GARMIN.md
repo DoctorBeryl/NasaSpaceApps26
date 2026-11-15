@@ -8,13 +8,13 @@
 | **Watch** | AstraLink, which shows a pair code and sends readings |
 | **Phone** | Garmin Connect app open, Bluetooth on. It carries the watch's requests to the internet. |
 | **VM (live server)** | Nothing to do: it already serves `/api/watch` (it pulls `main` every 10 min) |
-| **Browser** | Open **the same server the watch posts to** (by default `https://app.healtmonitor.bid/interface.html`), click the watch button, and type the pair code |
+| **Browser** | Open **the same server the watch posts to** (by default `https://app.healtmonitor.bid/tools.html`), click **Connect a sensor or device**, and type the pair code |
 
-You only need `cloudflared` if you want the watch to post to `node server.js` on your own PC instead of the VM. Run it on the PC next to that server, and open the page from the PC (`http://localhost:8000/interface.html`). The page and the watch must use the same server, because readings live in that server's memory.
+You only need `cloudflared` if you want the watch to post to `node server.js` on your own PC instead of the VM. Run it on the PC next to that server, and open the page from the PC (`http://localhost:8000/tools.html`). The page and the watch must use the same server, because readings live in that server's memory.
 
-The HUD (`interface.html`) can show real readings from a Garmin Forerunner 255 instead of simulated ones. Readings without a live source stay simulated, and if the watch goes quiet for 15 seconds, the HUD goes back to the simulation. Demo overrides (sliders, "simulate emergency") still win over live values, so the scripted demo works with a watch on.
+The Diagnostics page (`tools.html`) can show real readings from a Garmin Forerunner 255 instead of simulated ones. Readings without a live source stay simulated, and if the watch goes quiet for 15 seconds, the HUD goes back to the simulation. Demo overrides (sliders, "simulate emergency") still win over live values, so the scripted demo works with a watch on.
 
-There are two ways in. Both start from the watch button in the HUD panel header.
+There are two ways in. Both start from **Connect a sensor or device** under the Diagnostics page header. (Until Nov 15 evening this was a watch button on `tools.html`; it moved on Alex's request.) Real readings go through the same zone rules as the slider, so ASTRA's warning pops up on a real out-of-range reading.
 
 | | Bluetooth broadcast | AstraLink app |
 |---|---|---|
@@ -33,7 +33,7 @@ There are two ways in. Both start from the watch button in the HUD panel header.
 | Respiration rate | Respiration (`resp`) | |
 | Garmin stress score (0–100) | Cognitive load (`cog`) | a stand-in: both are 0–100, higher means more strained |
 
-Everything else shows in the HUD's **From your watch** strip (under the readiness score) and goes into ASTRA's chat context:
+Everything else shows in the **From your device** card on the Diagnostics page and goes into ASTRA's chat context:
 
 | Field | What it is | Why it matters here |
 |---|---|---|
@@ -58,7 +58,7 @@ ASTRA's chat context labels live readings ("live from the crew member's watch Pu
 ## Option 1: Bluetooth broadcast (2 minutes, no code)
 
 1. On the watch: hold **UP** › Settings › Wrist Heart Rate › **Broadcast Heart Rate**.
-2. Open `interface.html` in Chrome or Edge, click the watch button, then **Connect over Bluetooth**, and pick the watch.
+2. Open `tools.html` in Chrome or Edge, click **Connect a sensor or device**, then **Connect over Bluetooth**, and pick the watch.
 
 ## Option 2: the AstraLink watch app
 
@@ -87,7 +87,7 @@ Run `connectiq` (it opens the simulator), then `monkeydo bin/AstraLink.prg fr255
 ### Run the demo
 1. Keep the phone nearby with Bluetooth on and Garmin Connect open.
 2. The watch shows your heart rate, SpO₂ / HRV / breathing, a **pair code** (6 characters, kept between runs) and a status line. "Live · 12" means 12 readings were accepted.
-3. On the HUD, click the watch button, type the pair code, and press **Pair**. Within a few seconds the panel says `LIVE · FORERUNNER 255 · 5 OF 8 READINGS`, and live cards get a green **LIVE** tag. The page remembers the code.
+3. On the Diagnostics page, click **Connect a sensor or device**, type the pair code, and press **Pair**. Within a few seconds the panel says `LIVE · FORERUNNER 255 · 5 OF 8 READINGS`, and live cards get a green **LIVE** tag. The page remembers the code.
 4. Press **START** on the watch to send at once. **BACK** exits the app, and the HUD goes back to simulated readings after 15 s.
 
 HRV needs about 10 beats before it appears. SpO₂ may show `--` until Pulse Ox has a reading. Turn Pulse Ox on in the watch's settings to get one sooner.

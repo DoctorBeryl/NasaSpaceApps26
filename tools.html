@@ -22,6 +22,11 @@
       <span class="eyebrow">Diagnostic suite</span>
       <h1>See each tool <span class="grad-text">at work.</span></h1>
       <p class="lead">Pick a diagnostic to see its simulated signal, how it works, and the voice command that opens it. Each demo frame is a placeholder for real footage. Add a video file and it plays automatically.</p>
+      <div class="sensor-bar" id="sensor-bar" data-live="false">
+        <span class="dot"></span>
+        <span id="sensor-state">No sensor connected. Readings are simulated.</span>
+        <button class="btn btn-ghost" id="btn-sensor" type="button" aria-haspopup="dialog">Connect a sensor or device</button>
+      </div>
     </div>
   </header>
 
@@ -67,6 +72,12 @@
         <div id="sl-mount"></div>
       </div>
 
+      <div class="card device-extras" id="device-extras" hidden>
+        <h3>From your device</h3>
+        <p class="dim">Readings with no tool of their own. ASTRA uses them as context.</p>
+        <div class="watch-extras" id="device-extras-list"></div>
+      </div>
+
       <div class="spec-grid">
         <div class="spec"><span>Sensor</span><b id="sp-sensor"></b></div>
         <div class="spec"><span>Sample rate</span><b id="sp-sample"></b></div>
@@ -102,6 +113,7 @@
   <script src="js/vega.js"></script>
   <script src="js/crew.js"></script>
   <script src="js/alerts.js"></script>
+  <script src="js/watch.js"></script>
   <script src="js/companion.js"></script>
   <script src="js/tools.js"></script>
   <script>
