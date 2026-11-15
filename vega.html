@@ -7,8 +7,10 @@
   <meta name="description" content="ASTRA, the Astronaut Support, Triage & Response Assistant: the on-device language model that runs AstraSight's voice control." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/companion.css" />
+  <link rel="stylesheet" href="css/arcade.css" />
 </head>
 <body>
   <canvas id="starfield"></canvas>
@@ -19,7 +21,7 @@
     <div class="container hero-grid">
       <div>
         <span class="eyebrow">The language model</span>
-        <h1 style="font-size:clamp(40px,5.6vw,72px)">ASTRA<br /><span class="grad-text">Astronaut Support, Triage &amp; Response Assistant</span></h1>
+        <h1 style="font-size:clamp(40px,5.6vw,72px)">ASTRA<br /><span class="grad-text" style="font-size:.4em">Astronaut Support, Triage &amp; Response Assistant</span></h1>
         <p class="lead">ASTRA is a small, specialised language model built for one job: understanding what a crew member says about their health and acting on it right away. It runs on the glasses, works with no link to Earth, and was tuned on space-medicine protocols.</p>
         <div class="hero-stats">
           <div><strong>On-device</strong><span>No ground link needed</span></div>
@@ -27,7 +29,7 @@
           <div><strong>~380 ms</strong><span>Target round trip</span></div>
         </div>
       </div>
-      <div><div class="ai-orb" style="width:300px;height:300px"></div></div>
+      <div style="overflow-x:clip"><div class="ai-orb" style="width:min(300px,78vw);height:min(300px,78vw)"><canvas data-vega-sprite="nominal" width="36" height="36" role="img" aria-label="ASTRA, pixel-art assistant"></canvas><span>ASTRA</span></div></div>
     </div>
   </header>
 
@@ -124,6 +126,8 @@
   <script src="js/common.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/vega.js"></script>
+  <script src="js/crew.js"></script>
+  <script src="js/companion.js"></script>
   <script>
     document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = ICONS[el.dataset.icon]));
 

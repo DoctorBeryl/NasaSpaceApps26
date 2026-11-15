@@ -125,7 +125,7 @@
 
 @media (max-width: 520px) {
   .vega-buddy { right: 12px; left: 12px; bottom: 12px; max-width: none; }
-  .vega-buddy.minimized { left: auto; }
+  .vega-buddy.minimized { left: auto; }   /* collapsed: the "?" button stays bottom-right */
 }
 @media (prefers-reduced-motion: reduce) {
   .vb-help, .vega-buddy.pop .vb-bubble,

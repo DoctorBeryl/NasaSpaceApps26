@@ -1,6 +1,7 @@
 /* ==========================================================
    AstraSight: arcade skin (matches report.html's EVA-MED HUD)
-   Load AFTER styles.css. Opt-in per page: index.html, tools.html.
+   Load AFTER styles.css. Opt-in per page: index, tools, vega, login,
+   imca, ultrasound.
    Flat neon colors (cyan / pink / amber / green) instead of
    gradients, pixel grid + scanlines, square panels with
    corner brackets, Press Start 2P for accents.
