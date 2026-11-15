@@ -541,3 +541,10 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Why:** This was the open item from the video entry: the site had nothing for the handrails. A link keeps the two codebases separate while the hackathon is on.
 **Open / next:** The rail readings aren't in `TOOLS` yet (no `grip` tool), so "streams to the HUD" is still a concept. If the workers.dev URL changes, update it in `index.html` and `js/common.js`.
 **Verified:** Headless Edge screenshots at 1400 px: the nav fits, the section renders, and the rail animates. This machine has no Playwright or Python, so the mobile layout was only checked roughly.
+
+## 2026-11-15: Alex (+ Claude): fewer handrail links; ultrasound moves into the Medical bay
+**Changed:**
+- Home page "Beyond the helmet" (`#handrails` in `index.html`): removed the clickable rail preview card (animated 150-cell grid and readouts) and the "Cabin rail map ↗" button. "Open the handrail studio ↗" is the one link left. The section is a single text column now (`.rail-copy`, max 760 px). The `.rail-*` preview CSS and the grid animation script are gone.
+- `ultrasound.html` is out of `NAV_LINKS`. The Medical bay tab on `report.html` has a new "Guided ultrasound" panel (`#ultrasoundPanel`, below ASTRA's medical review, shown only when `state.view==='ship'`, toggled in `renderTriageRole()`) with an "Open ultrasound ▶" button. `ultrasound.html` has a "← Medical bay" link to `report.html?view=medical` (`.us-back` in `css/medbay.css`).
+**Why:** Alex: the preview card and the rail map button went to the same external site as the studio button, so three links to one place. Ultrasound is a procedure the crew medical officer runs, not a top-level area, so it belongs in the Medical bay rather than the nav.
+**Verified:** Playwright at 1440 and 390 px: one link in `#handrails`, nav is Home/Interface/Diagnostics/Report/AstroKinetic, the ultrasound panel shows in the Medical bay only (hidden on display, EVA and suit check), Medical bay → ultrasound → back lands on the Medical bay tab, no sideways scroll, no page errors.

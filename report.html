@@ -725,6 +725,15 @@
           </div>
         </div>
 
+        <!-- MEDICAL BAY ONLY: guided ultrasound (its own page) -->
+        <div class="panel rounded-xl overflow-hidden hidden-view" id="ultrasoundPanel">
+          <div class="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0 max-w-xl"><div class="eyebrow">MEDICAL BAY · IMAGING</div><h2 class="text-white font-bold mt-1">GUIDED ULTRASOUND</h2>
+              <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">Scan a kidney, the heart, the lungs or the bladder without a sonographer on board. ASTRA tells you how to slide, turn and tilt the probe, saves the clear frame and sends it to the flight surgeon.</p></div>
+            <a href="ultrasound.html" class="btn active rounded-md px-3 py-2 text-[10px] mono whitespace-nowrap">OPEN ULTRASOUND ▶</a>
+          </div>
+        </div>
+
         <details class="panel architecture-details rounded-xl overflow-hidden" id="crewPaPanel">
           <summary class="panel-head p-4"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span class="text-[9px] mono text-slate-500"><span id="pa-count">0 announcements</span> <span class="when-closed">· SHOW +</span><span class="when-open">· HIDE −</span></span></summary>
           <div class="p-4 space-y-3">
@@ -2208,6 +2217,7 @@ const ReportLink = (() => {
     // triageSnapshot is toggled in renderSnapshot(); the crew role bar on the ship display is handled above
     $('triageReviewPanel').classList.toggle('hidden-view',ov||dual);
     $('surgeonBox').classList.toggle('hidden-view',!full);
+    $('ultrasoundPanel').classList.toggle('hidden-view',state.view!=='ship');   // imaging belongs to the Medical bay
     setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
     renderBanner(); renderSurgeon(); renderSnapshot();
     renderBodyMap(); renderSymptoms(); renderReported();

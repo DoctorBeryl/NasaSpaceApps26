@@ -143,3 +143,7 @@
 @media (prefers-reduced-motion: reduce) {
   .us-meter span { transition: none; }
 }
+
+/* ultrasound.html: back link to the Medical bay (the page is no longer in the nav) */
+.us-back { display: block; width: fit-content; margin-bottom: 14px; font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--cyan); text-decoration: none; }
+.us-back:hover, .us-back:focus-visible { text-decoration: underline; }

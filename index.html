@@ -108,8 +108,8 @@
 
   <!-- SMART HANDRAILS (companion project: AstroKinetic-ID, external site) -->
   <section id="handrails">
-    <div class="container split">
-      <div class="reveal">
+    <div class="container">
+      <div class="reveal rail-copy">
         <span class="eyebrow">Beyond the helmet</span>
         <h2>Every push-off<br /><span class="grad-text">is a health check.</span></h2>
         <p class="lead">In microgravity, crew move by pushing off handrails dozens of times an hour. AstroKinetic-ID lines those rails with dense tactile sensors, so each grab gives a few seconds of data the helmet can't measure. ASTRA compares it with the crew member's own baseline.</p>
@@ -121,21 +121,7 @@
         </ul>
         <div class="hero-cta">
           <a href="https://astrokinetic-v9.healtmonitor.bid/" class="btn btn-primary" target="_blank" rel="noopener">Open the handrail studio ↗</a>
-          <a href="https://astrokinetic-v9.healtmonitor.bid/#vessel" class="btn btn-ghost" target="_blank" rel="noopener">Cabin rail map ↗</a>
         </div>
-      </div>
-      <div class="reveal">
-        <a class="rail-preview" href="https://astrokinetic-v9.healtmonitor.bid/#surface" target="_blank" rel="noopener" aria-label="Open the tactile handrail view in AstroKinetic-ID (new tab)">
-          <div class="mono rail-tag">ASTROKINETIC-ID // RAIL 03 · NODE 2</div>
-          <div class="rail-bar"><div class="rail-cells" id="rail-cells" aria-hidden="true"></div></div>
-          <div class="rail-readouts">
-            <div><span>Push-off</span><b>184 N</b></div>
-            <div><span>Grip vs baseline</span><b>&minus;6 %</b></div>
-            <div><span>Tremor 8–12 Hz</span><b>Low</b></div>
-            <div><span>Skin conductance</span><b>2.4 µS</b></div>
-          </div>
-          <div class="mono rail-foot"><span>Simulated · streams to the HUD</span><span class="arrow">↗</span></div>
-        </a>
       </div>
     </div>
   </section>
@@ -200,27 +186,6 @@
     document.querySelectorAll(".tool-icon").forEach((el) => {
       el.innerHTML = el.innerHTML.replace("ICON_SENSE", ICONS.wave).replace("ICON_THINK", ICONS.brain).replace("ICON_SPEAK", ICONS.mic);
     });
-
-    // Handrail preview: 5 x 30 = 150 tactile cells, a hand-shaped pressure patch drifting along the rail
-    (() => {
-      const host = document.getElementById("rail-cells");
-      if (!host) return;
-      const ROWS = 5, COLS = 30;
-      host.style.gridTemplateColumns = `repeat(${COLS}, minmax(0, 1fr))`;
-      const cells = Array.from({ length: ROWS * COLS }, () => host.appendChild(document.createElement("i")));
-      const paint = (t) => {
-        const cx = 14.5 + Math.sin(t / 2600) * 9;
-        cells.forEach((c, i) => {
-          const x = i % COLS, y = Math.floor(i / COLS);
-          const d = Math.hypot((x - cx) / 3.2, (y - 2) / 2.6);
-          c.style.setProperty("--p", (Math.max(0, 1 - d) * (0.85 + 0.15 * Math.sin(t / 90 + i))).toFixed(2));
-        });
-      };
-      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return paint(0);
-      let last = 0;
-      const loop = (t) => { if (t - last > 50) { paint(t); last = t; } requestAnimationFrame(loop); };
-      requestAnimationFrame(loop);
-    })();
 
     // Live mini heart rate
     setInterval(() => {
