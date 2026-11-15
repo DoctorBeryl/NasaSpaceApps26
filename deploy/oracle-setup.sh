@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# AstraSight: one-shot setup for an Oracle Cloud Always Free Ubuntu server (ARM, 2 OCPU / 12 GB).
+# AstraSight: one-shot setup for any Ubuntu 22.04/24.04 server, x86 or ARM, with 12 GB+ RAM
+# (Google Cloud Compute Engine, Azure, Oracle Always Free, ...).
 # Installs Node, Ollama (Qwen 2.5 3B + MedGemma 1.5 4B), runs server.js as a service, pulls new
 # commits from main every 10 minutes, and connects a Cloudflare Tunnel so no ports need opening.
 # Safe to run again: each step skips what's already done.
@@ -127,7 +128,7 @@ done
 say "Cloudflare Tunnel"
 if [ -n "$TUNNEL_TOKEN" ]; then
   if ! command -v cloudflared >/dev/null; then
-    curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
+    curl -fsSL -o /tmp/cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(dpkg --print-architecture).deb"
     sudo dpkg -i /tmp/cloudflared.deb
   fi
   sudo cloudflared service uninstall >/dev/null 2>&1 || true
