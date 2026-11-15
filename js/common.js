@@ -15,8 +15,6 @@ const NAV_LINKS = [
   ["interface.html", "Interface"],
   ["tools.html", "Diagnostics"],
   ["report.html", "Report"],
-  // External: AstroKinetic-ID, the team's companion smart-handrail studio (opens in a new tab)
-  ["https://astrokinetic-v9.healtmonitor.bid/", "AstroKinetic ↗", "external"],
 ];
 // vega.html (ASTRA AI) is reached through the nav "?" (AstraHelp below). imca.html is no longer in the nav; the page still exists.
 // ultrasound.html is opened from the Medical bay on report.html (#ultrasoundPanel), not from the nav.
