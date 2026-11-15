@@ -273,14 +273,10 @@
     .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
     .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
     .name-link:hover { color:#fff; }
-    /* Moving ASTRA: hold and drag her card or portrait; she locks (amber) onto an alert until Acknowledge. */
+    /* Moving ASTRA: hold and drag her card or portrait to park her. */
     .astra-handle { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
     .companion.dragging { transition:none; opacity:1; }
     .companion.dragging .astra-handle { cursor:grabbing; }
-    .companion.locked { transition-duration:.15s; }
-    .companion.locked .astra-handle { cursor:not-allowed; }
-    .companion.locked .sprite-frame { border-color:var(--amber); box-shadow:0 0 12px rgba(255,184,0,.35); }
-    .companion.locked .companion-card { border-color:rgba(255,184,0,.6); }
     .compact-row { width:100%; display:grid; grid-template-columns:auto minmax(0,9.5em) auto minmax(0,1fr) auto; align-items:center; gap:8px; text-align:left; border:1px solid rgba(63,103,130,.3); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.85); border-radius:6px; padding:5px 8px; font:500 9px 'JetBrains Mono',monospace; color:#a9c5d6; }
     .compact-row:hover { border-color:rgba(0,240,255,.5); border-left-color:var(--lvl,#34d399); color:#eaffff; }
     .compact-row .c-name { color:#eaf6ff; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1143,7 +1139,7 @@ const ReportLink = (() => {
       $('companionMessage').textContent=message;
       $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
       $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
-      if(mood==='nominal') moveCompanion(target||'triagePanel'); else lockCompanion(target||'triagePanel');
+      moveCompanion(target||'triagePanel');
       speak(message,mood); return;
     }
     if(mood!=='nominal' && state.operatingMode==='eva'){   // say the new EVA countdown in the same breath as the hazard
@@ -1154,8 +1150,8 @@ const ReportLink = (() => {
     $('companionMessage').textContent=message;
     $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
     $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
-    if(mood==='nominal'){ unlockCompanion(); moveCompanion(target||'card-psi'); ReportLink.clear(); speak(message,mood); return; }
-    lockCompanion(target||'card-psi');   // out of the ordinary: ASTRA stays on this reading until Acknowledge
+    moveCompanion(target||'card-psi');   // parked: she stays put; otherwise she goes to the reading
+    if(mood==='nominal'){ ReportLink.clear(); speak(message,mood); return; }
     const alert={key:target||'alert',mood,msg:message,loc:ALERT_LOC[target]||'Visor HUD'};
     ReportLink.setActive(alert); ReportLink.announce(alert);
     if(!ReportLink.paOn) speak(message,mood);   // with the PA on, the PA voice says it once
@@ -1176,49 +1172,28 @@ const ReportLink = (() => {
 
   // ---------- Moving ASTRA ----------
   // Hold and drag ASTRA (her card or her portrait) to park her where she doesn't cover what you're reading.
-  // Routine messages and tab switches leave her parked. Anything out of the ordinary (a reminder, caution or
-  // critical alert) locks her onto the reading that needs attention, following it as you scroll, until someone
-  // presses Acknowledge or the reading recovers; then she returns to her parking spot. Double-click her
-  // portrait to let her place herself again. The spot is remembered per browser.
-  const astraPos={user:null, lock:null};
+  // Once parked she stays there, alerts included (they still show in her bubble and voice). Unparked, she
+  // moves next to whatever she is talking about. Double-click her portrait to unpark her. Remembered per browser.
+  const astraPos={user:null};
   try{ const s=JSON.parse(localStorage.getItem('astrasight.astraPos')||'null'); if(s&&Number.isFinite(s.left)&&Number.isFinite(s.top)) astraPos.user=s; }catch(e){}
   function placeCompanion(left,top){
     const comp=$('companion'), w=comp.offsetWidth||304, h=comp.offsetHeight||150;
     comp.style.left=clamp(left,8,Math.max(8,window.innerWidth-w-8))+'px';
     comp.style.top=clamp(top,8,Math.max(8,window.innerHeight-h-8))+'px';
   }
-  function moveCompanion(targetId){   // routine placement: alert lock first, then the parking spot, then automatic
-    if(astraPos.lock) return teleportCompanion(astraPos.lock);
+  function moveCompanion(targetId){   // the parking spot if there is one, otherwise next to the target
     if(astraPos.user) return placeCompanion(astraPos.user.left,astraPos.user.top);
     teleportCompanion(targetId);
   }
-  function lockCompanion(targetId){
-    astraPos.lock=targetId; $('companion').classList.add('locked');
-    teleportCompanion(targetId); renderCompanionLoc();
-  }
-  function unlockCompanion(){
-    if(!astraPos.lock) return;
-    astraPos.lock=null; $('companion').classList.remove('locked');
-    if(astraPos.user) placeCompanion(astraPos.user.left,astraPos.user.top);
-    renderCompanionLoc();
-  }
   function renderCompanionLoc(){
     const el=$('companionLoc');
-    if(astraPos.lock){ el.textContent='LOCKED ON: '+(ALERT_LOC[astraPos.lock]||'alert').toUpperCase(); el.style.color='#ffb800'; return; }
-    el.style.color='';
     el.textContent=isDoctor()?'LOC: MED BAY · CMO CONSOLE':astraPos.user?'LOC: PARKED · DRAG TO MOVE':'LOC: VISOR HUD STANDBY';
   }
-  let followFrame=0;   // while locked, stay on the reading as the page scrolls
-  window.addEventListener('scroll',()=>{
-    if(!astraPos.lock||followFrame) return;
-    followFrame=requestAnimationFrame(()=>{ followFrame=0; if(astraPos.lock) teleportCompanion(astraPos.lock); });
-  },{passive:true});
   (()=>{
     const comp=$('companion'); let drag=null;
     comp.querySelectorAll('.sprite-frame,.companion-card').forEach(h=>{ h.classList.add('astra-handle'); h.title='Hold and drag to move ASTRA. Double-click her portrait to let her place herself again.'; });
     comp.addEventListener('pointerdown',e=>{
       const h=e.target.closest('.astra-handle'); if(!h||e.button!==0||e.target.closest('button')) return;
-      if(astraPos.lock){ comp.classList.remove('glitch'); void comp.offsetWidth; comp.classList.add('glitch'); return; }   // locked on an alert until Acknowledge
       const r=comp.getBoundingClientRect();
       drag={dx:e.clientX-r.left,dy:e.clientY-r.top,sx:e.clientX,sy:e.clientY,moved:false};
       h.setPointerCapture(e.pointerId); e.preventDefault();
@@ -1242,7 +1217,7 @@ const ReportLink = (() => {
     comp.addEventListener('pointerup',end); comp.addEventListener('pointercancel',end);
     comp.querySelector('.sprite-frame').addEventListener('dblclick',()=>{
       astraPos.user=null; try{ localStorage.removeItem('astrasight.astraPos'); }catch(e){}
-      renderCompanionLoc(); if(!astraPos.lock) teleportCompanion(state.view==='ship'?'bodyMap':'metricsGrid');
+      renderCompanionLoc(); teleportCompanion(state.view==='ship'?'bodyMap':'metricsGrid');
     });
   })();
 
@@ -1468,7 +1443,7 @@ const ReportLink = (() => {
       // A crew-report alert (state.triageHold) is about symptoms, not telemetry: keep it until Acknowledge.
       if(recovered && !state.triageHold){
         const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
-        state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert){ ReportLink.clear(); unlockCompanion(); }
+        state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert) ReportLink.clear();
         if(!state.exited) state.safeSeconds=1800;
         if(state.companionMode==='auto') state.expression='nominal';
         syncButtons();
@@ -2011,7 +1986,7 @@ const ReportLink = (() => {
   }));
   $('resetSensors').addEventListener('click',()=>{
     Object.assign(state,baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
-    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';state.triageHold=false;ReportLink.clear();unlockCompanion();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';state.triageHold=false;ReportLink.clear();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
     state.outsideSeconds=0;state.lastOutside=0;emergencies.clear();emergencyCleared=null;
     syncButtons();syncLocationMode();updateCompanion();render();
   });
@@ -2045,7 +2020,7 @@ const ReportLink = (() => {
   document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(!(zoneMeta[state.selectedZone]?.views||[]).includes(state.bodyView)) state.selectedZone=state.bodyView==='front'?'forehead':'crown';renderBodyMap();renderSymptoms();}));
   $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
   $('analyzeButton').addEventListener('click',runTriage);
-  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; unlockCompanion(); });   // the voice/PA side is handled in the crew script below
+  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; });   // the voice/PA side is handled in the crew script below
   document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.role!==state.role) setRole(b.dataset.role); }));
   $('sendSurgeon').addEventListener('click',()=>{
     const r=currentRec(); r.sentAt=Date.now(); renderSurgeon(); renderRoster();
