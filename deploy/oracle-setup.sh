@@ -49,14 +49,13 @@ sudo tee /etc/systemd/system/ollama.service.d/astrasight.conf >/dev/null <<'EOF'
 [Service]
 Environment=OLLAMA_HOST=127.0.0.1:11434
 Environment=OLLAMA_KEEP_ALIVE=-1
-Environment=OLLAMA_MAX_LOADED_MODELS=2
+Environment=OLLAMA_MAX_LOADED_MODELS=3
 Environment=OLLAMA_NUM_PARALLEL=1
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now ollama
 sudo systemctl restart ollama
 for i in $(seq 1 30); do curl -fs http://127.0.0.1:11434/api/tags >/dev/null && break; sleep 1; done
-for m in $MODELS; do say "Pulling $m (a few minutes)"; ollama pull "$m"; done
 
 say "App code in $APP_DIR"
 if [ ! -d "$APP_DIR/.git" ]; then
@@ -67,6 +66,19 @@ else
 fi
 [ -f "$APP_DIR/.env" ] || cp "$APP_DIR/.env.example" "$APP_DIR/.env"
 mkdir -p "$APP_DIR/server/data"
+
+# Models: every OLLAMA_*MODEL=... in .env.example and .env (so a model the team adds to
+# .env.example is pulled here and by the auto-update), plus $MODELS.
+sudo tee /usr/local/bin/astrasight-models >/dev/null <<'EOF'
+#!/usr/bin/env bash
+# Prints the Ollama models AstraSight needs, one per line.
+cd "${APP_DIR:-/opt/astrasight}"
+{ grep -hE '^[[:space:]]*OLLAMA_[A-Z_]*MODEL[[:space:]]*=' .env.example .env 2>/dev/null \
+    | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]*(#.*)?$//; s/^["'"'"']//; s/["'"'"']$//'
+  for m in ${MODELS:-}; do echo "$m"; done; } | grep -v '^$' | sort -u
+EOF
+sudo chmod +x /usr/local/bin/astrasight-models
+for m in $(APP_DIR="$APP_DIR" MODELS="$MODELS" astrasight-models); do say "Pulling $m (a few minutes)"; ollama pull "$m"; done
 
 say "astrasight service (node server.js on port 8000; only the tunnel reaches it)"
 sudo tee /etc/systemd/system/astrasight.service >/dev/null <<EOF
@@ -95,6 +107,8 @@ cd "$APP_DIR"
 git fetch -q origin main
 if [ "\$(git rev-parse HEAD)" != "\$(git rev-parse origin/main)" ]; then
   git pull -q --ff-only origin main
+  # Pull any model the team added to .env.example (already-present models return quickly).
+  for m in \$(APP_DIR="$APP_DIR" MODELS="$MODELS" /usr/local/bin/astrasight-models); do ollama pull "\$m" >/dev/null && echo "model \$m ok"; done
   sudo systemctl restart astrasight
   echo "updated to \$(git rev-parse --short HEAD)"
 fi
@@ -123,8 +137,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now astrasight astrasight-update.timer
 sudo systemctl restart astrasight
 
-say "Warming up the models"
-for m in $MODELS; do
+say "Warming up the models (each can take a minute or two on CPU: let it finish)"
+for m in $(APP_DIR="$APP_DIR" MODELS="$MODELS" astrasight-models); do
   curl -fs http://127.0.0.1:11434/api/generate -d "{\"model\":\"$m\",\"prompt\":\"hi\",\"stream\":false,\"keep_alive\":-1}" >/dev/null \
     && echo "$m ready" || echo "$m warm-up failed (check: ollama list)"
 done
