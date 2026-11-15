@@ -5,6 +5,8 @@
    (docs/AI-BACKEND.md). Every question can be answered by typing
    or by voice: the mic button uses VEGA.createListener (Web Speech
    API, Chrome/Edge). When done: AstraAuth.saveProfile({ profile, onboarded: true }).
+   The name (call sign) and role come from sign-in (login.html), so those two
+   questions are skipped for signed-in crew; guests on ?onboard=1 still get them.
    Load after vega.js and auth.js.
    ========================================================== */
 (function () {
@@ -18,7 +20,9 @@
   // vega.js declares ASTRA with const, so it is a global but not a window property
   const V = typeof VEGA !== "undefined" ? VEGA : null;
   const STT = !!(V && V.supported && V.supported.recognition);
-  const LOCAL_KEY = "astrasight.onboarding.profile";
+  // Unfinished answers, per crew member, so a half-done questionnaire never leaks into the next person's
+  let LOCAL_KEY = "astrasight.onboarding.profile.guest";
+  const FROM_SIGN_IN = { callsign: "callsign", role: "role" };   // question id -> profile field sign-in fills
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const MIC = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 
@@ -290,8 +294,16 @@
     document.body.appendChild(root);
     document.body.classList.add("ob-open");
     const name = user && user.name ? user.name.split(" ")[0] : "";
+    if (user) LOCAL_KEY = `astrasight.onboarding.profile.${user.uid}`;
+    try { localStorage.removeItem("astrasight.onboarding.profile"); } catch {}   // old shared key (not per user)
     try { profile = JSON.parse(localStorage.getItem(LOCAL_KEY)) || {}; } catch { profile = {}; }
-    if (name && !profile.callsign) profile.name = name;
+    if (user) {
+      // Start from what sign-in already stored: name as the call sign, and the role picked on login.html.
+      const doc = await AstraAuth.getProfile().catch(() => null);
+      profile = { ...((doc && doc.profile) || {}), ...profile };
+      if (!profile.callsign) profile.callsign = user.name;
+      if (!profile.role && (doc && doc.role || user.role)) profile.role = (doc && doc.role) || user.role;
+    }
 
     let data;
     try { data = await api("onboard/questions"); }
@@ -301,7 +313,7 @@
       area.querySelector("button").addEventListener("click", () => close(false));
       return;
     }
-    questions = data.questions || [];
+    questions = (data.questions || []).filter((q) => !(FROM_SIGN_IN[q.id] && profile[FROM_SIGN_IN[q.id]]));
     total = questions.length;
     queue = questions.slice();
     say(`Welcome aboard${name ? ", " + name : ""}. I have ${total} quick questions so I can tailor your baselines and how I talk to you.`,

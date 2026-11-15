@@ -705,8 +705,8 @@
           <div class="p-4 space-y-3">
             <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, ASTRA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on ASTRA's card. Turning the PA on reads the current alert again from the start.</p>
             <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-2" autocomplete="off">
-              <label class="sr-only" for="crew-rank">Rank</label>
-              <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
+              <label class="sr-only" for="crew-rank">Role</label>
+              <input id="crew-rank" type="text" readonly placeholder="No role" title="The role you picked when you enrolled (sign-in page)" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200 placeholder:text-slate-600 cursor-default focus:outline-none">
               <label class="sr-only" for="crew-name">Astronaut name</label>
               <input id="crew-name" type="text" maxlength="40" readonly placeholder="Guest (sign in to use your name)" title="Comes from your sign-in and onboarding questionnaire" class="rounded-lg border border-line bg-[#07111d] p-2 text-xs text-slate-200 placeholder:text-slate-600 cursor-default focus:outline-none">
             </form>
@@ -2363,6 +2363,13 @@ const ReportLink = (() => {
   let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
   const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
   setRole(startRole,true);
+  // A signed-in Crew Medical Officer (role picked at sign-in) opens in the CMO view, unless the URL says otherwise.
+  if(!roleParam && typeof AstraAuth!=='undefined') AstraAuth.ready.then(async(u)=>{
+    if(!u) return;
+    const doc=await AstraAuth.getProfile().catch(()=>null);
+    const r=(doc&&((doc.profile&&doc.profile.role)||doc.role))||u.role;
+    if(r==='medical-officer'&&state.role!=='cmo') setRole('cmo',true);
+  }).catch(()=>{});
   // ?view=display|eva|medical opens a tab directly (handy for the demo).
   const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship',suits:'suits',suit:'suits'}[new URLSearchParams(location.search).get('view')];
   if(VIEW_PARAM) setView(VIEW_PARAM);
@@ -2378,15 +2385,13 @@ const ReportLink = (() => {
   const $ = (id) => document.getElementById(id);
   if (typeof Crew !== 'undefined' && typeof ShipPA !== 'undefined') {
     const rankSel = $('crew-rank'), nameIn = $('crew-name'), who = $('pa-who');
-    Crew.RANKS.forEach((r) => rankSel.insertAdjacentHTML('beforeend', `<option>${r}</option>`));
     const fill = () => {
       const p = Crew.get();
       nameIn.value = p.name;   // read-only: from sign-in / questionnaire, never typed
-      rankSel.value = p.rank;
+      rankSel.value = p.guest ? '' : ((window.AstraAuth && AstraAuth.ROLE_LABELS[p.role]) || '');   // read-only: role picked at sign-in
       who.textContent = Crew.callSign() ? `Announcing as: ${Crew.callSign()}` : 'Guest: announcements will say "EVA crew member". Sign in to use your name.';
     };
     fill(); Crew.onChange(fill);
-    rankSel.addEventListener('change', () => Crew.set({ rank: rankSel.value }));
     $('crew-form').addEventListener('submit', (e) => { e.preventDefault(); nameIn.blur(); });
 
     const paButton = () => {

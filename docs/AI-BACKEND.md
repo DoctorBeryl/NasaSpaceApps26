@@ -166,7 +166,7 @@ Rules enforced in code, because a 4B model doesn't hold them reliably:
 
 ## Profile fields
 
-`callsign`, `role`, `missionType` (`leo|lunar|mars-transit|mars-surface|analog|other`), `durationDays`, `exerciseLevel` (`low|moderate|high|athlete`), `restingHr`, `sleepHours`, `sleepAids`, `conditions[]`, `medications[]`, `allergies[]`, `history[]`, `copingPrefs[]`, `wantsCheckIns`, `verbosity` (`brief|standard|detailed`), `alertMode` (`voice-and-visual|visual|quiet-on-task`), `focusTools[]`, `answers{}` (raw answers by question id), and `tailoring{}`. The server drops unknown fields and out-of-range values.
+`callsign`, `role` (`commander|pilot|flight-engineer|mission-specialist|payload-specialist|medical-officer|other`; both come from sign-in, so the questionnaire skips them for signed-in crew), `missionType` (`leo|lunar|mars-transit|mars-surface|analog|other`), `durationDays`, `exerciseLevel` (`low|moderate|high|athlete`), `restingHr`, `sleepHours`, `sleepAids`, `conditions[]`, `medications[]`, `allergies[]`, `history[]`, `copingPrefs[]`, `wantsCheckIns`, `verbosity` (`brief|standard|detailed`), `alertMode` (`voice-and-visual|visual|quiet-on-task`), `focusTools[]`, `answers{}` (raw answers by question id), and `tailoring{}`. The server drops unknown fields and out-of-range values.
 
 ## Not done yet (open for other agents)
 

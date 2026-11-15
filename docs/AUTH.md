@@ -61,7 +61,7 @@ The running server picks up changes to the file automatically.
 Load `js/auth.js` after `common.js` (all pages already do). It adds a name chip and a **Sign out** link to the nav, and fills any `[data-auth-name]` element with the crew member's name (the HUD's `CREW` corner uses this).
 
 ```js
-const user = await AstraAuth.ready;          // { uid, name, mode } or null
+const user = await AstraAuth.ready;          // { uid, name, role, mode } or null
 AstraAuth.requireAuth();                      // send signed-out users to login.html?next=<this page>
 AstraAuth.onChange((u) => …);                 // sign-in / sign-out; also a "astra:auth" DOM event
 
@@ -81,11 +81,13 @@ const idToken = await AstraAuth.getIdToken(); // null in local mode
 
 | Route | Body | Returns |
 |-------|------|---------|
-| `GET /api/auth/config` | none | `{ mode: "firebase"\|"local", firebase: webConfig\|null, faceModels, threshold, enrolled }` |
+| `GET /api/auth/config` | none | `{ mode: "firebase"\|"local", firebase: webConfig\|null, faceModels, threshold, enrolled, roles }` |
 | `POST /api/auth/face/verify` | `{ descriptors: number[128][] }` (1–10) | `200 session`, or `401 { error: "no_match" }` (the server console logs the closest distance, for tuning) |
-| `POST /api/auth/face/enroll` | `{ name, descriptors: number[128][] }` (3–12) | `200 session`, or `409 { error: "already_enrolled", name }` |
+| `POST /api/auth/face/enroll` | `{ name, role, descriptors: number[128][] }` (3–12; `role` required, one of `ROLES` in `server/onboarding.js`) | `200 session`, `400` without a valid role, or `409 { error: "already_enrolled", name }` |
 
-`session = { uid, name, isNew, mode, token, distance }`. In local mode `token` is null. Both POST routes allow 30 requests per minute per IP.
+`session = { uid, name, role, isNew, mode, token, distance }`. In local mode `token` is null. Both POST routes allow 30 requests per minute per client IP (behind the Cloudflare Tunnel that is `CF-Connecting-IP`).
+
+**Name and role are asked once, at sign-in.** New crew enter a name and pick a role from a dropdown (face enrollment and "Create account"). Role values: `commander`, `pilot`, `flight-engineer`, `mission-specialist`, `payload-specialist`, `medical-officer`, `other`. The face server stores the role with the template; the profile doc gets `role` plus `profile: { callsign: name, role }`, so the questionnaire skips its name and role questions. `Crew` (`js/crew.js`) uses the role as the rank in PA announcements, and a `medical-officer` opens `report.html` in the CMO view.
 
 ## Limits (say these out loud if a judge asks)
 
