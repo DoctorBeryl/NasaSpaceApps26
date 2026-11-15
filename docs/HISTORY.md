@@ -437,3 +437,9 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Changed:** Cloudflare served stale JS for 4 h (`Browser Cache TTL` overrode the origin's `no-cache`). The zone now has a cache rule for `app.healtmonitor.bid` (bypass, respect origin TTL) and "Respect Existing Headers"; live files come back `no-cache` / `REVALIDATED`.
 **Changed:** ultrasound voice guidance was still silent in the browser voice (Chrome drops a `speak()` right after `cancel()`, and some browsers have no voices). `VEGA.speak(text, { cache: true })` now uses ElevenLabs and keeps each phrase's audio in memory for the page, so repeated probe prompts cost credits only once; `ultrasound.js` uses it instead of `local: true`. `speakBrowser` now waits 80 ms and calls `resume()` before `speak()`, guarded by `seq` so a newer `stop()` still wins.
 **Verified:** Playwright with `/api/tts` intercepted: voice on sends 2 phrases, off/on again sends 0 new requests; falls back to the browser voice when audio can't play.
+
+## 2026-11-15 · Alex (Claude) · VM pulls main every minute
+
+**Changed:** the live server's `astrasight-update.timer` checks GitHub every minute instead of every 10 (`deploy/oracle-setup.sh`, docs). A push is live about a minute later.
+**Why not a real on-push trigger:** a GitHub webhook or an Actions secret needs the repo owner's admin rights; a one-minute `git fetch` is cheap and needs neither.
+**Gotcha:** every push that changes files restarts the server, which cuts off any MedGemma review in progress (about 2.5 min). Batch pushes during judging, or freeze with `sudo systemctl disable --now astrasight-update.timer`.
