@@ -88,6 +88,7 @@
     });
     a.onAuthStateChanged(fb.auth, (u) => {
       if ((u && u.uid) === (user && user.uid)) return;
+      if (!u && user && user.mode === "local") return;   // a face (local) session isn't Firebase's to end
       setUser(u ? fromFirebase(u) : null);
     });
     return first ? fromFirebase(first) : null;
@@ -102,10 +103,15 @@
   async function init() {
     cfg = await loadConfig();
     let u = null;
-    if (cfg.mode === "firebase") {
-      try { u = await initFirebase(); } catch (e) { console.warn("[auth] Firebase failed to load; using local session.", e); cfg.mode = "local"; }
+    // Firebase loads whenever the server sends a web config: email and password need it even when
+    // face sign-in runs in local mode (no service account). Then both kinds of session can exist.
+    if (cfg.firebase) {
+      try { u = await initFirebase(); } catch (e) { console.warn("[auth] Firebase failed to load; using local session.", e); cfg.mode = "local"; cfg.firebase = null; }
     }
-    if (!u && cfg.mode !== "firebase") u = store.get(LOCAL_SESSION);
+    if (!u && cfg.mode !== "firebase") {
+      const s = store.get(LOCAL_SESSION);
+      if (s && s.mode !== "firebase") u = s;   // a firebase entry is only a name cache
+    }
     setUser(u && u.uid ? u : null);
     return user;
   }

@@ -4,10 +4,10 @@ A 30-second promo built from code, with an original phonk-style beat. Every cut 
 
 | Time | Shot |
 |------|------|
-| 0–4 s | Side shot, camera on the right: a white 3D stickman wearing AstraSight glasses pushes off the smart handrails and drifts diagonally left, away from the camera |
-| 4–7 s | Bass drop and hyper-zoom on his hand at rail **3B**, with car-edit strobe readouts on the beat: rail linked to the lens, push-off force, grip force against his pre-flight baseline, heart rate (PPG), skin conductance (EDA) |
+| 0–4 s | Side shot, camera on the right: a white 3D stickman wearing the AstraSight helmet pushes off the smart handrails and drifts diagonally left, away from the camera |
+| 4–7 s | Bass drop and hyper-zoom on his hand at rail **3B**, with car-edit strobe readouts on the beat: rail linked to the helmet, push-off force, grip force against his pre-flight baseline, heart rate (PPG), skin conductance (EDA) |
 | 7–11 s | Locked-off back shot: he floats to the hatch, it opens on an observation window, and a reticle locks onto a small light far out in space |
-| 11–14 s | **Solar flare:** the light flares white-orange and the station goes to red alert. The lens HUD shows "SOLAR FLARE · SHELTER IN 02:40" counting down, the alarm beeps (beep-beep-beep for 3 s), he breathes hard and looks around, and the camera pushes in |
+| 11–14 s | **Solar flare:** the light flares white-orange and the station goes to red alert. The visor HUD shows "SOLAR FLARE · SHELTER IN 02:40" counting down, the alarm beeps (beep-beep-beep for 3 s), he breathes hard and looks around, and the camera pushes in |
 | 14–16 s | Warp zoom into the flare, white flash |
 | 16–17 s | Black, total silence |
 | 17–28 s | The real website, recorded with Playwright: a HUD heart-rate alert, "status report" typed to ASTRA, the real solar-flare shelter countdown and ASTRA's critical alert on the EVA HUD, Suit check NO-GO, the Medical bay (CMO) |

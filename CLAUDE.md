@@ -4,7 +4,7 @@ Shared instructions for every Claude Code instance working on this repo. This fi
 
 ## What this is
 
-**AstraSight**, our NASA Space Apps Challenge 2026 entry for **"Create Health Monitoring Software for Astronauts on Space Missions"**. It's a concept website for smart glasses with an in-lens health HUD (a side panel) and **ASTRA**, an on-device voice assistant that reads vitals, explains them, and suggests actions.
+**AstraSight**, our NASA Space Apps Challenge 2026 entry for **"Create Health Monitoring Software for Astronauts on Space Missions"**. It's a concept website for a spacesuit helmet with a health HUD inside the visor (a side panel; it started as smart glasses, dropped Nov 15) and **ASTRA**, an on-device voice assistant that reads vitals, explains them, and suggests actions.
 
 - **Naming:** the assistant is **ASTRA** (Astronaut Support, Triage & Response Assistant). It was called VEGA until Nov 15. All user-visible text, the AI persona and the server prompts say ASTRA, and the wake word accepts both "ASTRA" and "VEGA". Code identifiers keep the old name on purpose, so no one's work breaks: `window.VEGA` / `VEGA.speak()`, `js/vega.js`, `vega.html`, `VegaBuddy`, `VegaAlerts`, and `.vega-*` CSS classes. Use ASTRA in new copy; don't rename identifiers.
 - Challenge page: https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/

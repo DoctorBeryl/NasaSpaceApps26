@@ -476,7 +476,33 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Open / next:** The site still has no handrail (`grip`) reading, so the video's rail data has no matching panel in the product yet (see `docs/research/smart-handrails.md` §5). The product is still "glasses" in the video; if the team switches to the helmet, change the visor in `promo.html` (`head` group).
 **Gotchas:** Headless Chromium renders WebGL on the GPU when launched with `--use-angle=d3d11 --enable-gpu --ignore-gpu-blocklist` (see `render.py`). Screenshots of the live site come out at about 3 fps, which is fine because UI changes in steps and the punch zooms are done in `promo.html`. No ffmpeg on the machine: `pip install imageio-ffmpeg` ships one.
 
+## 2026-11-15 · Alex (Claude) · Glasses dropped: the homepage shows the real helmet
+
+**Why:** Alex: the team dropped the smart-glasses idea; the homepage should show the actual helmet, and the separate helmet section can go if it repeats the hero.
+**Changed:**
+- `index.html` hero: the 2D drawing is gone; the hero is now the live 3D helmet (`#glasses-stage.g3d-hero`, `data-zoom` sets the framing). The four float tags are its callouts, with arrows to the visor display (Heart), eye cameras (Eye scan), chin mics (voice line) and dosimeter (Dose). The separate "No buttons" 3D section is removed (it showed the same model twice); the hero lead and hint now say there are no buttons.
+- Glasses wording replaced across user-visible copy and AI prompts: `js/data.js` sensors (temple arms, nose pads, frame → comm cap temple pads, forehead, helmet air inlet / oxygen loop flow sensor, top of the helmet), `vega.html`, `imca.html`, `interface.html` meta, `server.js` system prompt, `server/persona.md`, `server/onboarding.js`, `server/ai.js`, README, CLAUDE.md.
+- Nav logo (`BRAND_MARK` in `js/common.js`) is a helmet instead of glasses; the tagline is "Helmet health HUD" (was "Health optics").
+**Left alone:** docs/AUTH.md and docs/research mention glasses in design notes; DR. ASTRA's pixel outfit in `report.html` still wears reading glasses (that's her costume, not the product).
+**Verified:** Playwright (SwiftShader) at 1440 and 390 px: helmet renders in the hero, arrows land on each part, no page errors, no horizontal scroll.
+
+## 2026-11-15 · Alex (Claude) · Email and password sign-in on; promo stickman wears the helmet
+
+**Email and password:** the live server ran in local mode (no service account), and `/api/auth/config` sent `firebase: null` unless both the web config and the service account were set, so `login.html` disabled email and password. Email/Password only needs the public web config. Now `server/auth.js` always sends `WEB_CONFIG`, which defaults to the team project (same public values as `.env.example`; `FIREBASE_*` in `.env` overrides, `FIREBASE_API_KEY=off` disables). `MODE` is unchanged: "firebase" still needs the service account (face custom tokens, `AI_REQUIRE_AUTH`). `js/auth.js` loads Firebase whenever `cfg.firebase` is set; a local (face) session and a Firebase (email) session can coexist, and Firebase's "signed out" event no longer ends a local face session. `js/login.js` enables the password option when `cfg.firebase` exists. Login copy says "camera" instead of "lens".
+**Verified:** the provider is on (REST sign-in with a made-up email returns `INVALID_LOGIN_CREDENTIALS`, not `OPERATION_NOT_ALLOWED`). Playwright on `node server.js`: password option enabled, wrong credentials show "Email or password is wrong.", no page errors. Did not create a test account in the project.
+**Promo video:** `video/promo.html` stickman had AstraSight glasses (cyan band + lens bars); now a clear bubble helmet with a cyan rim, a visor display on the wearer's right and a neck ring. Captions say helmet/visor instead of lens (also `video/PROMPT.md`, `video/README.md`). `video/build/` is gitignored: re-run `python video/render.py` to get a new MP4.
+
+## 2026-11-15 · Alex (Claude) · Report screen decluttered
+
+**Why:** Alex: the report screen is too cluttered.
+**Changed (`report.html`, nothing removed):**
+- The "Ship-to-suit local mesh" bar and the yellow "Simulation only" banner moved from the top to just above the footer. The top-right "Concept prototype · Simulated data · Not a medical device" line still shows first.
+- Ship display: the "Live vitals" strip in 03 is hidden when it shows the live record (panel 01 has the same numbers); it still shows in the Medical bay and for other crew members' snapshots. The crew-only role bar ("My record · You") is hidden on the Ship display; the CMO still gets the roster there. ASTRA's "signed in as crew" note now points at the triage panel.
+- 02 Extended sensor suite and 05 Crew-wide announcements are `<details>` (class `architecture-details`), closed by default, with "Show +/Hide −"; the PA header keeps the announcement count. `crewPaPanel` is a `<details>` now, `.hidden` still works.
+- Panel 01 cards fill one row on wide screens (`xl:grid-cols-[repeat(auto-fit,minmax(170px,1fr))]`) instead of 3+2 with a gap.
+**Verified:** Playwright at 1440 and 390 px for display/medical (crew and CMO), EVA and suit check: no page errors, no horizontal scroll, both sections open on click. Display view at 1440 px: 2961 → 2266 px tall.
+
 ## 2026-11-15: Alex (+ Claude): promo v2: solar-flare emergency, 120 BPM grid, original beat
 **Changed:** `video/promo.html` has a solar-flare beat at 11–14 s. The distant light flares white-orange, the corridor goes to red alert, and a red lens-HUD alarm ("SOLAR FLARE · SHELTER IN 02:40", counting down) blinks with the beeps. He startles, breathes hard, and looks around, while the camera pushes in. The warp moves to 14–16 s, the silence to 16–17 s, and the website to 17–28 s. The website's heavy-exertion shot is replaced by the real solar-flare shelter countdown and ASTRA's critical alert (new `solar` segment in `capture_site.py`). The title card is now static and 2 s long (28–30 s). Key times are constants (`T_FLARE`, `T_WARP`, …). `make_audio.py` adds the flare boom, the three-beep alarm and the helmet-mic breathing. New `make_music.py` writes an original 120 BPM phonk-style beat arranged to the cuts and mixes it with the effects. `render.py` writes `promo.mp4` (beat + effects), `promo-nomusic.mp4` and `promo-silent.mp4`. README and PROMPT.md are updated.
 **Decisions:** All cuts are on a 120 BPM grid, so the beat (or any 120 BPM song) lines up. The 02:40 countdown copies what `report.html` really shows, so the 3D scene and the website tell one story.
-**Open / next:** Head turns are readable but subtle, because the stickman has no face; the glasses band shows the direction.
+**Open / next:** Head turns are readable but subtle, because the stickman has no face; the helmet's visor display shows the direction. Merged with the helmet switch (d48add0): the timings are from v2, the helmet and wording from d48add0.

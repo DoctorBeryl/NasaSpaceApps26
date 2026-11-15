@@ -335,7 +335,7 @@ async function finish(ai, { profile: rawProfile }) {
         {
           role: "system",
           content: [
-            `You are ASTRA, the on-board health assistant in an astronaut's smart glasses. Onboarding just finished.`,
+            `You are ASTRA, the on-board health assistant in an astronaut's helmet. Onboarding just finished.`,
             `Using ONLY the profile below, write the tailoring for this crew member.`,
             `- summary: 2-3 plain sentences for the flight surgeon describing the baseline and anything to watch.`,
             `- welcome: 1-2 warm sentences to the crew member, by call sign, saying what you'll focus on. No medical advice.`,

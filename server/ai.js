@@ -412,7 +412,7 @@ async function brief(req, res) {
   try {
     const r = await ollama.chat({
       messages: [
-        { role: "system", content: `${systemPrompt(profile, rows, cleanContext(body.context))}\n\nYou are writing the critical-stats screen in the lens. Be terse.\n- headline: one sentence, max 14 words, on overall status.\n- notes: one short note (max 12 words) per reading id, saying what it means for this person.\n- actions: up to 4 short imperative steps, most urgent first. Empty if everything is normal.` },
+        { role: "system", content: `${systemPrompt(profile, rows, cleanContext(body.context))}\n\nYou are writing the critical-stats screen in the visor. Be terse.\n- headline: one sentence, max 14 words, on overall status.\n- notes: one short note (max 12 words) per reading id, saying what it means for this person.\n- actions: up to 4 short imperative steps, most urgent first. Empty if everything is normal.` },
         { role: "user", content: "Brief me." },
       ],
       format: {

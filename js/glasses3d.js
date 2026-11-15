@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight — 3D EVA helmet on the home page (three.js r160, UMD build)
+   AstraSight — 3D EVA helmet in the home page hero (three.js r160, UMD build)
    (File keeps its old glasses3d.js name so nothing else breaks.)
    Procedural model, no asset files, modelled on a spacewalk helmet:
    white hard shell with a rounded visor opening, gold sun visor
@@ -8,7 +8,8 @@
    into the visor on the wearer's right. Reflections come from a small
    procedural studio environment (PMREM), so no HDR file is needed.
    No buttons or knobs: gloved hands can't work small controls, so the
-   helmet is hands-free. Callout arrows follow the chin microphones,
+   helmet is hands-free. The hero float tags ([data-target]) are the
+   callouts: arrows follow the chin microphones,
    inward eye cameras, dosimeter and visor display as it turns. "Left" and "right" are the wearer's: the
    wearer looks along +z, so their right side sits at -x.
    ========================================================== */
@@ -311,7 +312,7 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     // Pull back on narrow screens so the whole helmet stays in frame
-    const d = 7.4 * Math.max(1, 1.2 / camera.aspect);
+    const d = 7.4 * Math.max(1, 1.2 / camera.aspect) / (parseFloat(stage.dataset.zoom) || 1);
     camera.position.set(0, 1.5 * d / 7.4, d - 0.7);
     camera.lookAt(CENTER.x, CENTER.y - 0.15, CENTER.z);
     camera.updateProjectionMatrix();

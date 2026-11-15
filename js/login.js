@@ -190,7 +190,7 @@
     ]);
     detectorOpts = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
     // The first pass compiles the GPU shaders (1–3 s on a laptop, longer without a GPU). Do it before prompting.
-    say("Calibrating the lens…", "Only the first time you open this page.", "busy");
+    say("Calibrating the camera…", "Only the first time you open this page.", "busy");
     await api.detectSingleFace(video, detectorOpts).withFaceLandmarks().withFaceDescriptor();
     faceapi = api;
   }
@@ -268,7 +268,7 @@
   const FRAME_HINT = {
     none: "I can't see a face. Move into the frame.",
     many: "I can see more than one face. One person at a time.",
-    far: "Move a little closer to the lens.",
+    far: "Move a little closer to the camera.",
   };
 
   /**
@@ -317,11 +317,11 @@
 
   const facing = (yaw) => Math.abs(yaw) < CENTER;
   const LOGIN_STEPS = [
-    { key: "face", need: 3, prompt: "Look straight into the lens.", test: facing },
+    { key: "face", need: 3, prompt: "Look straight into the camera.", test: facing },
     { key: "turn", need: 1, turn: true, prompt: "Now turn your head slightly to either side.", test: (y) => Math.abs(y) > TURN },
   ];
   const ENROLL_STEPS = [
-    { key: "face", need: 4, prompt: "Look straight into the lens and hold still.", test: facing },
+    { key: "face", need: 4, prompt: "Look straight into the camera and hold still.", test: facing },
     { key: "side1", need: 2, turn: true, prompt: "Turn your head slightly to one side.", test: (y) => Math.abs(y) > TURN },
     { key: "side2", need: 2, turn: true, prompt: "Now turn slightly to the other side.", test: (y, c) => Math.abs(y) > TURN && c.side && Math.sign(y) !== c.side },
   ];
@@ -342,7 +342,7 @@
     if (!cfg || cfg.mode === "unavailable") {
       throw Object.assign(new Error("Face sign-in needs the AstraSight server, and it isn't running. Start it with  npm run dev  (or node server.js), then try again."), { code: "noserver" });
     }
-    say("Starting the lens camera…", "", "busy");
+    say("Starting the camera…", "", "busy");
     await startCamera();
     if (flow !== run) throw cancelled();
     if (!faceapi) {
@@ -420,7 +420,7 @@
       return fail(new Error(`Face matched, but Firebase sign-in failed: ${e.message}`));
     }
     say(session.isNew ? `Welcome aboard, ${session.name}.` : `Welcome back, ${session.name}.`,
-      session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your lens…", "ok");
+      session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your helmet display…", "ok");
     controls();
     setTimeout(() => continueTo(nextUrl(session.isNew), session.role), session.isNew ? 1800 : 1200);
   }
@@ -533,7 +533,7 @@
   $("pw-to-choose").onclick = toChoose;
 
   AstraAuth.ready.then(async (u) => {
-    const passwordOk = AstraAuth.config?.mode === "firebase";
+    const passwordOk = !!AstraAuth.config?.firebase;   // email and password need only the web config
     $("pick-password").disabled = !passwordOk;
     $("password-off").hidden = passwordOk;
     $("to-password").hidden = !passwordOk;

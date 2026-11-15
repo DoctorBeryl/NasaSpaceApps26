@@ -4,10 +4,10 @@
 const BRAND_MARK = `
 <svg class="brand-mark" viewBox="0 0 40 40" fill="none">
   <defs><linearGradient id="bm" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#5ef2ff"/><stop offset=".6" stop-color="#8f7cff"/><stop offset="1" stop-color="#ff6ad5"/></linearGradient></defs>
-  <rect x="2" y="12" width="15" height="13" rx="6" stroke="url(#bm)" stroke-width="2.2"/>
-  <rect x="23" y="12" width="15" height="13" rx="6" stroke="url(#bm)" stroke-width="2.2"/>
-  <path d="M17 17.5c1.8-1.6 4.2-1.6 6 0" stroke="url(#bm)" stroke-width="2.2" stroke-linecap="round"/>
-  <circle cx="30.5" cy="18.5" r="2" fill="#5ef2ff"/>
+  <path d="M8 31.5a15 15 0 1 1 24 0" stroke="url(#bm)" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M7 32.5h26" stroke="url(#bm)" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="10" y="12" width="20" height="13" rx="6" stroke="url(#bm)" stroke-width="2.2"/>
+  <circle cx="15" cy="18.5" r="2" fill="#5ef2ff"/>
 </svg>`;
 
 const NAV_LINKS = [
@@ -26,7 +26,7 @@ function renderChrome() {
     nav.className = "nav";
     nav.innerHTML = `
       <div class="container nav-inner">
-        <a class="brand" href="index.html">${BRAND_MARK}<span>AstraSight<small>HEALTH OPTICS</small></span></a>
+        <a class="brand" href="index.html">${BRAND_MARK}<span>AstraSight<small>HELMET HEALTH HUD</small></span></a>
         <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
         <div class="nav-links">
           ${NAV_LINKS.map(([href, label]) => `<a href="${href}" class="${page === href ? "active" : ""}">${label}</a>`).join("")}
