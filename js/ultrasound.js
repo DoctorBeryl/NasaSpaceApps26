@@ -389,7 +389,8 @@
 
   window.addEventListener("resize", () => { sizeBody(); frame(true); });
   sizeBody();
-  setOrgan("kidney");
+  const askedOrgan = new URLSearchParams(location.search).get("organ");   // report.html Medical bay links here with ?organ=
+  setOrgan(ORGANS[askedOrgan] ? askedOrgan : "kidney");
   renderCaptures();
   requestAnimationFrame(loop);
 

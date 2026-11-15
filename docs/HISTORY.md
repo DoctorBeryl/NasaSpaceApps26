@@ -551,3 +551,11 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 
 ## 2026-11-15: Alex (+ Claude): correction: rail preview back, AstroKinetic out of the nav
 **Changed:** The previous entry misread Alex's request. The "big AstroKinetic module" meant the nav link next to Report, not the home page's rail preview. So the animated rail preview card in `#handrails` (`index.html`, `.rail-*` CSS in `css/styles.css`, and the grid animation script) is back exactly as it was in 9338d40. The "Cabin rail map ↗" button stays removed. The "AstroKinetic ↗" entry is gone from `NAV_LINKS`. The `"external"` branch in `renderChrome()` stays in case another external link is added. The ultrasound move to the Medical bay is unchanged.
+
+## 2026-11-15: Alex (+ Claude): ultrasound tied to the body map
+**Changed:** On `report.html`, the full-width "Guided ultrasound" panel at the bottom of the Medical bay is gone (Alex: the body map outshone it). Two entry points replace it:
+- A small cyan "◎ GUIDED ULTRASOUND ▶" button at the top right of the Medical bay's role bar (`#openUltrasound`, Medical bay only).
+- A pink "ASTRA suggests a scan" box under "Reported locations & symptoms" (`#scanSuggest`, drawn by `renderScanSuggest()` from `renderReported()`). When a reported area (symptom or pain above 0) matches `ZONE_SCANS`, it names the areas and offers a button per organ: flank, lower back or side of abdomen → kidney; breastbone → heart; upper chest → heart and lungs; lower chest, mid back or shoulder blade → lungs; suprapubic → bladder. Each opens `ultrasound.html?organ=<id>`.
+- `js/ultrasound.js` opens on `?organ=` when it names a known organ (otherwise kidney, as before).
+**Why:** It ties triage to imaging (flank pain → ASTRA suggests a kidney scan → clear image to the flight surgeon). Embedding the ultrasound UI in `report.html` was ruled out: Tailwind page without `styles.css`, which the ultrasound page needs.
+**Verified:** Playwright at 1440 and 390 px: no suggestion before any report; right flank plus left upper chest give kidney, heart and lungs buttons; the kidney button opens the ultrasound page with Kidney selected; the top button shows only in the Medical bay; no sideways scroll, no page errors.
