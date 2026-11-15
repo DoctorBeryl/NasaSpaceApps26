@@ -902,3 +902,19 @@ body.ob-open { overflow: hidden; }
 .ob-foot { margin: 0; font-size: 10.5px; color: var(--text-faint); text-align: center; letter-spacing: 0.06em; }
 @media (prefers-reduced-motion: reduce) { .ob-overlay, .ob-mic.on, .ob-dots i { animation: none; } }
 @media (max-width: 520px) { .ob-card { padding: 16px; } .ob-mic span { display: none; } }
+
+/* ---------- live watch (js/watch.js, docs/GARMIN.md) ---------- */
+.icon-btn.on { border-color: var(--ok); color: var(--ok); box-shadow: 0 0 14px -4px var(--ok); }
+.vital.live .vital-name span:not(.dot)::after { content: "LIVE"; margin-left: 6px; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--ok); color: var(--ok); font-family: var(--mono); font-size: 9px; letter-spacing: .1em; vertical-align: 1px; }
+.watch-dlg { margin: auto; max-height: calc(100dvh - 32px); overflow-y: auto; width: min(440px, calc(100vw - 32px)); padding: 20px; border-radius: 14px; border: 1px solid var(--border-hi); background: var(--surface-solid); color: var(--text); }
+.watch-dlg::backdrop { background: rgba(2, 6, 16, .7); }
+.watch-dlg h3 { font-size: 17px; margin-bottom: 6px; }
+.watch-dlg section { margin: 14px 0 0; padding: 12px 0 0; min-height: 0; border-top: 1px solid var(--border); }
+.watch-dlg p { font-size: 13px; color: var(--text-dim); margin: 4px 0 8px; }
+.watch-dlg .wd-status { color: var(--cyan); min-height: 1.3em; }
+.watch-dlg .wd-note { font-size: 11px; color: var(--text-faint); margin-top: 14px; }
+.watch-dlg form { display: flex; gap: 8px; flex-wrap: wrap; }
+.watch-dlg input { flex: 1 1 120px; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-hi); background: rgba(255,255,255,0.04); color: var(--text); font-family: var(--mono); font-size: 15px; letter-spacing: .2em; text-transform: uppercase; }
+.watch-dlg button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-hi); background: rgba(94,242,255,0.08); color: var(--text); font-size: 13px; cursor: pointer; }
+.watch-dlg button:hover { border-color: var(--cyan); }
+.watch-dlg .wd-close { margin-top: 6px; float: right; }

@@ -28,10 +28,16 @@
     state.history[t.id] = Array.from({ length: HISTORY }, () => t.base + (Math.random() - 0.5) * t.jitter);
   });
 
+  /* A real watch reading (js/watch.js) replaces the simulation for that tool while it's fresh.
+     Demo overrides (sliders, "simulate emergency") still win, so the scripted demo works with a watch on. */
+  const liveValue = (t) => state.override[t.id] == null && typeof AstraWatch !== "undefined" ? AstraWatch.get(t.id) : null;
+
   function step(t) {
+    const live = liveValue(t);
     const target = state.override[t.id] ?? t.base;
     const v = state.values[t.id];
-    let next = v + (target - v) * 0.12 + (Math.random() - 0.5) * t.jitter * 0.6;
+    let next = live != null ? v + (live - v) * 0.6
+      : v + (target - v) * 0.12 + (Math.random() - 0.5) * t.jitter * 0.6;
     next = Math.max(t.min, Math.min(t.max, next));
     state.values[t.id] = next;
     const h = state.history[t.id]; h.push(next); if (h.length > HISTORY) h.shift();
@@ -120,6 +126,7 @@
       const st = toolStatus(t, v);
       if (st !== "ok") warn++;
       el.querySelector(".v").textContent = fmt(t);
+      el.classList.toggle("live", liveValue(t) != null);
       const dot = el.querySelector(".vital-name .dot");
       const hot = st === "crit" || state.alert === t.id;
       dot.className = "dot" + (st === "ok" ? "" : hot ? " crit pulse" : " warn");
@@ -172,6 +179,70 @@
   $("#reopen").onclick = () => setVisible(true);
   $("#dock-btn").onclick = () => setDock(state.dock === "right" ? "left" : "right");
   document.querySelectorAll(".sp-tab").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+
+  /* ---------------- live watch (js/watch.js, docs/GARMIN.md) ---------------- */
+  const watchBtn = $("#watch-btn"), feedLabel = $("#feed-label");
+  let watchDlg = null;
+  function watchDialog() {
+    if (watchDlg) return watchDlg;
+    watchDlg = document.createElement("dialog");
+    watchDlg.className = "watch-dlg";
+    watchDlg.setAttribute("aria-labelledby", "wd-title");
+    watchDlg.innerHTML = `
+      <h3 id="wd-title">Connect a watch</h3>
+      <p class="wd-status" role="status"></p>
+      <section>
+        <strong>Garmin AstraLink app</strong>
+        <p>Open AstraLink on the watch and type the 6-character code it shows. Sends heart rate, HRV, SpO₂, breathing and stress.</p>
+        <form class="wd-pair"><input name="code" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC123" aria-label="Pair code"><button type="submit">Pair</button><button type="button" class="wd-unpair">Unpair</button></form>
+      </section>
+      <section>
+        <strong>Bluetooth heart-rate broadcast</strong>
+        <p>No watch app needed. On a Garmin: Settings › Wrist Heart Rate › Broadcast Heart Rate, then connect here (Chrome or Edge). Heart rate only.</p>
+        <button type="button" class="wd-ble">Connect over Bluetooth</button>
+      </section>
+      <p class="wd-note">Readings without a live source stay simulated. Not a medical device.</p>
+      <button type="button" class="wd-close">Close</button>`;
+    document.body.appendChild(watchDlg);
+    const msg = watchDlg.querySelector(".wd-status");
+    watchDlg.querySelector(".wd-pair").onsubmit = (e) => {
+      e.preventDefault();
+      const ok = AstraWatch.pair(e.target.code.value);
+      msg.textContent = ok ? "Paired. Waiting for the watch's first reading…" : "The code is 6 letters or digits, shown on the watch.";
+    };
+    watchDlg.querySelector(".wd-unpair").onclick = () => { AstraWatch.unpair(); AstraWatch.disconnectBluetooth(); updateWatchUI(); };
+    watchDlg.querySelector(".wd-ble").onclick = async () => {
+      msg.textContent = "Pick your watch in the browser's list…";
+      try { const name = await AstraWatch.connectBluetooth(); msg.textContent = `Connected to ${name}.`; log("sys", `Bluetooth heart rate connected: ${name}`); }
+      catch (err) { msg.textContent = err.name === "NotFoundError" ? "No device picked. Is Broadcast Heart Rate on?" : err.message; }
+    };
+    watchDlg.querySelector(".wd-close").onclick = () => watchDlg.close();
+    return watchDlg;
+  }
+  function updateWatchUI() {
+    const s = AstraWatch.status();
+    const SHORT = { cardio: "HR", hrv: "HRV", spo2: "SpO₂", resp: "breathing", cog: "stress" };
+    const names = s.liveIds.map((id) => SHORT[id] || toolById(id).short).join(", ");
+    feedLabel.textContent = s.live ? `LIVE · ${s.device.toUpperCase()} · ${s.liveIds.length} OF ${TOOLS.length} READINGS` : "SIMULATED FEED · NOT A MEDICAL DEVICE";
+    feedLabel.title = s.live ? `Live: ${names}. The rest are simulated. Not a medical device.` : "";
+    watchBtn.classList.toggle("on", s.live);
+    watchBtn.title = s.live ? `Live from ${s.device}` : s.waiting ? `Paired (${s.code}), waiting for the watch` : "Connect a watch for live readings";
+    if (watchDlg) {
+      watchDlg.querySelector(".wd-status").textContent = s.live ? `Live from ${s.device}: ${names}.`
+        : s.waiting ? `Paired with code ${s.code}. Waiting for the watch… (open AstraLink, phone nearby with Garmin Connect running)` : "No watch connected. Showing simulated readings.";
+      watchDlg.querySelector(".wd-unpair").hidden = !s.code && !s.bluetoothName;
+      if (s.code) watchDlg.querySelector("input").value = s.code;
+    }
+  }
+  let wasLive = false;
+  if (typeof AstraWatch !== "undefined") {
+    watchBtn.onclick = () => { watchDialog().showModal(); updateWatchUI(); };
+    AstraWatch.onChange((s) => {
+      updateWatchUI();
+      if (s.live !== wasLive) { log("sys", s.live ? `Live readings from ${s.device}` : "Watch signal lost. Back to simulated readings."); wasLive = s.live; }
+    });
+    updateWatchUI();
+  } else watchBtn.hidden = true;
 
   /* ---------------- log + response ---------------- */
   function log(kind, text) {
@@ -291,7 +362,8 @@
     const STATUS = { ok: "NORMAL, fine", warn: "WARNING, too", crit: "CRITICAL, dangerously" };
     const lines = TOOLS.map((t) => {
       const z = zoneOf(t, state.values[t.id]);
-      return `${t.name}: ${fmt(t)} ${t.unit} - ${STATUS[z.zone]}${z.side ? " " + z.side : ""} (normal range ${t.range})`;
+      const src = liveValue(t) != null ? `, live from the crew member's ${AstraWatch.label(t.id)}` : "";
+      return `${t.name}: ${fmt(t)} ${t.unit} - ${STATUS[z.zone]}${z.side ? " " + z.side : ""} (normal range ${t.range}${src})`;
     });
     lines.push(`Readiness score: ${$("#score").textContent}`);
     if (state.alert) lines.push(`Active alert: ${toolById(state.alert).name}`);
