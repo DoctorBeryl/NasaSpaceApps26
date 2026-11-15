@@ -1,4 +1,4 @@
-# VEGA AI backend (Qwen 2.5 via Ollama)
+# ASTRA AI backend (Qwen 2.5 via Ollama)
 
 The contract between the AI backend and the frontend features built on it: the onboarding questionnaire, the chat sidebar, and the critical-stats screen. The backend lives in `server/` and is mounted by `server.js` under `/api/ai/*`.
 
@@ -16,13 +16,13 @@ Optional `.env` settings (see `.env.example`): `OLLAMA_URL` (default `http://127
 
 **If the model crashes on load** (Ollama log: `ggml_vulkan: device lost`, seen on a GTX 1050 Ti), set the user environment variable `OLLAMA_VULKAN=0` and restart Ollama to run on the CPU. `qwen2.5:3b` answers in about 5 to 45 s there.
 
-**Without Ollama:** onboarding and the brief still work, using rule-based fallbacks (`"source": "rules"`). Chat returns `503 {"error":"ollama_unavailable"}`, so show a "VEGA is offline" state.
+**Without Ollama:** onboarding and the brief still work, using rule-based fallbacks (`"source": "rules"`). Chat returns `503 {"error":"ollama_unavailable"}`, so show a "ASTRA is offline" state.
 
 ## Design
 
 - **Stateless.** The server stores nothing. The client keeps the crew **profile** (for example in Firestore under the user's uid) and sends it with every request.
 - **Safety in code, not just the prompt.** Zones come from `js/data.js` (`zoneOf`), never from the model. A reading in the danger zone, or a red-flag phrase such as "chest pain", sets `escalate: true`, and the server appends a flight-surgeon line if the model left it out.
-- **Personal thresholds** are clamped server-side on every request. A caution line can move at most halfway toward its danger line. Danger lines never move. Anything VEGA proposes is marked `"status": "proposed"` until a flight surgeon signs off.
+- **Personal thresholds** are clamped server-side on every request. A caution line can move at most halfway toward its danger line. Danger lines never move. Anything ASTRA proposes is marked `"status": "proposed"` until a flight surgeon signs off.
 - **Persona:** edit [server/persona.md](../server/persona.md). The server reads it on each request, and HTML comments in it are stripped before it reaches the model.
 
 ## Sign-in
@@ -66,7 +66,7 @@ Response:
   "source":  "model"
 }
 ```
-If `followUp` isn't null, it's a one-off clarifying question (`{ id: "fitness.followup", kind: "text", text }`). Ask it next, and send the reply with that `id` as `questionId`. Follow-ups never chain. Show `ack` as VEGA's reply bubble.
+If `followUp` isn't null, it's a one-off clarifying question (`{ id: "fitness.followup", kind: "text", text }`). Ask it next, and send the reply with that `id` as `questionId`. Follow-ups never chain. Show `ack` as ASTRA's reply bubble.
 
 ### `POST /api/ai/onboard/finish`
 Request: `{ "profile": {...} }`. Response: `{ "profile": {...with "tailoring"} }`. Save it; the tutorial and HUD read from `tailoring`:
@@ -165,5 +165,5 @@ The model lists possible causes to consider; it doesn't diagnose. `escalate` is 
 ## Not done yet (open for other agents)
 
 - The questionnaire, tutorial, chat sidebar, and critical-stats UIs. Store the profile with `AstraAuth.saveProfile` (see [AUTH.md](AUTH.md)).
-- **Wire `report.html`'s triage chat to `/api/ai/chat`**, sending its EVA telemetry as `context`. It currently uses keyword rules that name a diagnosis ("PROBABLE TYPE II DCS"), which conflicts with VEGA's "flag, never diagnose" rule.
-- **Persona:** `server/persona.md` follows the Gemini prototype's companion (the 16-bit pixel EVA buddy, now VEGA), with the calmer wording the team chose in `js/companion.js`.
+- **Wire `report.html`'s triage chat to `/api/ai/chat`**, sending its EVA telemetry as `context`. It currently uses keyword rules that name a diagnosis ("PROBABLE TYPE II DCS"), which conflicts with ASTRA's "flag, never diagnose" rule.
+- **Persona:** `server/persona.md` follows the Gemini prototype's companion (the 16-bit pixel EVA buddy, now ASTRA), with the calmer wording the team chose in `js/companion.js`.

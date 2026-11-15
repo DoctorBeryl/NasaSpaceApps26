@@ -1,6 +1,6 @@
 /* ==========================================================
    AstraSight — diagnostic tool registry
-   Shared by the HUD interface, tools page, home page and VEGA.
+   Shared by the HUD interface, tools page, home page and ASTRA.
    ========================================================== */
 const ICONS = {
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/><path d="M3.5 12h4l2-3 3 6 2-3h6"/></svg>',
@@ -25,9 +25,9 @@ const TOOLS = [
       ["Optical capture", "Green and IR LEDs illuminate the temple; photodiodes measure reflected light 250×/sec."],
       ["Motion rejection", "IMU data cancels head-movement artifacts — critical during EVA or exercise."],
       ["Beat detection", "Peaks are extracted and R-R intervals feed rhythm analysis."],
-      ["VEGA interpretation", "Trends are compared to the crew member's personal baseline, not population norms."],
+      ["ASTRA interpretation", "Trends are compared to the crew member's personal baseline, not population norms."],
     ],
-    cmd: "VEGA, show my heart rate",
+    cmd: "ASTRA, show my heart rate",
     wave: "ecg",
   },
   {
@@ -42,7 +42,7 @@ const TOOLS = [
       ["Cabin correlation", "Readings are cross-checked against habitat O₂ partial pressure telemetry."],
       ["Hypoxia alert", "Sustained drops below 94% trigger a priority HUD alert and voice warning."],
     ],
-    cmd: "VEGA, what's my oxygen level?",
+    cmd: "ASTRA, what's my oxygen level?",
     wave: "pleth",
   },
   {
@@ -57,7 +57,7 @@ const TOOLS = [
       ["Pattern analysis", "Rate, depth and regularity are computed over a rolling window."],
       ["CO₂ context", "Elevated rates are correlated with cabin CO₂ scrubber telemetry."],
     ],
-    cmd: "VEGA, check my breathing",
+    cmd: "ASTRA, check my breathing",
     wave: "sine",
   },
   {
@@ -72,7 +72,7 @@ const TOOLS = [
       ["Symmetry check", "Left/right asymmetry and sluggish response are flagged."],
       ["Longitudinal trend", "Results are logged across the mission to spot slow neuro-ocular changes."],
     ],
-    cmd: "VEGA, run a neuro scan",
+    cmd: "ASTRA, run a neuro scan",
     wave: "pupil",
   },
   {
@@ -85,9 +85,9 @@ const TOOLS = [
       ["Eye metrics", "Blink frequency, closure duration (PERCLOS) and saccade speed are tracked."],
       ["Context", "Sleep logs and time-on-task are pulled from the mission schedule."],
       ["Index", "A 0–100 load score is computed; higher means more fatigue."],
-      ["Recommendation", "VEGA suggests breaks or task reshuffling when load climbs."],
+      ["Recommendation", "ASTRA suggests breaks or task reshuffling when load climbs."],
     ],
-    cmd: "VEGA, how fatigued am I?",
+    cmd: "ASTRA, how fatigued am I?",
     wave: "noise",
   },
   {
@@ -102,7 +102,7 @@ const TOOLS = [
       ["Core estimate", "A heat-flux model estimates core body temperature."],
       ["Trend watch", "Rising baselines over days are flagged for the flight surgeon."],
     ],
-    cmd: "VEGA, what's my temperature?",
+    cmd: "ASTRA, what's my temperature?",
     wave: "slow",
   },
   {
@@ -117,7 +117,7 @@ const TOOLS = [
       ["Mission budget", "Cumulative dose is tracked against career exposure limits."],
       ["Storm warning", "Spikes trigger a shelter-in-place alert with route guidance."],
     ],
-    cmd: "VEGA, show radiation exposure",
+    cmd: "ASTRA, show radiation exposure",
     wave: "spikes",
   },
   {
@@ -130,9 +130,9 @@ const TOOLS = [
       ["Interval series", "Beat-to-beat intervals are taken from the cardiac PPG stream."],
       ["RMSSD", "Root-mean-square of successive differences quantifies variability."],
       ["Recovery score", "Compared against sleep and workload for a readiness estimate."],
-      ["Guided breathing", "VEGA can start a paced-breathing exercise on the HUD."],
+      ["Guided breathing", "ASTRA can start a paced-breathing exercise on the HUD."],
     ],
-    cmd: "VEGA, what's my stress level?",
+    cmd: "ASTRA, what's my stress level?",
     wave: "ecg",
   },
 ];
@@ -140,7 +140,7 @@ const TOOLS = [
 const toolById = (id) => TOOLS.find((t) => t.id === id);
 
 /* ----------------------------------------------------------
-   Danger thresholds + VEGA guidance
+   Danger thresholds + ASTRA guidance
    critLo/critHi mark "dangerous"; warnLo/warnHi mark "outside normal".
    Slider ranges run from min (dangerously low) to max (dangerously high).
    ---------------------------------------------------------- */
@@ -200,7 +200,7 @@ const GUIDANCE = {
   },
   rad: {
     high: { title: "Radiation dose rate high", why: "A spike in dose rate usually means a solar particle event is underway.",
-      steps: ["Go to the storm shelter now. Follow the route in your view.", "Stay behind the water-wall shielding until VEGA clears you.", "Log your location and the time for your dose record."],
+      steps: ["Go to the storm shelter now. Follow the route in your view.", "Stay behind the water-wall shielding until ASTRA clears you.", "Log your location and the time for your dose record."],
       danger: "Above 5 mSv/day: shelter-in-place is mandatory and all EVAs are cancelled." },
   },
   hrv: {

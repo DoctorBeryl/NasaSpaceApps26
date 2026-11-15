@@ -325,7 +325,7 @@
       return fail(new Error(`Face matched, but Firebase sign-in failed: ${e.message}`));
     }
     say(session.isNew ? `Welcome aboard, ${session.name}.` : `Welcome back, ${session.name}.`,
-      session.isNew ? "Next: a short tour and a few questions so VEGA knows your baseline." : "Opening your lens…", "ok");
+      session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your lens…", "ok");
     controls();
     setTimeout(() => location.assign(nextUrl(session.isNew)), session.isNew ? 1800 : 1200);
   }

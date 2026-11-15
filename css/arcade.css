@@ -156,7 +156,7 @@ footer { border-top-color: rgba(0, 240, 255, .18); }
 .g3d-callout { border-radius: 10px; border-color: color-mix(in srgb, var(--c, var(--cyan)) 55%, transparent); }
 .g3d-callout b { color: color-mix(in srgb, var(--c, var(--cyan)) 35%, #eaf6ff); }
 
-/* ---------- home: VEGA band ---------- */
+/* ---------- home: ASTRA band ---------- */
 .ai-band { border-radius: 14px; border-color: rgba(255, 42, 133, .42); --acc: var(--pink); }
 .ai-orb {
   border-radius: 18px; background:
@@ -211,7 +211,7 @@ footer { border-top-color: rgba(0, 240, 255, .18); }
 .zone-readout { border-radius: 6px; font-weight: 600; }
 .vslider.lg input[type="range"] { border-radius: 3px; }
 
-/* ---------- VEGA notifications keep their original look ----------
+/* ---------- ASTRA notifications keep their original look ----------
    The companion bubble (.vega-buddy) and the warning card (.vega-pop) are not
    part of the arcade skin: restore the styles.css tokens inside them and lift
    them above the scanline overlay. */
@@ -239,7 +239,7 @@ footer { border-top-color: rgba(0, 240, 255, .18); }
 .glasses-wrap #frame stop { stop-color: var(--cyan); }
 .glasses-wrap #lens stop { stop-color: var(--cyan); }
 
-/* ---------- VEGA sprite in the home VEGA band ---------- */
+/* ---------- ASTRA sprite in the home ASTRA band ---------- */
 .ai-orb { display: grid; place-items: center; align-content: center; gap: 10px; animation: none; }
 .ai-orb canvas { width: 62%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; filter: drop-shadow(0 0 14px rgba(0, 240, 255, .35)); animation: float 2.6s steps(4, end) infinite; }
 .ai-orb span { font-family: var(--pixel); font-size: 11px; color: var(--cyan); letter-spacing: .1em; text-shadow: 0 0 10px rgba(0, 240, 255, .5); }

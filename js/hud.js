@@ -1,6 +1,6 @@
 /* ==========================================================
    AstraSight — HUD interface controller
-   Simulated vitals, side panel and VEGA command execution.
+   Simulated vitals, side panel and ASTRA command execution.
    ========================================================== */
 (() => {
   const $ = (s) => document.querySelector(s);
@@ -10,7 +10,7 @@
   const logEl = $("#tab-log");
   const input = $("#cmd");
   // Idle hint; the long one doesn't fit the box on phones
-  const idleHint = () => (matchMedia("(max-width: 600px)").matches ? "Say “Hey VEGA” or type…" : "Press both side buttons or say “Hey VEGA” to talk, or type here…");
+  const idleHint = () => (matchMedia("(max-width: 600px)").matches ? "Say “Hey ASTRA” or type…" : "Press both side buttons or say “Hey ASTRA” to talk, or type here…");
   input.placeholder = idleHint();
   const micBtn = $("#mic");
 
@@ -70,7 +70,7 @@
     });
   });
 
-  /* ---------------- reading sliders + VEGA popup ---------------- */
+  /* ---------------- reading sliders + ASTRA popup ---------------- */
   const target = (t) => state.override[t.id] ?? t.base;
 
   function setReading(id, value, { broadcast = true } = {}) {
@@ -179,7 +179,7 @@
     const time = d.toTimeString().slice(0, 8);
     const item = document.createElement("div");
     item.className = `log-item ${kind}`;
-    item.innerHTML = `<time>${time}</time>${kind === "user" ? "› " : kind === "ai" ? "VEGA: " : "SYS: "}`;
+    item.innerHTML = `<time>${time}</time>${kind === "user" ? "› " : kind === "ai" ? "ASTRA: " : "SYS: "}`;
     item.appendChild(document.createTextNode(text));
     logEl.prepend(item);
   }
@@ -218,7 +218,7 @@
     s.classList.remove("run"); void s.offsetWidth; s.classList.add("run");
   }
 
-  /* ---------------- VEGA command execution ---------------- */
+  /* ---------------- ASTRA command execution ---------------- */
   function describe(t) {
     const v = state.values[t.id];
     const st = toolStatus(t, v);
@@ -282,7 +282,7 @@
   /* ---------------- free-form chat (Ollama) ---------------- */
   // Built-in commands stay rule-based. Questions, and anything the parser doesn't
   // recognize, go to the local model with the current readings as context.
-  const QUESTION = /^\s*(?:hey\s+)?(?:vega[,.!\s]*)?(why|how|what(?:'s| is| are| does| do| should)|when|where|who|which|explain|tell me|should|could|can|is|are|do|does|will|would)\b/i;
+  const QUESTION = /^\s*(?:hey\s+)?(?:(?:vega|astra)[,.!\s]*)?(why|how|what(?:'s| is| are| does| do| should)|when|where|who|which|explain|tell me|should|could|can|is|are|do|does|will|would)\b/i;
   const chatHistory = [];
   let chatBusy = false;
 
@@ -313,7 +313,7 @@
       respond(reply, { tone: situationTone() });
     } catch (e) {
       chatHistory.pop();
-      console.warn("VEGA chat failed:", e.message || e);
+      console.warn("ASTRA chat failed:", e.message || e);
       fallback();
     } finally { chatBusy = false; }
   }
@@ -453,7 +453,7 @@
   $("#chips").innerHTML = CHIPS.map((c) => `<button type="button">${c}</button>`).join("");
   $("#chips").addEventListener("click", (e) => {
     const b = e.target.closest("button");
-    if (b) execute("VEGA, " + b.textContent.toLowerCase());
+    if (b) execute("ASTRA, " + b.textContent.toLowerCase());
   });
 
   $("#cmd-form").addEventListener("submit", (e) => {
@@ -541,6 +541,6 @@
 
   log("sys", "AstraSight lens online. 8 diagnostic sensors connected.");
   // Greet the signed-in crew member by name; plain "Good morning." when nobody is signed in.
-  const greet = (u) => respond(`Good morning${u && u.name ? ", " + u.name : ""}. All diagnostics are online. Say “VEGA, help” to hear what I can do.`, { speak: false });
+  const greet = (u) => respond(`Good morning${u && u.name ? ", " + u.name : ""}. All diagnostics are online. Say “ASTRA, help” to hear what I can do.`, { speak: false });
   setTimeout(() => (window.AstraAuth ? AstraAuth.ready.catch(() => null).then(greet) : greet(null)), 900);
 })();

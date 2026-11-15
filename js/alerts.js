@@ -1,5 +1,5 @@
 /* ==========================================================
-   AstraSight — reading sliders, VEGA warning popups, tab sync
+   AstraSight — reading sliders, ASTRA warning popups, tab sync
    Shared by the lens interface (variant "hud") and the
    diagnostics page (variant "web").
    ========================================================== */
@@ -44,7 +44,7 @@ const VegaAlerts = (() => {
       <div class="vp-head">
         <span class="vp-orb" aria-hidden="true"></span>
         <div class="vp-titles">
-          <span class="vp-tag">VEGA · <b class="vp-sev"></b> · <span class="vp-tool"></span></span>
+          <span class="vp-tag">ASTRA · <b class="vp-sev"></b> · <span class="vp-tool"></span></span>
           <strong class="vp-title"></strong>
         </div>
         <button class="vp-x" type="button" aria-label="Dismiss">✕</button>
@@ -158,7 +158,7 @@ const VegaAlerts = (() => {
       }
     }
 
-    // Acknowledge (and ✕) stop VEGA's voice as well as closing the card.
+    // Acknowledge (and ✕) stop ASTRA's voice as well as closing the card.
     const silence = () => {
       if (typeof ShipPA !== "undefined" && ShipPA.ack) ShipPA.ack();
       else { if (typeof VEGA !== "undefined" && VEGA.stop) VEGA.stop(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }

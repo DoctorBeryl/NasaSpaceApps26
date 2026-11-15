@@ -55,9 +55,9 @@ NASA doesn't brand its astronaut work as "phenotyping" on its public pages (we c
 2. **Micro-session (2–10 s).** The rail records grip force, PPG heart rate, skin conductance, and temperature. If the person holds the rail with both hands long enough, it adds a Lead I ECG strip.
 3. **Quality gate.** Readings with motion artifacts are dropped. Only clean samples go into the personal trend.
 4. **Baseline and flags.** Each sample is compared to that person's own pre-flight baseline (the same logic as Standard Measures). One sample never raises an alert, only a trend does.
-5. **HUD and VEGA.** A small "Rail" chip in the side panel. VEGA explains the trend and suggests an action.
+5. **HUD and ASTRA.** A small "Rail" chip in the side panel. ASTRA explains the trend and suggests an action.
 
-Example VEGA lines (wellness framing, no diagnosis):
+Example ASTRA lines (wellness framing, no diagnosis):
 - "Your grip strength is 9% below your pre-flight baseline over the last 7 days. Your next resistance-exercise block is at 14:00. Want me to flag it as a priority?"
 - "You've gripped rails much harder than you need to all morning. That's common in the first weeks of microgravity. Try a lighter touch."
 - "Rail 3B in Node 2 is the most-touched surface today. It's next on the cleaning list."

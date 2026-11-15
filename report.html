@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#060b14" />
-  <title>VEGA // EVA-MED HUD · AstraSight</title>
+  <title>ASTRA // EVA-MED HUD · AstraSight</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="js/data.js"></script>
   <script src="js/vega.js"></script>
@@ -135,7 +135,7 @@
     .architecture-details[open] summary { margin-bottom:12px; }
     @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario{padding:7px 8px;font-size:9px}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
   
-    /* VEGA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
+    /* ASTRA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
     body {
       background-color:#050a12;
       background-image:
@@ -180,6 +180,23 @@
     @keyframes tuneIn { from { opacity:.35; transform:translateY(-2px); } to { opacity:1; transform:translateY(0); } }
     .sensor-tune[hidden] { display:none; }
     @media (prefers-reduced-motion:reduce) { .sensor-tune { animation:none; } }
+    .limit-scale { position:relative; height:22px; margin:1px 0 0; }
+    .limit-band { position:absolute; left:7px; right:7px; top:2px; height:3px; border-radius:2px; opacity:.75; }
+    .limit-mark { position:absolute; top:0; width:2px; height:8px; margin-left:-1px; background:#ff2a4b; box-shadow:0 0 4px rgba(255,42,75,.7); }
+    .limit-label { position:absolute; top:9px; transform:translateX(-50%); white-space:nowrap; font:600 7.5px 'JetBrains Mono',monospace; color:#ff7a8f; letter-spacing:.04em; }
+    .limit-label.l { transform:translateX(-15%); } .limit-label.r { transform:translateX(-85%); }
+    .limit-safe { font:500 7.5px 'JetBrains Mono',monospace; color:#6f8ea3; letter-spacing:.03em; margin-top:1px; }
+    .manual-knob[data-zone="warn"] { border-color:rgba(255,184,0,.45); }
+    .manual-knob[data-zone="crit"] { border-color:rgba(255,42,75,.6); background:rgba(255,42,75,.06); }
+    .eva-clocks { display:flex; flex-wrap:wrap; gap:12px; }
+    .eva-clock { flex:1 1 240px; min-width:0; border:1px solid rgba(0,240,255,.28); background:rgba(0,240,255,.035); }
+    .eva-clock-num { font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700; font-size:clamp(28px,6vw,40px); line-height:1.1; margin-top:4px; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+    .eva-emergency { border-color:rgba(255,184,0,.45); background:rgba(255,184,0,.06); animation:evaIn .35s ease-out; }
+    .eva-emergency.crit { border-color:rgba(255,42,75,.6); background:rgba(255,42,75,.08); box-shadow:0 0 18px rgba(255,42,75,.18); }
+    .eva-emergency.crit .eva-clock-num { animation:pulse 1s infinite; }
+    .eva-emergency.cleared { border-color:rgba(52,211,153,.45); background:rgba(52,211,153,.06); }
+    @keyframes evaIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:none; } }
+    @media (prefers-reduced-motion:reduce) { .eva-emergency, .eva-emergency.crit .eva-clock-num { animation:none; } }
 
     /* Reference-matched raster: fine horizontal phosphor lines, small pixel grid and stepped corners. */
     body {
@@ -231,6 +248,60 @@
     .mode-status { color:#7596aa; font:8px 'JetBrains Mono',monospace; letter-spacing:.08em; }
     @media (prefers-reduced-motion:reduce) { body::before { opacity:.055; } }
 
+    /* Ship triage roles: a crew member sees their own record, the Crew Medical Officer (CMO) sees everyone. */
+    .role-btn[aria-pressed="true"] { color:#001217; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
+    .role-btn.cmo[aria-pressed="true"] { color:#fff; background:var(--pink); border-color:var(--pink); }
+    .roster-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,172px),1fr)); gap:8px; }
+    .roster-card { text-align:left; min-width:0; border:1px solid rgba(63,103,130,.38); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.88); border-radius:8px; padding:8px 9px; transition:border-color .15s ease,background .15s ease; }
+    .roster-card:hover { border-color:rgba(0,240,255,.55); border-left-color:var(--lvl,#34d399); }
+    .roster-card.active { background:rgba(0,240,255,.07); box-shadow:inset 0 0 0 1px var(--cyan); }
+    .roster-name { font:700 10px 'JetBrains Mono',monospace; color:#eaf6ff; letter-spacing:.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .roster-meta { font:500 8px 'JetBrains Mono',monospace; color:#6f8ea3; letter-spacing:.04em; }
+    .roster-level { font:700 7.5px 'JetBrains Mono',monospace; letter-spacing:.08em; color:var(--lvl,#34d399); white-space:nowrap; }
+    .roster-top { font-size:9.5px; color:#b9cfdd; line-height:1.35; margin-top:4px; }
+    .zone.reported:not(.selected):not(:hover) { fill:rgba(255,42,133,.42); stroke:#ff6aa8; }
+    .zone.reported.pain-hi:not(.selected):not(:hover) { fill:rgba(255,42,75,.62); stroke:#ff2a4b; }
+    .zone.heat1:not(.selected):not(:hover) { fill:rgba(255,184,0,.4); stroke:#ffb800; }
+    .zone.heat2:not(.selected):not(:hover) { fill:rgba(255,120,40,.62); stroke:#ff8a3d; }
+    .zone.heat3:not(.selected):not(:hover) { fill:rgba(255,42,75,.78); stroke:#ff2a4b; }
+    .heat-count { fill:#fff; font:700 7px 'JetBrains Mono',monospace; text-anchor:middle; dominant-baseline:central; pointer-events:none; paint-order:stroke; stroke:#04070d; stroke-width:2px; }
+    .viewing-banner { border:1px solid rgba(0,240,255,.3); background:rgba(0,240,255,.05); }
+    .viewing-banner.other { border-color:rgba(255,184,0,.5); background:rgba(255,184,0,.06); }
+    .viewing-banner.whole { border-color:rgba(255,42,133,.5); background:rgba(255,42,133,.06); }
+    .pattern-card { border:1px solid rgba(255,42,133,.3); background:rgba(255,42,133,.05); border-radius:8px; padding:8px 10px; }
+    .heat-row { border:1px solid rgba(63,103,130,.3); background:#091624; border-radius:7px; padding:6px 8px; }
+    .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
+    .name-link { color:var(--cyan); text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer; background:none; border:0; padding:0; font:inherit; }
+    .name-link:hover { color:#fff; }
+    /* Suit check: sensor health per suit, go/no-go gate for cabin exit. */
+    .suit-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; }
+    .suit-card { border:1px solid rgba(63,103,130,.38); border-top:3px solid var(--verdict,#34d399); background:rgba(6,16,28,.9); border-radius:10px; padding:10px 11px; min-width:0; position:relative; }
+    .suit-card.checking::after { content:"RUNNING CHECKOUT…"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(4,9,18,.82); color:var(--cyan); font:700 10px 'JetBrains Mono',monospace; letter-spacing:.14em; border-radius:10px; }
+    .verdict { font:800 10px 'JetBrains Mono',monospace; letter-spacing:.1em; padding:3px 7px; border-radius:5px; border:1px solid currentColor; color:var(--verdict,#34d399); white-space:nowrap; }
+    .sensor-row { display:grid; grid-template-columns:14px minmax(0,1fr) auto; gap:2px 7px; align-items:baseline; padding:5px 0; border-top:1px solid rgba(63,103,130,.18); }
+    .sensor-row .s-icon { font:700 10px 'JetBrains Mono',monospace; text-align:center; }
+    .sensor-row .s-name { font-size:10.5px; color:#d6e6f1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sensor-row .s-val { font:600 10px 'JetBrains Mono',monospace; color:#9fc0d3; text-align:right; white-space:nowrap; }
+    .sensor-row .s-detail { grid-column:2 / 4; font-size:9.5px; line-height:1.35; }
+    .crit-tag { font:700 7px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#7c9bb0; border:1px solid rgba(124,155,176,.45); border-radius:3px; padding:0 3px; margin-left:4px; vertical-align:1px; }
+    .s-fix { font:700 8px 'JetBrains Mono',monospace; letter-spacing:.06em; color:var(--cyan); border:1px solid rgba(0,240,255,.45); border-radius:4px; padding:1px 6px; margin-left:6px; background:transparent; cursor:pointer; }
+    .s-fix:hover { background:rgba(0,240,255,.1); }
+    .suit-gate { border:1px solid rgba(52,211,153,.5); color:#6ee7b7; background:rgba(52,211,153,.07); cursor:pointer; }
+    .suit-gate.limited { border-color:rgba(255,184,0,.55); color:#ffd46a; background:rgba(255,184,0,.07); }
+    .suit-gate.nogo { border-color:rgba(255,42,75,.65); color:#ff8094; background:rgba(255,42,75,.08); }
+    .metric.sensor-fault { border-color:rgba(255,184,0,.7); }
+    .metric.sensor-fault::before { content:"SENSOR FAULT · DON'T TRUST"; position:absolute; right:10px; bottom:8px; font:700 7.5px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#ffb800; z-index:2; }
+    /* Moving ASTRA: hold and drag her card or portrait to park her. */
+    .astra-handle { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .companion.dragging { transition:none; opacity:1; }
+    .companion.dragging .astra-handle { cursor:grabbing; }
+    .compact-row { width:100%; display:grid; grid-template-columns:auto minmax(0,9.5em) auto minmax(0,1fr) auto; align-items:center; gap:8px; text-align:left; border:1px solid rgba(63,103,130,.3); border-left:3px solid var(--lvl,#34d399); background:rgba(6,16,28,.85); border-radius:6px; padding:5px 8px; font:500 9px 'JetBrains Mono',monospace; color:#a9c5d6; }
+    .compact-row:hover { border-color:rgba(0,240,255,.5); border-left-color:var(--lvl,#34d399); color:#eaffff; }
+    .compact-row .c-name { color:#eaf6ff; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .compact-row .c-top { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#8fb0c3; font-family:Inter,sans-serif; font-size:9.5px; }
+    .compact-row .c-lvl { color:var(--lvl,#34d399); font-weight:700; letter-spacing:.06em; }
+    @media (max-width:520px) { .compact-row { grid-template-columns:auto minmax(0,1fr) auto; } .compact-row .c-top, .compact-row .c-ago { display:none; } }
+
 </style>
 </head>
 <body class="font-sans antialiased">
@@ -246,25 +317,31 @@
           <svg viewBox="0 0 40 40" class="w-7 h-7" fill="none" aria-hidden="true"><path d="M20 3 34 11v18L20 37 6 29V11L20 3Z" stroke="#00F0FF" stroke-width="1.4"/><path d="m20 9 7 11-7 11-7-11 7-11Z" stroke="#00F0FF"/><circle cx="20" cy="20" r="3" fill="#FF2A85"/><path d="M3 20h9m16 0h9M20 1v8m0 22v8" stroke="#00F0FF" stroke-width="1.3"/></svg>
         </div>
         <div>
-          <div class="flex items-center gap-2 flex-wrap"><h1 class="text-lg sm:text-xl font-extrabold tracking-[.08em] text-white">VEGA <span class="text-cyan">//</span> EVA-MED HUD</h1><span class="chip rounded px-2 py-1 text-[9px] mono tracking-widest text-cyan">PROTOTYPE 1.0.0</span></div>
+          <div class="flex items-center gap-2 flex-wrap"><h1 class="text-lg sm:text-xl font-extrabold tracking-[.08em] text-white">ASTRA <span class="text-cyan">//</span> EVA-MED HUD</h1><span class="chip rounded px-2 py-1 text-[9px] mono tracking-widest text-cyan">PROTOTYPE 1.0.0</span></div>
           <p class="eyebrow mt-1">AstraSight · Suit telemetry, crew triage &amp; ship PA</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="View mode">
-          <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual">DUAL LINK</button>
-          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva">EVA HUD</button>
-          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship">SHIP TRIAGE</button>
+          <button class="btn active text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="dual" title="The habitat wall console: telemetry and triage for your role">SHIP DISPLAY</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="eva" title="The astronaut's visor during an EVA">EVA HUD</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship" title="The medical console, full width">MEDICAL BAY</button>
+          <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="suits" title="Sensor health of every EVA suit, and the go/no-go for cabin exit">SUIT CHECK</button>
         </div>
-        <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch VEGA between automatic and custom appearance modes">VEGA: <span class="text-cyan">AUTO</span></button>
+        <div class="flex items-center gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="Signed in as (demo switch)" title="Demo switch: a real ship server would set your role when you sign in">
+          <span class="soft-label px-1.5">SIGNED IN AS</span>
+          <button type="button" class="btn role-btn rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW</button>
+          <button type="button" class="btn role-btn cmo rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO</button>
+        </div>
+        <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch ASTRA between automatic and custom appearance modes">ASTRA: <span class="text-cyan">AUTO</span></button>
         <button id="voiceToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono">VOICE: <span class="text-cyan">ON</span></button>
       </div>
     </header>
 
-    <!-- TOP-MOUNTED VEGA CUSTOM MODE -->
+    <!-- TOP-MOUNTED ASTRA CUSTOM MODE -->
     <section id="astraCustomPanel" class="custom-panel p-3 mb-3 hidden-view">
       <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
-        <div><div class="eyebrow">COMPANION SETTINGS / CUSTOM MODE</div><div class="text-xs text-white font-semibold mt-1">Configure VEGA appearance</div></div>
+        <div><div class="eyebrow">COMPANION SETTINGS / CUSTOM MODE</div><div class="text-xs text-white font-semibold mt-1">Configure ASTRA appearance</div></div>
         <span class="text-[9px] mono text-cyan">LOCAL DISPLAY ONLY</span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
@@ -330,6 +407,7 @@
       
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <div class="flex-1 min-w-[230px] rounded-lg border border-line/65 bg-[#060e19] px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden"><span class="text-[9px] mono text-emerald-300">[BUS // 1Hz]</span><span id="jsonPacket" class="mono text-[9px] sm:text-[10px] text-cyan/90 whitespace-nowrap overflow-x-auto bus-scroll flex-1">{"psi":4.30,"o2":96,"co2":98,"hr":78,"rad_msv_h":0.08,"r_val":8}</span><span class="text-[8px] mono text-slate-500">SEQ <span id="packetSeq">000001</span></span></div>
+        <button id="suitGateChip" type="button" class="suit-gate rounded-md px-2.5 py-2 text-[9px] mono" title="Open Suit check">SUIT · CHECKING</button>
         <button id="exitButton" class="btn warn rounded-md px-3 py-2 text-[9px] mono">↗ CABIN EXIT</button>
         <button id="reentryButton" class="btn rounded-md px-3 py-2 text-[9px] mono opacity-40" disabled>↙ AIRLOCK RE-ENTRY</button>
       </div>
@@ -344,6 +422,22 @@
             <div class="text-[9px] mono text-slate-500">VISOR PROFILE / EVA-07</div>
           </div>
           <div class="p-4">
+            <!-- EVA CLOCKS: time outside, plus a countdown that appears only when a reading needs action. EVA mode only. -->
+            <div id="evaClocks" class="eva-clocks hidden-view mb-3">
+              <div class="eva-clock rounded-xl p-3" id="outsideClockCard">
+                <div class="flex justify-between items-center gap-2"><span class="eyebrow">TIME OUTSIDE HABITAT</span><span id="outsideState" class="text-[9px] mono text-slate-500">AT AIRLOCK</span></div>
+                <div id="outsideClock" class="eva-clock-num text-cyan">00:00:00</div>
+                <div id="outsideFoot" class="text-[9px] mono text-slate-500 mt-1">Starts when you press CABIN EXIT.</div>
+              </div>
+              <div class="eva-clock eva-emergency rounded-xl p-3 hidden-view" id="emergencyCard">
+                <div class="flex justify-between items-center gap-2"><span class="eyebrow" id="emergencyLabel" aria-live="assertive">EMERGENCY</span><span id="emergencyState" class="text-[9px] mono">COUNTING DOWN</span></div>
+                <div id="emergencyClock" class="eva-clock-num">00:00</div>
+                <div class="track mt-1"><div id="emergencyBar" class="fill" style="width:100%"></div></div>
+                <div id="emergencyAction" class="text-[10px] text-slate-200 mt-2 leading-snug"></div>
+                <div id="emergencyReason" class="text-[9px] mono text-slate-500 mt-1"></div>
+                <div id="emergencyOthers" class="text-[9px] mono text-slate-400 mt-1"></div>
+              </div>
+            </div>
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3" id="metricsGrid">
               <article class="metric sensor-card rounded-xl p-3" id="card-psi">
                 <div class="status-line"><span class="eyebrow">SUIT PRESSURE</span><span class="text-cyan text-[10px]">◉</span></div>
@@ -364,7 +458,7 @@
                 <div class="status-line"><span class="eyebrow">HEART RATE</span><span class="text-pink text-[10px]">♥</span></div>
                 <div class="value text-pink mt-3"><span id="hrValue">78</span><small class="text-sm ml-1 text-slate-400">BPM</small></div>
                 <div class="text-[9px] mono text-slate-500 mt-2">BIOMETRIC / OPTICAL</div>
-              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="hr"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sHr">HEART RATE</label><output id="sHrOut">78 bpm</output></div><input aria-label="Manual heart rate override" id="sHr" max="180" min="40" step="1" type="range" value="78"/></div></div></article>
+              <div class="sensor-tune hidden-view mt-3" data-sensor-tune="hr"><div class="manual-knob"><div class="flex justify-between gap-2"><label for="sHr">HEART RATE</label><output id="sHrOut">78 bpm</output></div><input aria-label="Manual heart rate override" id="sHr" max="190" min="30" step="1" type="range" value="78"/></div></div></article>
               <article class="metric sensor-card rounded-xl p-3" id="card-temp">
                 <div class="status-line"><span class="eyebrow">CORE TEMP</span><span class="text-amber text-[10px]">◉</span></div>
                 <div class="value text-amber mt-3"><span id="tempValue">37.0</span><small class="text-sm ml-1 text-slate-400">°C</small></div>
@@ -475,14 +569,31 @@
 
       <!-- SHIP TRIAGE PANEL -->
       <section id="triagePanel" class="space-y-5 min-w-0">
+        <div class="panel rounded-xl p-3 sm:p-4" id="triageRoleBar">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><div class="eyebrow" id="triageRoleEyebrow">CREW HEALTH · YOUR ROLE</div><div id="roleAccess" class="text-[10px] mono text-slate-300 mt-1">CREW ACCESS · YOUR RECORD ONLY</div></div>
+            <button id="openMedBay" type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono hidden-view">OPEN MEDICAL BAY ↗</button>
+          </div>
+          <div id="compactRoster" class="mt-3 hidden-view">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5"><div class="eyebrow">CREW STATUS · MOST URGENT FIRST</div><span class="text-[8px] mono text-slate-500">CLICK A NAME TO OPEN IT IN THE MEDICAL BAY</span></div>
+            <ul id="compactRows" class="space-y-1"></ul>
+          </div>
+          <div id="cmoRoster" class="mt-3 hidden-view">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><div class="eyebrow">CREW ROSTER · MOST URGENT FIRST</div><span class="text-[8px] mono text-slate-500">OPEN A CARD TO SEE THAT RECORD</span></div>
+            <div id="rosterCards" class="roster-grid"></div>
+          </div>
+          <div id="viewingBanner" class="viewing-banner rounded-lg px-3 py-2 mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"></div>
+          <p class="text-[8px] mono text-slate-600 mt-2">Your role comes from "Signed in as" at the top, a demo switch. A real ship server would check the CMO role before opening anyone else's record. Crew members other than you are simulated.</p>
+        </div>
+
         <div class="panel rounded-xl overflow-hidden">
           <div class="panel-head p-4 flex items-center justify-between gap-3">
             <div><div class="eyebrow" id="triageContextLabel">03 / SHIP SERVER · CREW REVIEW</div><h2 class="text-white font-bold mt-1">CREW HEALTH REVIEW</h2></div>
             <span class="chip rounded px-2 py-1 text-[9px] mono text-cyan">OFFLINE CACHE</span>
           </div>
           <div class="p-4">
-            <div class="rounded-lg border border-pink/20 bg-pink/[.045] p-3 mb-4">
-              <div class="flex items-center justify-between gap-2"><span class="eyebrow">RECORDED EVA SNAPSHOT</span><span id="snapshotState" class="text-[9px] mono text-emerald-300">STREAM LINKED</span></div>
+            <div id="triageSnapshot" class="rounded-lg border border-pink/20 bg-pink/[.045] p-3 mb-4">
+              <div class="flex items-center justify-between gap-2"><span id="snapshotTitle" class="eyebrow">RECORDED EVA SNAPSHOT</span><span id="snapshotState" class="text-[9px] mono text-emerald-300">STREAM LINKED</span></div>
               <div class="grid grid-cols-4 gap-2 mt-3">
                 <div><div class="text-[9px] text-slate-500 mono">R-VALUE</div><div id="triageR" class="text-lg mono text-cyan">08</div></div>
                 <div><div class="text-[9px] text-slate-500 mono">PRESSURE</div><div id="triagePsi" class="text-lg mono text-cyan">4.30</div></div>
@@ -496,10 +607,11 @@
                 <div class="rounded-lg border border-line/70 bg-[#07111d] p-2 flex items-center justify-center min-h-[390px]">
                   <div id="bodyMap" class="w-full max-w-[340px]" aria-label="Interactive front body map with separately selectable anatomical areas"></div>
                 </div>
-                <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
+                <div class="flex flex-wrap gap-2 mt-2 text-[8px] mono text-slate-500"><span id="bodyMapHint" class="chip rounded px-2 py-1">SELECT A ZONE</span><span class="chip rounded px-2 py-1">R/L = CREW MEMBER'S RIGHT/LEFT</span></div>
                 <p class="text-[9px] text-slate-500 mt-2">Front and back are each split into left and right areas: head, face, eyes, ears, neck, chest, the nine abdominal regions, back and spine, arms, hands, legs and feet. Hover an area to see its name.</p>
               </div>
-              <div class="min-w-0">
+              <div id="crewOverlayPane" class="min-w-0 hidden-view" aria-live="polite"></div>
+              <div class="min-w-0" id="symptomColumn">
                 <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">LOCALIZED SYMPTOM INPUT</div><span id="selectedZoneLabel" class="text-[9px] mono text-cyan">FOREHEAD SELECTED</span></div>
                 <div id="symptomButtons" class="grid grid-cols-2 gap-2"></div>
                 <div class="pain-control mt-3">
@@ -515,14 +627,18 @@
           </div>
         </div>
 
-        <div class="panel rounded-xl overflow-hidden">
-          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">VEGA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
+        <div class="panel rounded-xl overflow-hidden" id="triageReviewPanel">
+          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">04 / DECISION SUPPORT OUTPUT</div><h2 class="text-white font-bold mt-1">ASTRA MEDICAL REVIEW</h2></div><span id="triageBadge" class="rounded px-2 py-1 text-[9px] mono bg-emerald-400/10 text-emerald-300 border border-emerald-400/25">AWAITING INPUT</span></div>
           <div class="p-4">
             <div id="triageOutput" class="rounded-lg border border-line/70 bg-[#07111d] p-3 min-h-[128px]">
               <div class="flex gap-2 items-center text-cyan"><span class="text-lg">✦</span><span class="text-xs font-bold tracking-wider">READY FOR CREW REPORT</span></div>
               <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">Choose a body zone, select any reported symptoms, then run the offline simulation. This interface can surface patterns for training; it cannot diagnose decompression sickness.</p>
             </div>
             <div id="vegaNote" class="mt-3 rounded-lg border border-cyan/25 bg-cyan/[.04] p-3" aria-live="polite" hidden></div>
+            <div id="surgeonBox" class="mt-3 rounded-lg border border-pink/30 bg-pink/[.04] p-3 hidden-view">
+              <div class="flex flex-wrap items-center justify-between gap-2"><span class="eyebrow">CMO ACTION · FLIGHT SURGEON</span><button id="sendSurgeon" type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono">SEND CASE TO FLIGHT SURGEON ↗</button></div>
+              <p id="surgeonStatus" class="text-[10px] text-slate-400 mt-2 leading-relaxed"></p>
+            </div>
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div class="chip rounded-lg p-3"><div class="eyebrow">ENGINE CONTEXT</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Compares reported zones and keywords with the demo R-value and recorded suit pressure context.</div></div>
               <div class="chip rounded-lg p-3"><div class="eyebrow">SAFETY ROUTING</div><div class="text-[10px] text-slate-400 mt-2 leading-relaxed">Suspected DCS or neurological/cardiopulmonary warning signs require immediate mission medical escalation.</div></div>
@@ -533,7 +649,7 @@
         <div class="panel rounded-xl overflow-hidden" id="crewPaPanel">
           <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span id="pa-count" class="text-[9px] mono text-slate-500">0 announcements</span></div>
           <div class="p-4 space-y-3">
-            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, VEGA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on VEGA's card. Turning the PA on reads the current alert again from the start.</p>
+            <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, ASTRA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on ASTRA's card. Turning the PA on reads the current alert again from the start.</p>
             <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-2" autocomplete="off">
               <label class="sr-only" for="crew-rank">Rank</label>
               <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
@@ -545,30 +661,70 @@
               <button id="pa-test" type="button" class="btn rounded-md px-3 py-2 text-[9px] mono">TEST ANNOUNCEMENT</button>
             </div>
             <p id="pa-who" class="text-[10px] mono text-cyan"></p>
-            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard above to hear one.</li></ol>
+            <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard in the Ship display or EVA HUD view to hear one.</li></ol>
           </div>
         </div>
 
 
       </section>
+
+      <!-- SUIT CHECK PANEL: sensor health of every EVA suit; feeds the go/no-go gate on CABIN EXIT -->
+      <section id="suitPanel" class="space-y-5 min-w-0 hidden-view">
+        <div class="panel rounded-xl overflow-hidden">
+          <div class="panel-head p-4 flex flex-wrap items-center justify-between gap-3">
+            <div><div class="eyebrow">06 / SUIT CHECK · SENSOR HEALTH</div><h2 class="text-white font-bold mt-1">EVA SUIT CHECKOUT</h2></div>
+            <div class="flex flex-wrap items-center gap-2"><span id="suitSummary" class="text-[9px] mono text-slate-400"></span><button id="runCheckout" type="button" class="btn active rounded-md px-3 py-2 text-[10px] mono">RUN FULL CHECKOUT ↻</button></div>
+          </div>
+          <div class="p-4">
+            <p class="text-[10px] text-slate-400 leading-relaxed mb-3">ASTRA watches every sensor in every suit, not just the readings. A suit with a failed or untrustworthy <b class="text-slate-200">life-support</b> sensor (marked LS) is <b class="text-rose-300">NO-GO</b>: its wearer can't leave through the airlock until the sensor is replaced or they swap to a suit that passes. A fault in a health sensor alone gives <b class="text-amber-200">GO · LIMITED</b>: the EVA can go ahead, but ASTRA can't watch that reading.</p>
+            <div id="suitGrid" class="suit-grid"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl overflow-hidden">
+            <div class="panel-head p-4"><div class="eyebrow">DEMO · BREAK A SENSOR</div><h2 class="text-white font-bold mt-1">FAULT INJECTION</h2></div>
+            <div class="p-4 space-y-2">
+              <p class="text-[10px] text-slate-400 leading-relaxed">Simulates a broken sensor so you can watch the checks catch it. Detection times are shortened for the demo.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label class="text-[8px] mono text-slate-500">SUIT<select id="faultSuit" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+                <label class="text-[8px] mono text-slate-500">SENSOR<select id="faultSensor" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+                <label class="text-[8px] mono text-slate-500">FAULT<select id="faultType" class="w-full mt-1 rounded border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"></select></label>
+              </div>
+              <div class="flex flex-wrap gap-2 pt-1"><button id="injectFault" type="button" class="btn danger rounded-md px-3 py-2 text-[10px] mono">BREAK THIS SENSOR</button><button id="clearFaults" type="button" class="btn rounded-md px-3 py-2 text-[10px] mono">CLEAR INJECTED FAULTS</button></div>
+            </div>
+          </div>
+          <div class="panel rounded-xl overflow-hidden">
+            <div class="panel-head p-4"><div class="eyebrow">HOW ASTRA CHECKS A SENSOR</div><h2 class="text-white font-bold mt-1">FAULT DETECTION RULES</h2></div>
+            <ul class="p-4 space-y-2 text-[10px] text-slate-300 leading-relaxed">
+              <li><b class="text-rose-300">No signal:</b> no data from the sensor for 5 s.</li>
+              <li><b class="text-rose-300">Impossible reading:</b> a value no working sensor can give, such as 130 % O₂.</li>
+              <li><b class="text-rose-300">Stuck:</b> the value hasn't changed at all for 6 s. Real sensors always jitter a little. A real suit would wait longer.</li>
+              <li><b class="text-rose-300">Disagreement:</b> the primary and backup O₂ sensors differ by more than 3 %. If only one is outside its normal range, that one is blamed.</li>
+              <li><b class="text-amber-200">Noisy:</b> readings jump far more than the sensor's normal jitter.</li>
+              <li><b class="text-amber-200">Out of checkout range:</b> a suit on the rack should read inside a known band. Skipped while the suit is outside on an EVA, where readings really change.</li>
+              <li><b class="text-amber-200">Calibration overdue.</b></li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>VEGA // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
+    <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>ASTRA // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
   </div>
 
-  <!-- FLOATING VEGA -->
+  <!-- FLOATING ASTRA -->
   <img id="astraSpriteSource" alt="" hidden src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAIAAABuYg/PAAAJd0lEQVR42n1W3Y/d1XVde5+P3+/eO+O52MYfQMqH7RBsPAZqaghKmoAQUqU+pupL3yqlUiO1Up/6P1RVn1NFaqW+pFWlPEQJSWmbFhMKrT+GmRgKtklAYMbWeMZz7/19nHP23n24M4Nxm+7H38feWvustc6iamHcN7pQD5qYAHbKZJDcA4ihdjGU1F29ehXzMsavKbXinDt58qSIZLGSGoLBCAAbFxfU9RTqJSHUSwviYwGTaRBFFjZdW7vCDC3pwQfvJ0AEzuH27bbLyQhkAObdQIYsRUTqGKpq8PgTJ7tmZkVS3/gYyeBASiAeLDkDgKyExWGMESlfWV0b1VXqmgePHkhdqWpHBjVSwvrNzQLaG7Zb7EOASUkZUBfqUkpw/sSJYyklhqZmSwHviAgQwmg8hvepa0nUMXcpG/k2I0QvAAhEIMDHWJIoMF8oQWOsZ52oMoOMRIsRCbErZj5WOWcmFoESKAzHAIzILS1Jn5Dlg/ffNzMDmB0AQzEzGDtWgFUxh6QENhA0Zf3Jv54fDBdz6l7+5m8HZ6ZC7JzjnLrlJ0/17ayfbRuBjYhBzsB9+eDKe9evXSPbWZFKkZSg5giOYfBFYHCAo7s2WNc1s+sLG1U/+ulrqSg7TwRVrYLf3LjRNttEAOADVxXL1uEvoRreqMPhSesRGutGA6eFjD0AhQIGiGMG1ACA5lslUCnFAFMFyIcqVDWx9rmtCgy+BS4AzwAO6nvftO7A6PXzbOGrZ7+Gyc3rq5ec+C6HQHIPv4V0TgcjkJGSOYNIcWzFGgBm1vdtjMqgHLwzW3r0dPivn//ngcVHoIQHHj508f0j1w2q24/EA+2H777yip/kN1evVtTs8kDvHmnEAGiuIUgIoVOYKZuDeWLLefOZ5XMdKbrZgWsfPnp96fvnUACP4cGNEB9J25n8hncjrfrNlCQHBtvnQw4eHHvADJt3piXrnCBzmfdZQPAENXn11de8D19/8fmMfqix0cFmvXCiwx//+IN+MRKOPIDRb4zfeLPKWH/pm9i6MZDZypW1klwIO2v0nlNK0ftSiqqyj3fB3fEU53zbtoPhQpfK+Tff+saLZ2vUp0+cuRPq+96+xN4eysUPU/bN9SPdemZe737pum0bDL0WqgzmCAaglMKAGBk5IwITADK3Zx8Acs51HUB9kj6r+HaQXN/EaUg3j8qGFn90a0JhfGjP90Jdq9nq6qqZYU4wIjhW1Qr+1JknQYZd83BKAJSs4vD26juTyWQwqNhARErMpgAIWF5e7vvOgQB4/PoiR0xOi519+jdJ+08v/Iu3nrAjagKMzECp8PHjD8SlQ9MuXbi8RqBgvYLtHkcDKIwPERERxVBfXFmZvxYRZjbPT506HUp/dfVisCmjfPFfJhRnQuZaNzIzcdXjz3ztrZU1Kcm5ud8DwFNnllNKALwRGUCAEtRszrFQV33f1/A1l1pnA9n0lnVXXrZr+EYwmNMytDvMPG0nizyrkKbOk837zYlkAJh5Z430eQFASqmu66e+fPzKxfPcbgCSaMAogNiuUwWTQlyoElaGaJHF0ejdy2899uRjP7v838xxLkVSIyJmBuApRACiJkQFBCiM4fzTJ4//6tIb0bft6NF9p15AmtHC/tvn/8GXLXP7su9JB2Qt4O5/6iU3qk1iX9H6z3507a2fPnTm9H+88/4O7QAlbxCQsYiI3GtLZmZmfW7yrL09Wvr2X//d5sbHf/RX38OgMj9QYlaXHBkpYH/+3b9d+eja2ifv/uFffs+qqpB3SvTFbruHvLe7u2lDRERca+XjDfJXlh7bBlYXHm77tqgzKgAbmRHElc/GD30C3AI+OXCKF2JhYtg93f6/YfMvoost6cJWOTDtj33lhcU0HZZUOSZkcbkuKsRCwM1bLz7x8ldPv+LubNhswlTMq32xlTEREd8Nxe4qAE6HiDjSf/aDb/+un3724z/5FjP1JoAz0sIA2Av/zZ/9wSiv79v61Q//9FvUdk5ZKNzdB7vm5ndh/R/4NCuc1W77o5//vRZUlRdMC0IoIEV26pUq4fVLP5m0qIxnlavIISeYv+fA5s3nT+eYaG5aRjAwAKGG1SlhEQ08qzBKyhTI8yD1k2I2fqCfbNZZh9FFSV5DAZhA1P/vAwPAqqqqZmYmRI7YiMgRmZIRE+B2hA7PgHOnzz5/6rlvzHiY4qETZ17AcMFoJ08ylFEAYgOT7bHBzOZTPO+IAWwwM5ESQgAZ+yB+GARpthkGIzJo6uBc4dhqfeK5V2pmMnMkzoozBxBBDWw+KhwAkJLBTFXynJ8UDxzdi2XVaCHnfmXlclYg9+eeOX39wutDNILAEHMBuXej/U3TVNb1ihyXMLl135ALVfP7QIiPLZ97+71P0ry74ezZs33TzonIdxFQrQiJSM6DQeWqaHFBXCxFjUCAiJmmPL1duQIXR0EWfNq/bxEWM0UjEAxguKpX3gvqpU/eOewdBKBmZkpSEhGrWGm6IiWWKOBNKUv1OKVUeXGDsRiVkrwVscpRmaaGuFIr5KOqFnhmDqQCw5z3jiiLaSEiv3NPmhGxc05VQwjOuQhs0eThJ3/LJWfBLQ703TdeHfkuNbPBYCDEOtDQ+uHiwTLbPHb6pWm1IH0CQLEq0SjN7xJArO17H9jMKN53eI4xhnplba2qqj4lVX322Wcns3WngaViJxldkbB/GFfe+Kd9QcmUFylsDY6de2lDpipBuZhJJldVwwp84fJlAyshd/3z555L3cwgfk/kc4I2bUsAM08nE1Ag46ytUKqwZOa3hbMbJTZCGVp1y8+6gUg79DWl1py5KAZpc/RmpiLsXV3XXdfx3DX2MkgVBxdXLs8TxvLycrd1h4b7jG2xHjbbvWrz2JcfT0ViXWdRg4vZwHFiEgN9evUSa+08GTWACao6VMa4/M4KM585vZy6ZicW7CBTCnU1H5ZSUtXg2qQRhx9efP31Q619/Hu/f5iKZYMZoyibJlGSIfOj3//hP+8PX5k17738O/HWp6atcnAgV0cAkotJBuBd2fNK01kzV7gHxuNxGDx46gf/+Ivh0fs/wJKl9YyOyv1+mJpZ74t3wQJPW4ijxWsbZ7a+NMPo+L+9dvXlrx+f6Udbt6zvrZTdZMkACEv79wKTs88NTVUX477miadzVYepz7Z9PDfTVp777l98fORQletG20Ps//0731m6+ct88OTtThAr8AQfroSNG9XSeDpr7xuPN7e2iAhKRvw/kBfDiOzRP8EAAAAASUVORK5CYII=">
   <div id="companion" class="companion" style="left:calc(100vw - 312px);top:145px;">
     <div class="companion-layout">
       <div class="companion-card">
-        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● VEGA <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2"><span class="text-[9px] mono tracking-widest text-cyan font-bold">● <span id="companionName">ASTRA</span> <span class="text-pink">//</span> <span id="companionExpressionLabel">NOMINAL</span></span><span id="emote" class="text-sm">✦</span></div>
         <div id="companionMessage" class="text-[9px] leading-[1.45] text-slate-200 mt-1.5">Link established with Ship Core AI Server. All EVA parameters nominal. Cabin-exit radiation and DCS exposure timers are actively tracking.</div>
         <button id="companionAck" type="button" class="companion-ack">Acknowledge</button>
-        <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
+        <div class="flex justify-between gap-2 border-t border-slate-700/50 mt-1.5 pt-1.5 text-[7px] mono"><span id="companionLoc" class="text-cyan">LOC: VISOR HUD STANDBY</span><span class="text-slate-400">PALETTE: <span id="companionPaletteLabel" class="text-cyan">COBALT</span></span></div>
       </div>
       <div class="sprite-frame">
         <div class="sprite-stage"><canvas id="floatingSprite" width="36" height="36" class="companion-sprite"></canvas><canvas id="floatingEmote" width="18" height="24" class="floating-emote float"></canvas></div>
-        <div class="sprite-caption">VEGA</div>
+        <div id="spriteCaption" class="sprite-caption">ASTRA</div>
       </div>
     </div>
   </div>
@@ -606,14 +762,75 @@ const ReportLink = (() => {
   const state = {
     psi:4.30, o2:96, co2:98, hr:78, temp:37.0, work:165, rad:0.08,
     r:8, n2:92, dose:0, safeSeconds:1800, timerActive:false, sensorsOn:true, operatingMode:'habitat', habitatSeconds:0,
+    outsideSeconds:0, lastOutside:0, exitAt:'', view:'dual',
     voiceOn:true, exited:false, seq:1, elapsed:0, scenario:'nominal',
     palette:'cobalt', expression:'nominal', selectedZone:'forehead', bodyView:'front', symptoms:new Map(), painLevels:{},
     peakHr:78, triageRan:false, lastWarning:'', alertState:'nominal', overrides:new Set(),
     companionMode:'auto', activeModule:'vitals',
+    role:'crew', patient:'you', overlay:false, overlayZone:'',   // ship triage: who is looking, whose record is open
     spo2:98, hrv:64, gsr:2.6, co2ppm:650, sleepHours:7.6, cfDna:0.84,
     protonFlux:2.4, neutronFlux:0.04, cabinTemp:21.4, humidity:42, pm25:4.2, voc:0.12
   };
   const baseline = {psi:4.30,o2:96,co2:98,hr:78,temp:37.0,work:165,rad:0.08};
+  // Safe lines for each manual-override reading: lo/hi = [warn, hazard]. Past "warn" ASTRA flags it (amber);
+  // past "hazard" it's an emergency (red), and in EVA mode the countdown starts. A reading with no lo or hi
+  // can't be dangerous on that side (a full O₂ tank or a quiet radiation sensor is fine).
+  // Body temp and low heart rate match js/data.js (thermal, cardio); the rest are demo lines, not flight rules.
+  const LIMITS = {
+    psi:  {name:'Suit pressure', unit:' PSI',   dp:2, lo:[4.0,3.65],  hi:[4.6,4.8], suit:true},
+    o2:   {name:'O₂ reserve',    unit:'%',      dp:0, lo:[88,72]},
+    co2:  {name:'CO₂ scrubber',  unit:'%',      dp:0, lo:[80,65]},
+    hr:   {name:'Heart rate',    unit:' bpm',   dp:0, lo:[50,40],     hi:[135,165]},
+    temp: {name:'Core temp',     unit:' °C',    dp:1, lo:[35.5,35.0], hi:[38.1,39.0]},
+    work: {name:'Metabolic load',unit:' W',     dp:0, hi:[350,450]},
+    rad:  {name:'Radiation',     unit:' mSv/h', dp:2, hi:[0.3,1.0]},
+  };
+  // {zone:'ok'|'warn'|'crit', side:'low'|'high'|''}. Suit pressure isn't tracked in the habitat.
+  function zoneOf(k){
+    const L=LIMITS[k], v=state[k];
+    if(L.suit && state.operatingMode==='habitat') return {zone:'ok',side:''};
+    if(L.lo && v<L.lo[1]) return {zone:'crit',side:'low'};
+    if(L.hi && v>=L.hi[1]) return {zone:'crit',side:'high'};
+    if(L.lo && v<L.lo[0]) return {zone:'warn',side:'low'};
+    if(L.hi && v>L.hi[0]) return {zone:'warn',side:'high'};
+    return {zone:'ok',side:''};
+  }
+  // Manual-override sliders: a coloured band (red hazard / amber warn / green safe) with markers at the
+  // low and high hazard lines, so you can see how far a reading can go before it becomes an emergency.
+  function buildLimitScales(){
+    Object.keys(LIMITS).forEach(k=>{
+      const input=$(sliders[k]); if(!input||input.dataset.scaled) return;
+      input.dataset.scaled='1';
+      const L=LIMITS[k], min=Number(input.min), max=Number(input.max);
+      const pct=v=>clamp((v-min)/(max-min)*100,0,100);
+      const pos=v=>`calc(7px + (100% - 14px) * ${pct(v)/100})`;
+      const stops=[], R='#ff2a4b', A='#ffb800', G='#34d399';
+      let at=0; const seg=(to,c)=>{const t=pct(to); stops.push(`${c} ${at}%`,`${c} ${t}%`); at=t;};
+      if(L.lo){ seg(L.lo[1],R); seg(L.lo[0],A); }
+      if(L.hi){ seg(L.hi[0],G); seg(L.hi[1],A); seg(max,R); } else seg(max,G);
+      const fmt=v=>Number(v).toFixed(L.dp);
+      const marks=[...(L.lo?[[L.lo[1],'MIN']]:[]),...(L.hi?[[L.hi[1],'MAX']]:[])];
+      const scale=document.createElement('div');
+      scale.className='limit-scale'; scale.setAttribute('aria-hidden','true');
+      scale.innerHTML=`<div class="limit-band" style="background:linear-gradient(90deg,${stops.join(',')})"></div>`
+        +marks.map(([v,t])=>`<span class="limit-mark" style="left:${pos(v)}"></span><span class="limit-label ${pct(v)>80?'r':pct(v)<20?'l':''}" style="left:${pos(v)}">${t} ${fmt(v)}</span>`).join('');
+      input.insertAdjacentElement('afterend',scale);
+      const safe=document.createElement('div');
+      safe.className='limit-safe';
+      safe.textContent='SAFE '+(L.lo?fmt(L.lo[0]):fmt(min))+'–'+(L.hi?fmt(L.hi[0]):fmt(max))+L.unit.trim().replace(/^/,' ')
+        +' · HAZARD '+[L.lo?'<'+fmt(L.lo[1]):'',L.hi?'≥'+fmt(L.hi[1]):''].filter(Boolean).join(' / ');
+      scale.insertAdjacentElement('afterend',safe);
+      input.setAttribute('aria-description',safe.textContent);
+    });
+  }
+  function renderLimitOutputs(){
+    Object.keys(LIMITS).forEach(k=>{
+      const out=$(outputs[k]); if(!out) return;
+      const zz=zoneOf(k);
+      out.style.color=zz.zone==='crit'?'#ff2a4b':zz.zone==='warn'?'#ffb800':'';
+      const knob=out.closest('.manual-knob'); if(knob) knob.dataset.zone=zz.zone;
+    });
+  }
   const sliders = {psi:'sPsi',o2:'sO2',co2:'sCo2',hr:'sHr',temp:'sTemp',work:'sWork',rad:'sRad'};
   const outputs = {psi:'sPsiOut',o2:'sO2Out',co2:'sCo2Out',hr:'sHrOut',temp:'sTempOut',work:'sWorkOut',rad:'sRadOut'};
   // ---------- Body map: front and back views, each split into anatomical areas ----------
@@ -765,6 +982,128 @@ const ReportLink = (() => {
     return `${String(Math.floor(mins/60)).padStart(2,'0')}h ${String(mins%60).padStart(2,'0')}m`;
   }
   function setText(id, value){ $(id).textContent = value; }
+
+  // ---------- EVA clocks ----------
+  // "Time outside" counts up from CABIN EXIT. The emergency countdown appears (EVA mode only) when a reading
+  // crosses a hazard line, and shows the time left to act. Each budget comes from the live reading: a worse
+  // reading means less time, and the countdown only ever gets shorter while the hazard lasts.
+  // Illustrative demo budgets, not flight rules.
+  const HAZARDS=[
+    {key:'rad',label:'SOLAR FLARE',say:'Solar flare',act:'reach the storm shelter',
+      test:()=>crossed('rad','high'), reason:()=>`Radiation ${state.rad.toFixed(2)} mSv/h`,
+      budget:()=>clamp(Math.round(300/state.rad),60,240)},
+    {key:'psi',label:'SUIT PRESSURE LOSS',say:'Suit pressure is dropping',act:'get back to the airlock',
+      test:()=>crossed('psi','low'), reason:()=>`Suit pressure ${state.psi.toFixed(2)} PSI · hazard below ${LIMITS.psi.lo[1]}`,
+      budget:()=>clamp(Math.round((state.psi-2.5)/1.15*900),120,900)},
+    {key:'psiHigh',label:'SUIT OVERPRESSURE',say:'Suit pressure is too high',act:'get back to the airlock',
+      test:()=>crossed('psi','high'), reason:()=>`Suit pressure ${state.psi.toFixed(2)} PSI · hazard at ${LIMITS.psi.hi[1]} and above`,
+      budget:()=>clamp(Math.round((5.5-state.psi)/.7*900),120,900)},
+    {key:'o2',label:'LOW O₂ RESERVE',say:'Oxygen reserve is low',act:'get back to the airlock',
+      test:()=>crossed('o2','low'), reason:()=>`O₂ reserve ${Math.round(state.o2)}%`,
+      // Time until 10% is left, at the same consumption model as the O₂ card, capped at 30 minutes.
+      budget:()=>clamp(Math.round((state.o2-10)/100*360*60/Math.max(.55,state.work/165)),120,1800)},
+    {key:'co2',label:'CO₂ SCRUBBER FAILING',say:'The CO2 scrubber is failing',act:'head back to the airlock',
+      test:()=>crossed('co2','low'), reason:()=>`Scrubber efficiency ${Math.round(state.co2)}%`,
+      budget:()=>clamp(Math.round((state.co2-30)/35*1200),180,1200)},
+    {key:'heat',label:'CORE TEMP HIGH',say:'Your core temperature is too high',act:'stop work, cool down and head back',
+      test:()=>crossed('temp','high'), reason:()=>`Core temp ${state.temp.toFixed(1)} °C · hazard at ${LIMITS.temp.hi[1]} and above`,
+      budget:()=>clamp(Math.round((40.5-state.temp)/1.5*900),120,900)},
+    {key:'cold',label:'CORE TEMP LOW',say:'Your core temperature is too low',act:'turn up the suit heating and head back',
+      test:()=>crossed('temp','low'), reason:()=>`Core temp ${state.temp.toFixed(1)} °C · hazard below ${LIMITS.temp.lo[1]}`,
+      budget:()=>clamp(Math.round((state.temp-33.5)/1.5*900),120,900)},
+  ];
+  const crossed=(k,side)=>{const zz=zoneOf(k);return zz.zone==='crit'&&zz.side===side;};
+  const emergencies=new Map();   // key -> {h, budget, remaining, announced, warned60, expired, lastTrue}
+  let emergencyCleared=null;     // {label, until}: shows "cleared" for a few seconds
+  const capFirst=(t)=>t.charAt(0).toUpperCase()+t.slice(1);
+  function spokenTime(sec){
+    sec=Math.max(0,Math.round(sec));
+    if(sec<60) return `${Math.max(5,Math.round(sec/5)*5)} seconds`;
+    let m=Math.floor(sec/60), s=Math.round((sec%60)/10)*10; if(s===60){m++;s=0;}
+    return `${m} minute${m>1?'s':''}${s?` ${s} seconds`:''}`;
+  }
+  const byUrgency=(list)=>[...list].sort((a,b)=>a.remaining-b.remaining);
+  function emergencyLine(e){
+    return state.exited
+      ? `${e.h.say}. You have ${spokenTime(e.remaining)} to ${e.h.act}. The countdown is on your visor.`
+      : `${e.h.say}. Don't leave the airlock yet. If you go out, you'll have ${spokenTime(e.remaining)} to ${e.h.act}.`;
+  }
+  function updateEmergencies(){
+    if(state.operatingMode!=='eva'){ emergencies.clear(); return; }
+    const now=Date.now();
+    for(const h of HAZARDS){
+      const e=emergencies.get(h.key);
+      if(h.test()){
+        const est=h.budget();
+        if(!e){ emergencies.set(h.key,{h,budget:est,remaining:est,announced:false,warned60:est<=60,expired:false,lastTrue:now}); emergencyCleared=null; }
+        else { e.lastTrue=now; if(!e.expired && est<Math.min(e.remaining-3,e.remaining*.95)) e.remaining=est; }   // shorten only on a real worsening, not sensor noise
+        if(h.key==='rad') state.safeSeconds=Math.min(state.safeSeconds,emergencies.get('rad').remaining);
+      } else if(e && now-e.lastTrue>2000){   // short grace period so a slider dragged across the line doesn't flicker
+        emergencies.delete(h.key);
+        if(!emergencies.size) emergencyCleared={label:h.label,until:now+5000};
+      }
+    }
+  }
+  function announcePendingEmergencies(){
+    const pending=[...emergencies.values()].filter(e=>!e.announced);
+    if(!pending.length) return;
+    pending.forEach(e=>e.announced=true);
+    const e=byUrgency(pending)[0];
+    companionWarn(emergencyLine(e),'evaClocks','critical');
+  }
+  function tickEmergencies(){
+    if(state.operatingMode!=='eva'||!state.exited) return;   // paused at the airlock
+    for(const e of byUrgency(emergencies.values())){
+      if(e.expired) continue;
+      e.remaining=Math.max(0,e.remaining-1);
+      if(e.h.key==='rad') state.safeSeconds=Math.min(state.safeSeconds,e.remaining);   // keep the shelter window in step
+      if(!e.warned60 && e.remaining<=60 && e.remaining>0){
+        e.warned60=true;
+        const msg=`One minute left to ${e.h.act}.`;
+        $('companionMessage').textContent=msg; speak(msg,'critical');
+      }
+      if(e.remaining===0){
+        e.expired=true;
+        companionWarn(`Time's up on the ${e.h.label.toLowerCase().replace('o₂','O₂').replace('co₂','CO₂')} countdown. ${capFirst(e.h.act)} now. Tell me when you're there.`,'evaClocks','critical');
+      }
+    }
+  }
+  function renderEvaClocks(){
+    const show=state.operatingMode==='eva'||state.view==='eva';
+    $('evaClocks').classList.toggle('hidden-view',!show);
+    if(!show) return;
+    const eva=state.operatingMode==='eva';
+    setText('outsideClock',formatClock(state.exited?state.outsideSeconds:0));
+    $('outsideClock').style.color=state.exited?'#00f0ff':'#64748b';
+    setText('outsideState',!eva?'IN HABITAT':state.exited?'OUTSIDE · RUNNING':'AT AIRLOCK');
+    $('outsideState').style.color=state.exited?'#34d399':'';
+    setText('outsideFoot',!eva?'Choose EVA / EXTERIOR, then CABIN EXIT, to start this clock.'
+      :state.exited?`Left the habitat at ${state.exitAt||'--:--'} · emergency countdown ${emergencies.size?'active':'on standby'}.`
+      :state.lastOutside?`Last EVA lasted ${formatClock(state.lastOutside)}. Starts again at CABIN EXIT.`:'Starts when you press CABIN EXIT.');
+
+    const card=$('emergencyCard');
+    const list=byUrgency(emergencies.values());
+    if(!list.length){
+      if(eva && emergencyCleared && Date.now()<emergencyCleared.until){
+        card.classList.remove('hidden-view','crit'); card.classList.add('cleared');
+        setText('emergencyLabel','COUNTDOWN CLEARED'); setText('emergencyState','READING BACK IN RANGE'); $('emergencyState').style.color='#34d399';
+        setText('emergencyClock','--:--'); $('emergencyClock').style.color='#34d399';
+        $('emergencyBar').style.width='0%';
+        setText('emergencyAction',`${emergencyCleared.label}: the reading is back in range.`); setText('emergencyReason',''); setText('emergencyOthers','');
+      } else { emergencyCleared=null; card.classList.add('hidden-view'); }
+      return;
+    }
+    const e=list[0], crit=e.remaining<=60||e.remaining/e.budget<=.5, color=crit?'#ff2a4b':'#ffb800';
+    card.classList.remove('hidden-view','cleared'); card.classList.toggle('crit',crit);
+    setText('emergencyLabel','⚠ '+e.h.label);
+    setText('emergencyState',!state.exited?'PAUSED · AT AIRLOCK':e.expired?'TIME UP':'COUNTING DOWN'); $('emergencyState').style.color=color;
+    setText('emergencyClock',formatDuration(e.remaining)); $('emergencyClock').style.color=color;
+    $('emergencyBar').style.width=clamp(e.remaining/e.budget*100,0,100)+'%'; $('emergencyBar').style.background=color;
+    setText('emergencyAction',!state.exited?`Don't leave the airlock. If you go out, you have this long to ${e.h.act}.`
+      :e.expired?`${capFirst(e.h.act)} now.`:`${capFirst(e.h.act)} before this reaches zero.`);
+    setText('emergencyReason',`${e.h.reason()} · demo budget, not a flight rule`);
+    setText('emergencyOthers',list.length>1?'ALSO: '+list.slice(1).map(x=>`${x.h.label} ${formatDuration(x.remaining)}`).join(' · '):'');
+  }
   function setAlertLevel(level, message, target){
     const rank={nominal:0,reminder:1,caution:2,critical:3};
     if(rank[level] >= rank[state.alertState] || level==='nominal'){
@@ -787,6 +1126,7 @@ const ReportLink = (() => {
     $('reentryButton').disabled=habitat||!state.exited;
     $('exitButton').classList.toggle('opacity-40',habitat||state.exited);
     $('reentryButton').classList.toggle('opacity-40',habitat||!state.exited);
+    $('card-psi').classList.toggle('hidden-view',habitat);   // no suit on inside the habitat
     setText('evaPanelEyebrow',habitat?'01 / HABITAT TELEMETRY':'01 / EVA SUIT TELEMETRY');
     setText('evaContextTitle',habitat?'HABITAT // LIVE SENSOR BUS':'EVA VISOR // LIVE SENSOR BUS');
     setText('triageContextLabel',habitat?'03 / SHIP SERVER · IN-MISSION CREW REVIEW':'03 / SHIP SERVER · EVA CREW REVIEW');
@@ -820,9 +1160,8 @@ const ReportLink = (() => {
     setText('radState',state.rad>=1?'SPIKE DETECTED':state.rad>=.3?'FLUX ELEVATED':'FLUX NOMINAL');
     $('radState').style.color=state.rad>=1?'#ff2a4b':state.rad>=.3?'#ffb800':'#34d399';
     setText('packetSeq',String(state.seq).padStart(6,'0'));
-    $('jsonPacket').textContent=JSON.stringify({psi:round(state.psi,2),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
-    setText('triageR',String(state.r).padStart(2,'0')); setText('triagePsi',state.psi.toFixed(2)); setText('triageHr',Math.round(state.peakHr)); setText('triageO2',Math.round(state.o2)+'%');
-    setText('snapshotState',state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD');
+    $('jsonPacket').textContent=JSON.stringify({...(state.operatingMode==='habitat'?{}:{psi:round(state.psi,2)}),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
+    renderSnapshot();
     setText('spo2Value',state.spo2.toFixed(1)); setText('hrvValue',Math.round(state.hrv)); setText('gsrValue',state.gsr.toFixed(2)); setText('co2ppmValue',Math.round(state.co2ppm));
     setText('sleepHoursValue',state.sleepHours.toFixed(1)); $('sleepBar').style.width=clamp(state.sleepHours/12*100,0,100)+'%';
     setText('cfDnaValue',state.cfDna.toFixed(2)); setText('protonFluxValue',state.protonFlux.toFixed(2)); setText('neutronFluxValue',state.neutronFlux.toFixed(3));
@@ -837,14 +1176,11 @@ const ReportLink = (() => {
       setText(outputs[k],val+suffix);
     });
     document.querySelectorAll('.metric').forEach(el=>el.classList.remove('alerting'));
-    if(state.psi<3.7||state.psi>4.8) $('card-psi').classList.add('alerting');
-    if(state.o2<30) $('card-o2').classList.add('alerting');
-    if(state.co2<65) $('card-co2').classList.add('alerting');
-    if(state.hr>130) $('card-hr').classList.add('alerting');
-    if(state.temp>38.3||state.temp<35.5) $('card-temp').classList.add('alerting');
-    if(state.work>350) $('card-work').classList.add('alerting');
+    ['psi','o2','co2','hr','temp','work'].forEach(k=>{ if(zoneOf(k).zone==='crit') $('card-'+k).classList.add('alerting'); });
+    renderLimitOutputs();
+    renderEvaClocks();
   }
-  // VEGA's voice (ElevenLabs via server.js when configured, else the browser voice). Tone follows the mood.
+  // ASTRA's voice (ElevenLabs via server.js when configured, else the browser voice). Tone follows the mood.
   function speak(message, mood='nominal'){
     if(!state.voiceOn) return;
     const tone=typeof VEGA!=='undefined'&&VEGA.toneFor?VEGA.toneFor(mood):'calm';
@@ -854,21 +1190,37 @@ const ReportLink = (() => {
     try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(said); u.rate={urgent:1.12,caution:1.05,calm:1.02}[tone]; u.pitch={urgent:.92,caution:1,calm:1.05}[tone]; speechSynthesis.speak(u); }catch(e){}
   }
   const esc=(t)=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review'};
-  function companionWarn(message,target,mood){
+  const ALERT_LOC={radValue:'Radiation and shelter window',safeTimer:'Shelter window','card-psi':'Suit pressure','card-work':'Workload and biometrics',metricsGrid:'Suit telemetry',triageOutput:'Crew health review',evaClocks:'EVA countdown',
+    'card-o2':'O₂ reserve','card-co2':'CO₂ scrubber','card-hr':'Heart rate','card-temp':'Core temperature',crewOverlayPane:'Crew-wide patterns',surgeonBox:'Flight surgeon',triagePanel:'Crew health review'};
+  // priv: a CMO-only note (about another crew member's record). ASTRA tells the CMO; nothing goes on the ship PA.
+  function companionWarn(message,target,mood,priv){
     mood=mood||state.expression||'nominal';
+    if(priv){
+      $('companionMessage').textContent=message;
+      $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
+      $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
+      moveCompanion(target||'triagePanel');
+      speak(message,mood); return;
+    }
+    if(mood!=='nominal' && state.operatingMode==='eva'){   // say the new EVA countdown in the same breath as the hazard
+      updateEmergencies();
+      const pending=[...emergencies.values()].filter(e=>!e.announced);
+      if(pending.length){ pending.forEach(e=>e.announced=true); message+=' '+emergencyLine(byUrgency(pending)[0]); }
+    }
     $('companionMessage').textContent=message;
     $('companionAck').classList.remove('done'); $('companionAck').textContent='Acknowledge';
     $('companion').classList.remove('glitch'); void $('companion').offsetWidth; $('companion').classList.add('glitch');
-    teleportCompanion(target || 'card-psi');
+    moveCompanion(target||'card-psi');   // parked: she stays put; otherwise she goes to the reading
     if(mood==='nominal'){ ReportLink.clear(); speak(message,mood); return; }
     const alert={key:target||'alert',mood,msg:message,loc:ALERT_LOC[target]||'Visor HUD'};
     ReportLink.setActive(alert); ReportLink.announce(alert);
     if(!ReportLink.paOn) speak(message,mood);   // with the PA on, the PA voice says it once
   }
   function teleportCompanion(targetId){
-    const el=$(targetId); const comp=$('companion');
-    const rect=el?el.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
+    let el=$(targetId); const comp=$('companion');
+    // A hidden target (e.g. suit pressure in the habitat, or the triage in the EVA HUD) has no box: use a visible panel.
+    if(el && !el.getClientRects().length) el=['metricsGrid','bodyMap','triagePanel'].map($).find(x=>x&&x.getClientRects().length)||null;
+    const rect=el?el.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0,bottom:window.innerHeight/2};
     const width=comp.offsetWidth||304, height=comp.offsetHeight||150;
     let left=rect.left+rect.width-width*.42;
     let top=rect.top-height-12;
@@ -877,6 +1229,57 @@ const ReportLink = (() => {
     top=clamp(top,8,Math.max(8,window.innerHeight-height-8));
     comp.style.left=left+'px'; comp.style.top=top+'px';
   }
+
+  // ---------- Moving ASTRA ----------
+  // Hold and drag ASTRA (her card or her portrait) to park her where she doesn't cover what you're reading.
+  // Once parked she stays there, alerts included (they still show in her bubble and voice). Unparked, she
+  // moves next to whatever she is talking about. Double-click her portrait to unpark her. Remembered per browser.
+  const astraPos={user:null};
+  try{ const s=JSON.parse(localStorage.getItem('astrasight.astraPos')||'null'); if(s&&Number.isFinite(s.left)&&Number.isFinite(s.top)) astraPos.user=s; }catch(e){}
+  function placeCompanion(left,top){
+    const comp=$('companion'), w=comp.offsetWidth||304, h=comp.offsetHeight||150;
+    comp.style.left=clamp(left,8,Math.max(8,window.innerWidth-w-8))+'px';
+    comp.style.top=clamp(top,8,Math.max(8,window.innerHeight-h-8))+'px';
+  }
+  function moveCompanion(targetId){   // the parking spot if there is one, otherwise next to the target
+    if(astraPos.user) return placeCompanion(astraPos.user.left,astraPos.user.top);
+    teleportCompanion(targetId);
+  }
+  function renderCompanionLoc(){
+    const el=$('companionLoc');
+    el.textContent=isDoctor()?'LOC: MED BAY · CMO CONSOLE':isEngineer()?'LOC: SUIT LOCKER · CHECKOUT':astraPos.user?'LOC: PARKED · DRAG TO MOVE':'LOC: VISOR HUD STANDBY';
+  }
+  (()=>{
+    const comp=$('companion'); let drag=null;
+    comp.querySelectorAll('.sprite-frame,.companion-card').forEach(h=>{ h.classList.add('astra-handle'); h.title='Hold and drag to move ASTRA. Double-click her portrait to let her place herself again.'; });
+    comp.addEventListener('pointerdown',e=>{
+      const h=e.target.closest('.astra-handle'); if(!h||e.button!==0||e.target.closest('button')) return;
+      const r=comp.getBoundingClientRect();
+      drag={dx:e.clientX-r.left,dy:e.clientY-r.top,sx:e.clientX,sy:e.clientY,moved:false};
+      h.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    comp.addEventListener('pointermove',e=>{
+      if(!drag) return;
+      if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4) return;   // a plain click isn't a drag
+      drag.moved=true; comp.classList.add('dragging');
+      placeCompanion(e.clientX-drag.dx,e.clientY-drag.dy);
+    });
+    const end=()=>{
+      if(!drag) return;
+      comp.classList.remove('dragging');
+      if(drag.moved){
+        astraPos.user={left:parseFloat(comp.style.left),top:parseFloat(comp.style.top)};
+        try{ localStorage.setItem('astrasight.astraPos',JSON.stringify(astraPos.user)); }catch(e){}
+        renderCompanionLoc();
+      }
+      drag=null;
+    };
+    comp.addEventListener('pointerup',end); comp.addEventListener('pointercancel',end);
+    comp.querySelector('.sprite-frame').addEventListener('dblclick',()=>{
+      astraPos.user=null; try{ localStorage.removeItem('astrasight.astraPos'); }catch(e){}
+      renderCompanionLoc(); teleportCompanion(state.view==='ship'?'bodyMap':'metricsGrid');
+    });
+  })();
 
   // The reference character is embedded in this HTML and rendered into a 36x36 pixel canvas.
   const characterImage = $('astraSpriteSource');
@@ -912,12 +1315,51 @@ const ReportLink = (() => {
       ctx.fillStyle='#ff2a4b'; ctx.fillRect(18,26,2,1);
     }
   }
+  // For the CMO in the MEDICAL BAY tab (view 'ship'; not the ship display or EVA HUD) ASTRA is the ship's doctor:
+  // glasses, lab coat, stethoscope, red-cross clip.
+  const isDoctor=()=>state.role==='cmo' && state.view==='ship';
+  function drawDoctor(ctx){
+    const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
+    const coat='#eef5fa', shade='#aebfcc', line='#1a2633', scrub='#1f8a8f', tube='#ff4f9a', silver='#c9d6df', red='#ff2a4b', white='#ffffff';
+    // Lab coat across the shoulders, open V-neck showing teal scrubs.
+    px(line,[[8,31,21],[7,32,23],[6,33,1,3],[30,33,1,3]]);
+    px(coat,[[9,31,19],[8,32,21],[7,33,23,3]]);
+    px(scrub,[[16,31,5],[16,32,5],[17,33,3],[18,34]]);
+    px(shade,[[15,31],[21,31],[15,32],[21,32],[16,33],[20,33],[17,34],[19,34],[18,35]]);
+    px(red,[[10,33],[9,34,3],[10,35]]);                                  // red-cross badge on the coat
+    // Stethoscope around the neck, chest piece on the right.
+    px(tube,[[14,30,1,3],[13,33,1,2],[22,30,1,3],[23,33]]);
+    px(silver,[[23,34,2,2]]); px(white,[[23,34]]);
+    // Glasses: two frames, a bridge, arms to the hair, and a glint on each lens.
+    px(line,[[10,17,6],[10,21,6],[10,17,1,5],[15,17,1,5],[21,17,6],[21,21,6],[21,17,1,5],[26,17,1,5],[16,18,5],[9,18],[27,18]]);
+    px(white,[[14,18],[25,18]]);
+    // Red-cross clip replaces the grey hair clip.
+    px(shade,[[22,3,7,7]]); px(white,[[23,4,5,5]]); px(red,[[25,5,1,3],[24,6,3,1]]);
+  }
+  // In the SUIT CHECK tab ASTRA is the suit engineer: hard hat, hi-vis vest, and a wrench in hand.
+  const isEngineer=()=>state.view==='suits';
+  function drawEngineer(ctx){
+    const px=(c,pts)=>{ctx.fillStyle=c;pts.forEach(([x,y,w,h])=>ctx.fillRect(x,y,w||1,h||1));};
+    const line='#2a2000', hat='#ffc21a', hatShade='#d99a00', hatLight='#ffe680';
+    px(line,[[10,0,16],[8,1,2],[26,1,2],[6,7,24],[4,9,28]]);                       // hard hat outline and brim edge
+    px(hat,[[10,1,16],[8,2,20],[7,3,22,4]]); px(hatLight,[[11,2,3,2]]); px(hatShade,[[17,1,2,6],[4,8,28]]);
+    const vest='#ff7a1a', vestShade='#c45200', band='#fff3a6', shirt='#24323f';   // hi-vis vest with reflective bands
+    px(line,[[8,31,21],[7,32,23],[6,33,1,3],[30,33,1,3]]);
+    px(vest,[[9,31,19],[8,32,21],[7,33,23,3]]); px(shirt,[[16,31,5,2],[17,33,3],[18,34]]);
+    px(vestShade,[[15,31],[21,31],[15,32],[21,32],[16,33],[20,33],[17,34],[19,34]]); px(band,[[7,34,9],[21,34,9]]);
+    const steel='#b9c6d2', steelShade='#6b7986', steelLight='#f2f7fb';          // wrench: outlined handle, open jaw
+    const handle=[...Array(9)].map((_,i)=>[24+i,35-i]);
+    px(line,handle.flatMap(([x,y])=>[[x-1,y],[x+2,y]])); px(steel,handle.map(([x,y])=>[x,y])); px(steelShade,handle.map(([x,y])=>[x+1,y]));
+    px(steelLight,[[26,33],[28,31]]);
+    px(line,[[29,20,7,8]]); px(steel,[[30,21,6,6]]); px(steelShade,[[30,26,6,1]]); px(steelLight,[[30,21,2,1]]); px(line,[[32,20,2,4]]);
+  }
   function drawSprite(canvas){
     if(!canvas || !characterImage || !characterImage.complete || !characterImage.naturalWidth) return;
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,36,36); ctx.imageSmoothingEnabled=false;
     ctx.drawImage(characterImage,0,0,36,36);
     drawFaceExpression(ctx);
+    if(isDoctor()) drawDoctor(ctx); else if(isEngineer()) drawEngineer(ctx);
     canvas.style.filter=paletteFilters[state.palette]||'none';
   }
   function drawEmote(canvas){
@@ -940,9 +1382,12 @@ const ReportLink = (() => {
   function updateCompanion(){
     if($('companionState')) $('companionState').textContent=state.expression.toUpperCase()+' / '+state.palette.toUpperCase();
     const modeButton=$('astraModeToggle');
-    if(modeButton){modeButton.innerHTML='VEGA: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
+    if(modeButton){modeButton.innerHTML='ASTRA: <span class="'+(state.companionMode==='auto'?'text-cyan':'text-pink')+'">'+state.companionMode.toUpperCase()+'</span>';modeButton.classList.toggle('active',state.companionMode==='custom');}
     const customPanel=$('astraCustomPanel'); if(customPanel) customPanel.classList.toggle('hidden-view',state.companionMode!=='custom');
     setText('companionExpressionLabel',state.expression.toUpperCase());
+    const doc=isDoctor();
+    const nm=doc?'DR. ASTRA':isEngineer()?'ENG. ASTRA':'ASTRA'; setText('companionName',nm); setText('spriteCaption',nm);
+    renderCompanionLoc();
     setText('companionPaletteLabel',state.palette.toUpperCase());
     const emotes={nominal:'✦',reminder:'❗',caution:'💧',critical:'💢'};
     const e=emotes[state.expression]; $('emote').textContent=e;
@@ -965,15 +1410,21 @@ const ReportLink = (() => {
       Object.assign(state,{rad:1.85,hr:91,work:195,protonFlux:6.8,neutronFlux:.12});
       state.safeSeconds=Math.min(state.safeSeconds,165); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
       state.lastWarning='solar';
-      companionWarn('Solar flux spike! Return-to-shelter priority: 02:45 demo budget.','radValue','critical');
+      companionWarn('Solar flux spike! Return-to-shelter priority.','radValue','critical');
     } else if(name==='exertion'){
       Object.assign(state,{hr:148,work:410,temp:37.9,gsr:4.8,hrv:38,spo2:96.5}); state.alertState='caution'; if(state.companionMode==='auto') state.expression='caution';
       state.lastWarning='work';
       companionWarn('High workload detected. Reduce simulated exertion and review crew status.','card-work','caution');
     } else if(name==='leak'){
-      Object.assign(state,{psi:3.25,o2:82,hr:106}); state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
-      state.lastWarning='integrity';
-      companionWarn('Suit pressure anomaly! Treat this as a simulated suit-integrity emergency.','card-psi','critical');
+      Object.assign(state,{psi:3.25,o2:82,hr:106});
+      if(state.operatingMode==='habitat'){
+        state.alertState='reminder'; if(state.companionMode==='auto') state.expression='reminder'; state.lastWarning='resource';
+        companionWarn('Suit leak scenario loaded. Suit pressure is only tracked in EVA mode; switch to EVA / EXTERIOR to see it. In here, the suit O₂ reserve is dropping.','card-o2','reminder');
+      } else {
+        state.alertState='critical'; if(state.companionMode==='auto') state.expression='critical';
+        state.lastWarning='integrity';
+        companionWarn('Suit pressure anomaly! Treat this as a simulated suit-integrity emergency.','card-psi','critical');
+      }
     }
     state.peakHr=Math.max(state.peakHr,state.hr);
     updateCompanion(); syncButtons(); render();
@@ -1036,11 +1487,26 @@ const ReportLink = (() => {
     state.seq++; render(); detectAnomaly();
   }
   function detectAnomaly(){
+    updateEmergencies();
     let level='nominal', message='', target='metricsGrid', key='';
-    if(state.rad>=1.0){level='critical';message='Radiation flux is elevated in this simulated scenario. Check the shelter-window display.';target='radValue';key='solar';}
-    else if(state.psi<3.65 || state.o2<72){level='critical';message='Suit resource or pressure anomaly detected in the simulation. Review the visor telemetry.';target='card-psi';key='integrity';}
-    else if(state.hr>135 || state.work>350 || state.temp>38.1){level='caution';message='High workload pattern detected. Review the simulated crew status.';target='card-work';key='work';}
-    else if(state.o2<88 || state.co2<75 || state.spo2<92 || state.co2ppm>1200){level='reminder';message='A monitored channel has moved outside its nominal demo range. Check the readings.';target='metricsGrid';key='resource';}
+    const z={}; Object.keys(LIMITS).forEach(k=>z[k]=zoneOf(k));
+    const crit=(k,side)=>z[k].zone==='crit'&&(!side||z[k].side===side), warn=(k,side)=>z[k].zone==='warn'&&(!side||z[k].side===side);
+    const CRIT_MSG={
+      'psi-high':'Suit pressure is above the safe line. Check the suit regulator in this simulation.',
+      'co2-low':'The CO₂ scrubber is below the safe line. CO₂ will build up in the suit.',
+      'hr-low':'Heart rate is very low. Stop what you are doing and contact the flight surgeon.',
+      'hr-high':"Heart rate is very high. Stop work and rest. If it doesn't come down, contact the flight surgeon.",
+      'temp-low':'Core temperature is too low. Turn up the heating and contact the flight surgeon.',
+      'temp-high':'Core temperature is too high. Stop work and cool down. If it keeps rising, contact the flight surgeon.',
+      'work-high':'Metabolic load is above the safe line. Stop work and rest.'
+    };
+    const critKey=['psi-high','co2-low','temp-low','temp-high','hr-low','hr-high','work-high'].find(k=>{const [m,side]=k.split('-');return crit(m,side);});
+    if(crit('rad')){level='critical';message='Radiation flux is elevated in this simulated scenario. Check the shelter-window display.';target='radValue';key='solar';}
+    else if(crit('psi','low') || crit('o2')){level='critical';message='Suit resource or pressure anomaly detected in the simulation. Review the visor telemetry.';target=state.operatingMode==='habitat'?'card-o2':'card-psi';key='integrity';}
+    else if(critKey){const m=critKey.split('-')[0];level='critical';message=CRIT_MSG[critKey];target='card-'+m;key=critKey;}
+    else if(warn('hr','high') || warn('work') || warn('temp','high')){level='caution';message='High workload pattern detected. Review the simulated crew status.';target='card-work';key='work';}
+    else if(warn('temp','low') || warn('hr','low')){const cold=warn('temp','low');level='caution';message=cold?'Core temperature is below normal. Turn up the heating and keep an eye on it.':'Heart rate is lower than normal. Stop and check how you feel.';target=cold?'card-temp':'card-hr';key=cold?'cold':'slowhr';}
+    else if(warn('o2') || warn('co2') || warn('psi') || warn('rad') || state.spo2<92 || state.co2ppm>1200){level='reminder';message='A monitored channel has moved outside its nominal demo range. Check the readings.';target='metricsGrid';key='resource';}
 
     if(level!=='nominal'){
       const rank={nominal:0,reminder:1,caution:2,critical:3};
@@ -1049,8 +1515,10 @@ const ReportLink = (() => {
       if(state.lastWarning!==key){state.lastWarning=key;companionWarn(message,target,level);}
     } else {
       const timerClear=!(state.exited && state.safeSeconds<=165);
-      const recovered=timerClear && Math.abs(state.psi-4.30)<=0.16 && state.o2>=92 && state.co2>=92 && state.hr<115 && state.temp<37.7 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
-      if(recovered){
+      const psiOk=state.operatingMode==='habitat' || Math.abs(state.psi-4.30)<=0.16;
+      const recovered=timerClear && psiOk && state.o2>=92 && state.co2>=92 && state.hr<115 && state.hr>55 && state.temp<37.7 && state.temp>36.0 && state.work<245 && state.rad<0.20 && state.spo2>=95 && state.co2ppm<1000;
+      // A crew-report alert (state.triageHold) is about symptoms, not telemetry: keep it until Acknowledge.
+      if(recovered && !state.triageHold){
         const wasAlert=state.alertState!=='nominal' || state.expression!=='nominal';
         state.alertState='nominal'; state.lastWarning=''; state.scenario='nominal'; if(wasAlert) ReportLink.clear();
         if(!state.exited) state.safeSeconds=1800;
@@ -1062,6 +1530,7 @@ const ReportLink = (() => {
         }
       }
     }
+    announcePendingEmergencies();
     updateCompanion();
   }
 
@@ -1072,6 +1541,7 @@ const ReportLink = (() => {
       // Illustrative shielding attenuation for the cabin-dose display only; not a physical prediction.
       state.dose += (state.rad * 0.12) / 3600;
     } else if(state.exited && state.timerActive){
+      state.outsideSeconds++;
       state.safeSeconds=Math.max(0,state.safeSeconds-1);
       state.dose += state.rad/3600;
       if(state.safeSeconds===165 && state.lastWarning!=='shelter'){
@@ -1082,6 +1552,7 @@ const ReportLink = (() => {
         state.lastWarning='expired';
         setAlertLevel('critical','Demo outside-time budget expired. EVA simulation hold.','safeTimer');
       }
+      tickEmergencies();
     }
     const h=Math.floor(state.elapsed/3600),m=Math.floor((state.elapsed%3600)/60),s=state.elapsed%60;
     setText('clock',`MISSION ELAPSED ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
@@ -1089,11 +1560,20 @@ const ReportLink = (() => {
   }
 
   function setView(view){
+    state.view=view; renderEvaClocks();
     const eva=$('evaPanel'),triage=$('triagePanel');
-    eva.classList.toggle('hidden-view',view==='ship'); triage.classList.toggle('hidden-view',view==='eva');
+    eva.classList.toggle('hidden-view',view==='ship'||view==='suits'); triage.classList.toggle('hidden-view',view==='eva'||view==='suits');
+    $('suitPanel').classList.toggle('hidden-view',view!=='suits');
+    $('quickControlPanel').classList.toggle('hidden-view',view==='ship'||view==='suits');   // scenarios and suit controls belong to the EVA telemetry
+    if(view==='suits') renderSuits(true);
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
     $('mainGrid').className=view==='dual'?'grid grid-cols-1 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,.85fr)] gap-5':'grid grid-cols-1 gap-5';
-    if(view==='ship') teleportCompanion('triagePanel'); else teleportCompanion('metricsGrid');
+    // Each tab is a place: the EVA HUD is the visor outside (EVA mode); the ship display and the medical bay are
+    // inside the habitat. If the astronaut is already outside, the ship display keeps watching the EVA.
+    if(view==='eva' && state.operatingMode==='habitat'){ state.operatingMode='eva'; state.timerActive=false; syncLocationMode(); render(); }
+    else if(view!=='eva' && state.operatingMode==='eva' && !state.exited){ state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render(); }
+    moveCompanion(view==='ship'?'bodyMap':view==='suits'?'suitGrid':'metricsGrid');
+    syncTriageContext();   // which records this tab and role may show; also redraws ASTRA (DR. ASTRA only in the CMO medical bay)
   }
 
   function zoneSvg(z){
@@ -1118,16 +1598,41 @@ const ReportLink = (() => {
         <path d="M91 338 L111 338 109 350 74 352 74 346Z M149 338 L169 338 186 346 186 352 151 350Z"/>
       </g>
       ${zones.map(zoneSvg).join('')}
+      ${inOverlay()?heatLabels(zones):''}
       <g class="zone-label"><text x="130" y="7">${front?'FRONT VIEW · FACING YOU':'BACK VIEW · FACING AWAY'}</text><text x="${front?36:224}" y="100">R</text><text x="${front?224:36}" y="100">L</text><text x="130" y="362">R / L = CREW MEMBER'S SIDES</text></g>
     </svg>`;
     $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
-      el.classList.toggle('selected',el.dataset.zone===state.selectedZone);
-      el.addEventListener('click',()=>{state.selectedZone=el.dataset.zone;renderSymptoms();renderBodyMap();});
+      el.addEventListener('click',()=>{
+        if(inOverlay()){ state.overlayZone=el.dataset.zone; renderBodyMap(); renderOverlay(); return; }
+        state.selectedZone=el.dataset.zone;renderSymptoms();renderBodyMap();
+      });
       el.setAttribute('role','button'); el.setAttribute('tabindex','0');
       el.setAttribute('aria-label',zoneMeta[el.dataset.zone]?.label||el.dataset.zone);
       el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
     });
+    paintZones();
     document.querySelectorAll('[data-body-view]').forEach(b=>b.classList.toggle('active',b.dataset.bodyView===state.bodyView));
+  }
+  // Colour the body map: the open record's reported areas, or (whole-crew view) how many crew report each area.
+  function paintZones(){
+    const ov=inOverlay(), counts=ov?crewZoneCounts():null, sel=ov?state.overlayZone:state.selectedZone;
+    $('bodyMap').querySelectorAll('[data-zone]').forEach(el=>{
+      const id=el.dataset.zone;
+      el.classList.remove('reported','pain-hi','heat1','heat2','heat3');
+      el.classList.toggle('selected',id===sel);
+      if(ov){ const n=(counts.get(id)||[]).length; if(n) el.classList.add('heat'+Math.min(3,n)); return; }
+      const pain=Number(state.painLevels[id]||0);
+      if((state.symptoms.get(id)?.size||0)>0 || pain>0){ el.classList.add('reported'); if(pain>=7) el.classList.add('pain-hi'); }
+    });
+  }
+  function zoneCenter(z){
+    if(z.geo==='e') return [z.g[0],z.g[1]];
+    if(z.geo==='r') return [z.g[0]+z.g[2]/2,z.g[1]+z.g[3]/2];
+    return [(z.g[0]+z.g[2])/2,(z.g[1]+z.g[3])/2];
+  }
+  function heatLabels(zones){
+    const counts=crewZoneCounts();
+    return zones.filter(z=>counts.has(z.id)).map(z=>{const [x,y]=zoneCenter(z);return `<text class="heat-count" x="${x}" y="${y}">${counts.get(z.id).length}</text>`;}).join('');
   }
   function selectedSymptomSet(){
     if(!state.symptoms.has(state.selectedZone)) state.symptoms.set(state.selectedZone,new Set());
@@ -1152,39 +1657,44 @@ const ReportLink = (() => {
     const items=[];
     for(const [zone,set] of state.symptoms.entries()) for(const sym of set) items.push({zone,text:sym});
     for(const [zone,value] of Object.entries(state.painLevels)) if(Number(value)>0) items.push({zone,text:`Pain intensity ${value}/10`});
+    if(state.role==='cmo') renderRoster();
+    if($('bodyMap').firstChild) paintZones();
     if(!items.length){box.innerHTML='<span class="text-[10px] text-slate-600">No symptoms reported.</span>';return;}
     items.forEach(item=>{
       const chip=document.createElement('span');chip.className='symptom-chip';
       chip.textContent=`${zoneMeta[item.zone]?.label||item.zone}: ${item.text}`;box.appendChild(chip);
     });
   }
+  // Rule-based triage level for one record. Same training rules as the review panel; never a diagnosis.
+  const NEURO_WORDS=['confusion','numbness','tingling','weakness','visual','vision','dizziness','difficulty walking','shortness of breath','breathing difficulty','persistent cough','coordination'];
+  const TYPE1_WORDS=['pain','ache','aching','joint','itch','skin change','swelling','stiffness','tenderness','soreness'];
+  function classify(entries, notes, v, painLevels){
+    const report=String(notes||'').toLowerCase();
+    const text=entries.map(x=>`${zoneMeta[x.zone]?.label||x.zone} ${x.text}`).join(' ').toLowerCase()+' '+report;
+    const maxPain=Math.max(0,...Object.values(painLevels).map(Number));
+    if(!entries.length && !report.trim()) return 'none';
+    if(NEURO_WORDS.some(w=>text.includes(w)) || v.r>=65 || v.psi<3.6) return 'critical';
+    if(TYPE1_WORDS.some(w=>text.includes(w)) || maxPain>=4 || v.r>=35) return 'caution';
+    return 'low';
+  }
   function runTriage(){
-    const report=$('triageText').value.toLowerCase();
-    const entries=[];
-    for(const [zone,set] of state.symptoms.entries()) for(const sym of set) entries.push({zone,text:sym});
-    const painEntries=Object.entries(state.painLevels).filter(([,v])=>Number(v)>0).map(([zone,v])=>({zone,text:`pain ${v}/10`}));
-    const allEntries=[...entries,...painEntries];
-    const symptomText=allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone} ${x.text}`).join(' ').toLowerCase()+' '+report;
-    const neuroWords=['confusion','numbness','tingling','weakness','visual','vision','dizziness','difficulty walking','shortness of breath','breathing difficulty','persistent cough','coordination'];
-    const typeIWords=['pain','ache','aching','joint','itch','skin change','swelling','stiffness','tenderness','soreness'];
-    const neuro=neuroWords.some(w=>symptomText.includes(w));
-    const maxPain=Math.max(0,...Object.values(state.painLevels).map(Number));
-    const typeI=typeIWords.some(w=>symptomText.includes(w)) || maxPain>=4;
-    const any=allEntries.length>0 || report.trim().length>0;
+    const rec=currentRec(), v=recVitals(rec);
+    const allEntries=recEntries(rec);
+    const level=classify(allEntries,$('triageText').value,v,state.painLevels);
     const locations=[...new Set(allEntries.map(x=>zoneMeta[x.zone]?.label||x.zone))];
-    let level='low',title='NO HIGH-PRIORITY PATTERN FLAGGED',body='',actions=[];
-    if(!any){
-      level='none';title='NO CREW REPORT ENTERED';body='No symptoms or pain scores were entered. This is not evidence that a crew member is medically clear.';
-    } else if(neuro || state.r>=65 || state.psi<3.6){
-      level='critical'; title='URGENT NEUROLOGIC / CARDIOPULMONARY REVIEW FLAG';
+    let title='NO HIGH-PRIORITY PATTERN FLAGGED',body='',actions=[];
+    if(level==='none'){
+      title='NO CREW REPORT ENTERED';body='No symptoms or pain scores were entered. This is not evidence that a crew member is medically clear.';
+    } else if(level==='critical'){
+      title='URGENT NEUROLOGIC / CARDIOPULMONARY REVIEW FLAG';
       body='The training rules detected neurological or cardiopulmonary keywords, a high simulated R-value, or a pressure anomaly. The signal cannot identify a cause or diagnose DCS; route the crew report to mission medical oversight.';
       actions=['Record exact body locations, symptom onset, progression, and the EVA timeline.','Immediately notify the designated flight surgeon / mission medical authority for assessment under the mission plan.','Do not use this prototype to select oxygen delivery, recompression settings, chamber schedules, or fitness-for-duty decisions.'];
-    } else if(typeI || state.r>=35){
-      level='caution';title='MUSCULOSKELETAL / SKIN PATTERN — REVIEW REQUIRED';
+    } else if(level==='caution'){
+      title='MUSCULOSKELETAL / SKIN PATTERN — REVIEW REQUIRED';
       body='The training rules found pain, joint, limb, or skin-related terms and/or an elevated simulated score. Suit/glove mechanics can overlap with medical symptoms; this interface cannot distinguish them reliably.';
       actions=['Record the affected side and small body region, pain score, onset, and whether symptoms are changing.','Escalate persistent, worsening, or unusual symptoms to the flight surgeon using approved mission procedures.','Do not dismiss reported limb or joint pain as ordinary suit fatigue based on this score.'];
     } else {
-      level='low';title='NON-SPECIFIC REPORT — KEEP UNDER REVIEW';
+      title='NON-SPECIFIC REPORT — KEEP UNDER REVIEW';
       body='The inputs do not match the training rules for a higher-priority flag. A low result is not a diagnosis and does not rule out decompression sickness or another medical problem.';
       actions=['Keep the location, onset, and symptom description in the crew record.','Escalate persistent, worsening, or concerning symptoms through the mission medical workflow.'];
     }
@@ -1196,40 +1706,60 @@ const ReportLink = (() => {
     const onsetLine=`<p class="text-[9px] mono text-slate-500 mt-1">ONSET: ${$('onsetSelect').value}</p>`;
     out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SIMULATION ROUTING / NOT A TREATMENT PROTOCOL</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
     state.triageRan=true;
+    rec.reportedAt=Date.now(); rec.reviewed=level;
     if(level==='none'){ $('vegaNote').hidden=true; }
-    else askVega(`Crew report from the ${state.operatingMode==='habitat'?'habitat':'post-EVA'} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
-    if(level==='critical')setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');
-    else if(level==='caution')setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');
+    else askVega(`Crew report from the ${rec.live?(state.operatingMode==='habitat'?'habitat':'post-EVA'):rec.setting} triage screen. Locations and symptoms: ${allEntries.length?allEntries.map(x=>`${zoneMeta[x.zone]?.label||x.zone}: ${x.text}`).join('; '):'none selected'}. Onset: ${$('onsetSelect').value}. Crew notes: ${$('triageText').value.trim()||'none'}.`, title, level);
+    if(!rec.live){
+      // Another crew member's record, reviewed by the CMO: ASTRA tells the CMO privately, no ship PA.
+      const who=recName(rec);
+      if(level==='critical') companionWarn(`${who}'s report needs urgent flight-surgeon review. Use Send case to flight surgeon below the review.`,'triageOutput','critical',true);
+      else if(level==='caution') companionWarn(`${who}'s report is logged for medical review. Keep watching for changes.`,'triageOutput','caution',true);
+    }
+    else if(level==='critical'){state.triageHold=true;setAlertLevel('critical','Crew report requires immediate flight-surgeon escalation.','triageOutput');}
+    else if(level==='caution'){state.triageHold=true;setAlertLevel('caution','Crew symptoms recorded. Route for mission medical review.','triageOutput');}
     else if(level==='low'){if(state.companionMode==='auto') state.expression='reminder';updateCompanion();}
+    renderRoster();
   }
 
-  // Second opinion from VEGA's medical model (MedGemma on the local server, /api/ai/triage,
+  // Second opinion from ASTRA's medical model (MedGemma on the local server, /api/ai/triage,
   // docs/AI-BACKEND.md; falls back to Qwen if MedGemma isn't pulled).
   // The rule-based review always shows; this note is added when the AI backend answers.
-  let vegaReq=null;
+  // One request per crew record, so switching records in the CMO view doesn't cancel or misplace a review:
+  // the answer lands in the record it was asked for, even if the CMO has opened someone else meanwhile.
+  const vegaReqs={};
   async function askVega(summary, flag, level){
-    const box=$('vegaNote');
-    if(vegaReq) vegaReq.abort();
-    vegaReq=new AbortController();
-    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">VEGA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    box.hidden=false;
-    box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">VEGA is reviewing the report (the first run can take a minute while the model loads)…</p>';
+    const box=$('vegaNote'), pid=state.patient, rec=currentRec(), v=recVitals(rec);
+    if(vegaReqs[pid]) vegaReqs[pid].abort();
+    const req=vegaReqs[pid]=new AbortController();
+    const put=(html)=>{
+      if(state.patient===pid){ box.hidden=false; box.innerHTML=html; }
+      else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
+    };
+    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
+    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report (the first run can take a minute while the model loads)…</p>');
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
       if(typeof AstraAuth!=='undefined'){
         const t=await AstraAuth.getIdToken().catch(()=>null); if(t) headers.Authorization='Bearer '+t;
-        const p=await AstraAuth.getProfile().catch(()=>null); profile=p&&p.profile;
+        if(rec.live){ const p=await AstraAuth.getProfile().catch(()=>null); profile=p&&p.profile; }   // only your own tailored baselines
       }
-      const context={
+      const context=!rec.live?{
+        'Patient':`${recName(rec)}, ${rec.role} (reviewed by the Crew Medical Officer)`,
+        'Setting':rec.setting,'Peak heart rate':v.peakHr+' bpm','Suit O2 reserve at last EVA':v.o2+' %',
+        'DCS R-value (demo heuristic, 0-100)':v.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag,
+        'Time outside habitat':rec.lastEva||'not outside'
+      }:{
         'Operating zone':state.operatingMode==='habitat'?'Habitat / IVA':(state.exited?'EVA, outside':'EVA, at the airlock'),
         'Suit pressure':state.psi.toFixed(2)+' PSI','Primary O2 reserve':Math.round(state.o2)+' %','CO2 scrubber':Math.round(state.co2)+' %',
         'Peak heart rate':Math.round(state.peakHr)+' bpm','Metabolic load':Math.round(state.work)+' W','Radiation flux':state.rad.toFixed(2)+' mSv/h',
-        'DCS R-value (demo heuristic, 0-100)':state.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag
+        'DCS R-value (demo heuristic, 0-100)':state.r,'Symptom onset':$('onsetSelect').value,'Rule-based triage flag':flag,
+        'Time outside habitat':state.exited?formatClock(state.outsideSeconds):(state.lastOutside?'last EVA '+formatClock(state.lastOutside):'not outside'),
+        'Active EVA countdowns':emergencies.size?byUrgency(emergencies.values()).map(e=>`${e.h.label} ${formatDuration(e.remaining)} left to ${e.h.act}`).join('; '):'none'
       };
-      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:vegaReq.signal,body:JSON.stringify({
+      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:req.signal,body:JSON.stringify({
         report:summary, flag, level,
-        vitals:{cardio:Math.round(state.hr),spo2:round(state.spo2,1),thermal:round(state.temp,1),hrv:Math.round(state.hrv)},
+        vitals:{cardio:Math.round(v.hr),spo2:round(v.spo2,1),thermal:round(v.temp,1),hrv:Math.round(v.hrv)},
         context,profile
       })});
       const j=await r.json().catch(()=>({}));
@@ -1237,17 +1767,457 @@ const ReportLink = (() => {
       const tone={'more likely':'text-amber-200','possible':'text-cyan','less likely':'text-slate-400'};
       const causes=(j.possibleCauses||[]).map(c=>`<li class="text-[10px] text-slate-300 leading-relaxed"><span class="font-bold text-slate-100">${esc(c.name)}</span> <span class="mono text-[8px] ${tone[c.likelihood]||'text-cyan'}">${esc((c.likelihood||'').toUpperCase())}</span><br><span class="text-slate-400">${esc(c.why)}</span></li>`).join('');
       const checks=(j.checkNext||[]).map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${esc(a)}</span></li>`).join('');
-      box.innerHTML=head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
+      put(head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
         +(j.summary?'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.summary)+'</p>':'')
         +(causes?'<div class="eyebrow mt-3 mb-1">POSSIBLE CAUSES TO CONSIDER</div><ul class="space-y-2">'+causes+'</ul>':'')
         +(checks?'<div class="eyebrow mt-3 mb-1">CHECK OR RECORD NEXT</div><ol class="space-y-1">'+checks+'</ol>':'')
         +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'')
-        +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>';
+        +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS · SIMULATED DATA</p>');
     }catch(e){
       if(e.name==='AbortError') return;
-      box.innerHTML=head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">VEGA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>';
+      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
     }
   }
+
+  // ---------- Ship triage roles ----------
+  // CREW: you see only your own record. CMO (Crew Medical Officer): a roster of every crew member, each
+  // record's body map, vitals snapshot and review, a whole-crew body map with ASTRA's pattern notes, and
+  // "send to flight surgeon". The other four crew are simulated. state.symptoms and state.painLevels point
+  // at the open record, so the body map, symptom input and triage engine work on whoever is open.
+  const LEVEL_COLOR={critical:'#ff2a4b',caution:'#ffb800',low:'#00f0ff',none:'#34d399'};
+  const LEVEL_LABEL={critical:'URGENT',caution:'REVIEW',low:'WATCH',none:'NO COMPLAINTS'};
+  const LEVEL_RANK={critical:3,caution:2,low:1,none:0};
+  const EARTH_DELAY_MIN=12;   // simulated one-way signal delay; Earth to Mars is about 3 to 22 min depending on orbits
+  const SEED_CREW=[
+    {id:'ortega',rank:'Spc.',name:'M. Ortega',role:'Mission specialist · EVA lead',ago:18,setting:'Habitat, 40 min after an EVA',lastEva:'last EVA 06:12:40',
+      onset:'Immediately after EVA',notes:'Deep ache in the right knee since repress, worse when bending. Right shoulder sore from tether work. Some tingling in the right fingers.',
+      symptoms:{knee_right:['Pain / aching','Joint stiffness'],shoulder_right:['Pain / aching'],fingers_right:['Tingling / numbness']},pain:{knee_right:6,shoulder_right:3},
+      vitals:{hr:94,peakHr:138,spo2:97.2,temp:37.4,hrv:46,r:41,psi:4.27,o2:58}},
+    {id:'okafor',rank:'Eng.',name:'A. Okafor',role:'Flight engineer',ago:42,setting:'Habitat / IVA, lab module',
+      onset:'Unknown / not recorded',notes:'Dull headache since the start of shift, worse in the lab module. Feels like pressure behind the forehead.',
+      symptoms:{forehead:['Pain / headache','Pressure']},pain:{forehead:4},
+      vitals:{hr:82,peakHr:97,spo2:97.6,temp:37.0,hrv:57,r:7,psi:4.30,o2:97}},
+    {id:'sato',rank:'Cdr.',name:'K. Sato',role:'Commander',ago:65,setting:'Habitat / IVA',
+      onset:'Unknown / not recorded',notes:'Headache across the forehead and temples this afternoon. Lower back stiff after sleep.',
+      symptoms:{forehead:['Pain / headache'],temple_right:['Pain / headache'],spine_lower:['Pain / aching','Stiffness']},pain:{forehead:3,temple_right:2,spine_lower:3},
+      vitals:{hr:76,peakHr:102,spo2:98.0,temp:36.9,hrv:61,r:6,psi:4.30,o2:98}},
+    {id:'reyes',rank:'Dr.',name:'L. Reyes',role:'Payload scientist',ago:130,setting:'Habitat / IVA',
+      onset:'Unknown / not recorded',notes:'',symptoms:{},pain:{},
+      vitals:{hr:68,peakHr:88,spo2:98.4,temp:36.8,hrv:72,r:5,psi:4.30,o2:99}},
+  ];
+  const crewRecords={you:{id:'you',live:true,symptoms:state.symptoms,painLevels:state.painLevels,onset:$('onsetSelect').value,notes:'',reportedAt:0,out:null}};
+  SEED_CREW.forEach(s=>{crewRecords[s.id]={...s,symptoms:new Map(Object.entries(s.symptoms).map(([z,a])=>[z,new Set(a)])),painLevels:{...s.pain},reportedAt:Date.now()-s.ago*60000,out:null};});
+  const CREW_ORDER=['you',...SEED_CREW.map(s=>s.id)];
+  const DEFAULT_OUT={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:'',vegaHidden:true};
+
+  // The full CMO console (every record, whole-crew view, flight surgeon) lives in the MEDICAL BAY tab (view 'ship').
+  // The SHIP DISPLAY tab (view 'dual') gives the CMO their own record plus a compact crew roster.
+  const cmoFull=()=>state.role==='cmo'&&state.view==='ship';
+  const inOverlay=()=>cmoFull()&&state.overlay;
+  const currentRec=()=>crewRecords[state.patient]||crewRecords.you;
+  const recName=(r)=>r.live?(typeof Crew!=='undefined'&&Crew.callSign()||'You'):`${r.rank} ${r.name}`;
+  const shortName=(r)=>r.live?'You':r.name.split(' ').pop();
+  const recOpen=(r)=>r.id===state.patient;
+  const recNotes=(r)=>recOpen(r)?$('triageText').value:(r.notes||'');
+  const recOnset=(r)=>recOpen(r)?$('onsetSelect').value:r.onset;
+  function recVitals(r){
+    return r.live?{hr:state.hr,peakHr:Math.round(state.peakHr),spo2:state.spo2,temp:state.temp,hrv:state.hrv,r:state.r,psi:state.psi,o2:Math.round(state.o2)}:r.vitals;
+  }
+  function recEntries(r){
+    const out=[];
+    for(const [zone,set] of r.symptoms.entries()) for(const sym of set) out.push({zone,text:sym});
+    for(const [zone,v] of Object.entries(r.painLevels)) if(Number(v)>0) out.push({zone,text:`pain ${v}/10`});
+    return out;
+  }
+  function recZones(r){   // areas with a complaint, most painful first
+    const zones=new Set([...[...r.symptoms.entries()].filter(([,s])=>s.size).map(([z])=>z),...Object.keys(r.painLevels).filter(z=>Number(r.painLevels[z])>0)]);
+    return [...zones].sort((a,b)=>Number(r.painLevels[b]||0)-Number(r.painLevels[a]||0));
+  }
+  const recLevel=(r)=>classify(recEntries(r),recNotes(r),recVitals(r),r.painLevels);
+  function agoText(t){
+    if(!t) return 'no report filed';
+    const m=Math.round((Date.now()-t)/60000);
+    return m<1?'just now':m<60?`${m} min ago`:`${Math.floor(m/60)} h ${m%60} min ago`;
+  }
+  const hhmm=(t)=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  function renderSnapshot(){
+    const r=currentRec(), v=recVitals(r);
+    setText('triageR',String(v.r).padStart(2,'0')); setText('triagePsi',v.psi.toFixed(2)); setText('triageHr',Math.round(v.peakHr)); setText('triageO2',Math.round(v.o2)+'%');
+    setText('snapshotTitle',!r.live?`SNAPSHOT AT LAST REPORT · ${r.name.toUpperCase()}`:state.operatingMode==='eva'?'RECORDED EVA SNAPSHOT':'LIVE VITALS · HABITAT');
+    setText('snapshotState',r.live?(state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD'):'STORED ON SHIP SERVER');
+  }
+  function renderBanner(){
+    const b=$('viewingBanner'), r=currentRec(), cmo=state.role==='cmo', ov=inOverlay();
+    b.classList.toggle('other',cmo&&!ov&&!r.live); b.classList.toggle('whole',ov);
+    let left, right, color;
+    if(ov){
+      const open=CREW_ORDER.reduce((n,id)=>n+recZones(crewRecords[id]).length,0);
+      left='◎ VIEWING: WHOLE CREW'; right=`${open} reported area${open===1?'':'s'} across ${CREW_ORDER.length} crew. Click a name to open their record.`; color='text-pink';
+    } else if(!r.live){
+      left=`VIEWING: ${recName(r).toUpperCase()} · ${r.role.toUpperCase()}`; right='Not your record. Opened with CMO access.'; color='text-amber';
+    } else {
+      left=`MY RECORD · ${recName(r).toUpperCase()}`; color='text-cyan';
+      right=!cmo?"Only you and the Crew Medical Officer (CMO) can see this. Other crew can't open it."
+        :cmoFull()?'Your own record.':'Your own record. Every crew record is in the Medical bay.';
+    }
+    b.innerHTML=`<span class="text-[10px] mono font-bold ${color}">${esc(left)}</span><span class="text-[9px] text-slate-400">${esc(right)}</span>`;
+  }
+  function rosterRows(){   // every crew member, most urgent first
+    const rows=CREW_ORDER.map(id=>{const r=crewRecords[id];return {r,lvl:recLevel(r),zones:recZones(r)};});
+    return rows.sort((a,b)=>LEVEL_RANK[b.lvl]-LEVEL_RANK[a.lvl]||Math.max(0,...Object.values(b.r.painLevels).map(Number))-Math.max(0,...Object.values(a.r.painLevels).map(Number)));
+  }
+  // Ship display, CMO: one line per crew member. A click opens that record (or the whole crew) in the medical bay.
+  function renderCompactRoster(){
+    const rows=rosterRows(), pats=crewPatterns();
+    const line=(id,color,name,lvl,top,ago)=>`<li><button type="button" class="compact-row" data-open="${id}" style="--lvl:${color}">
+      <span class="dot" style="color:${color};background:${color}"></span><span class="c-name">${esc(name)}</span><span class="c-lvl">${esc(lvl)}</span><span class="c-top">${esc(top)}</span><span class="c-ago text-slate-500">${esc(ago)}</span></button></li>`;
+    $('compactRows').innerHTML=rows.map(({r,lvl,zones})=>{
+      const z=zones[0], pain=z?Number(r.painLevels[z]||0):0;
+      const top=z?`${cap(zoneMeta[z]?.label||z)}${pain?` ${pain}/10`:''}${zones.length>1?` +${zones.length-1} more`:''}`:(recNotes(r).trim()?'Free-text note only':'No complaints');
+      const suitNoGo=suits.some(x=>x.crew===r.id&&suitEval[x.id]&&suitEval[x.id].verdict==='nogo');
+      return line(r.id,LEVEL_COLOR[lvl],r.live?'YOU':`${r.rank} ${r.name}`,LEVEL_LABEL[lvl],(suitNoGo?'Suit no-go · ':'')+top,r.sentAt?'↗ surgeon':agoText(r.reportedAt));
+    }).join('')+line('__whole','#ff2a85','◎ Whole crew',`${pats.length} PATTERN${pats.length===1?'':'S'}`,pats[0]?pats[0].text:'No shared pattern right now','open →');
+    $('compactRows').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{
+      setView('ship');
+      if(b.dataset.open==='__whole') openWholeCrew(); else openRecord(b.dataset.open);
+    }));
+  }
+  function renderRoster(){
+    if(state.role!=='cmo') return;
+    if(state.view==='dual') renderCompactRoster();
+    if(!cmoFull()) return;
+    const rows=rosterRows();
+    const totalAreas=rows.reduce((n,x)=>n+x.zones.length,0), patterns=crewPatterns().filter(p=>p.ids.length).length;
+    const whole=`<button type="button" class="roster-card ${state.overlay?'active':''}" data-open="__whole" style="--lvl:#ff2a85">
+      <div class="flex items-center justify-between gap-2"><span class="roster-name">◎ WHOLE CREW</span><span class="roster-level">${patterns} PATTERN${patterns===1?'':'S'}</span></div>
+      <div class="roster-meta mt-0.5">Combined body map</div>
+      <div class="roster-top">${totalAreas} reported area${totalAreas===1?'':'s'} across ${rows.length} crew</div>
+      <div class="roster-meta mt-1">ASTRA looks for shared causes</div></button>`;
+    $('rosterCards').innerHTML=whole+rows.map(({r,lvl,zones})=>{
+      const z=zones[0], pain=z?Number(r.painLevels[z]||0):0, sym=z?[...(r.symptoms.get(z)||[])][0]:'';
+      const top=z?`${cap(zoneMeta[z]?.label||z)}${sym?' · '+sym:''}${pain?` · ${pain}/10`:''}${zones.length>1?` <span class="text-slate-500">+${zones.length-1} more</span>`:''}`
+        :(recNotes(r).trim()?'Free-text note only':'No complaints reported');
+      const active=!state.overlay&&state.patient===r.id;
+      return `<button type="button" class="roster-card ${active?'active':''}" data-open="${r.id}" style="--lvl:${LEVEL_COLOR[lvl]}">
+        <div class="flex items-center justify-between gap-2"><span class="roster-name">${r.live?'YOU':esc(r.rank+' '+r.name).toUpperCase()}</span><span class="roster-level">${LEVEL_LABEL[lvl]}</span></div>
+        <div class="roster-meta mt-0.5">${esc(r.live?recName(r):r.role)}</div>
+        <div class="roster-top">${top}</div>
+        <div class="roster-meta mt-1 flex justify-between gap-1"><span>${zones.length} open · ${agoText(r.reportedAt)}</span>${r.sentAt?'<span class="text-pink">↗ SURGEON</span>':''}</div></button>`;
+    }).join('');
+    $('rosterCards').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>b.dataset.open==='__whole'?openWholeCrew():openRecord(b.dataset.open)));
+  }
+
+  // Whole-crew view: who reports what, where, and ASTRA's notes on patterns that point to a shared cause.
+  function crewZoneCounts(){
+    const map=new Map();
+    CREW_ORDER.forEach(id=>{const r=crewRecords[id]; recZones(r).forEach(z=>{ if(!map.has(z)) map.set(z,[]); map.get(z).push({id,pain:Number(r.painLevels[z]||0),symptoms:[...(r.symptoms.get(z)||[])]}); });});
+    return map;
+  }
+  function crewPatterns(){
+    const total=CREW_ORDER.length, out=[];
+    const who=(test)=>CREW_ORDER.filter(id=>recZones(crewRecords[id]).some(z=>test(zoneMeta[z]?.kind)));
+    const head=who(k=>k==='head');
+    if(head.length>=2) out.push({mood:'caution',ids:head,text:`${head.length} of ${total} crew report head pain or pressure. Rule out a shared cause before treating each case alone: in microgravity air doesn't rise, so CO₂ can pool around a person even when the cabin average looks normal (now ${Math.round(state.co2ppm)} ppm). Check airflow where they work and sleep.`});
+    const back=who(k=>k==='back'||k==='spine');
+    if(back.length>=2) out.push({mood:'caution',ids:back,text:`${back.length} of ${total} crew report back pain. Over half of astronauts report back pain in flight as the spine lengthens; review exercise and sleep-restraint routines.`});
+    const evaJoint=CREW_ORDER.filter(id=>{const r=crewRecords[id], on=recOnset(r);
+      return /EVA/.test(on)&&!/before/i.test(on)&&recZones(r).some(z=>['joint','limb','hand'].includes(zoneMeta[z]?.kind));});
+    if(evaJoint.length) out.push({mood:'critical',ids:evaJoint,text:`${evaJoint.length===1?'One crew member reports':evaJoint.length+' crew report'} joint or limb symptoms after an EVA. Treat as a possible decompression sickness (DCS) case: compare with the EVA log and send it to the flight surgeon.`});
+    return out.sort((a,b)=>(b.mood==='critical')-(a.mood==='critical'));   // most urgent first
+  }
+  function renderOverlay(){
+    const counts=crewZoneCounts(), pats=crewPatterns();
+    const nameBtn=(id)=>`<button type="button" class="name-link" data-open="${id}">${esc(shortName(crewRecords[id]))}</button>`;
+    const patHTML=pats.length?pats.map(p=>`<div class="pattern-card" style="border-color:${p.mood==='critical'?'rgba(255,42,75,.5)':'rgba(255,184,0,.45)'}">
+        <p class="text-[10.5px] text-slate-200 leading-relaxed">${esc(p.text)}</p>
+        <div class="text-[9px] mono text-slate-400 mt-1.5">CREW: ${p.ids.map(nameBtn).join(' · ')}</div></div>`).join('')
+      :'<div class="pattern-card"><p class="text-[10.5px] text-slate-300">No shared pattern across the crew right now.</p></div>';
+    const heat=(n)=>n>=3?'#ff2a4b':n===2?'#ff8a3d':'#ffb800';
+    const rows=[...counts.entries()].sort((a,b)=>b[1].length-a[1].length||Math.max(...b[1].map(x=>x.pain))-Math.max(...a[1].map(x=>x.pain)))
+      .map(([z,list])=>`<li class="heat-row ${z===state.overlayZone?'sel':''}">
+        <div class="flex items-center justify-between gap-2"><button type="button" class="text-[10px] text-slate-100 text-left hover:text-cyan" data-zone-pick="${z}">${esc(cap(zoneMeta[z]?.label||z))}</button><span class="text-[8px] mono font-bold" style="color:${heat(list.length)}">${list.length} CREW</span></div>
+        <div class="text-[9px] text-slate-400 mt-0.5 leading-relaxed">${list.map(p=>`${nameBtn(p.id)}${p.pain?` ${p.pain}/10`:''}${p.symptoms.length?` <span class="text-slate-500">(${esc(p.symptoms.join(', '))})</span>`:''}`).join(' · ')}</div></li>`).join('');
+    $('crewOverlayPane').innerHTML=`
+      <div class="flex justify-between gap-2 items-center mb-2"><div class="eyebrow">${isDoctor()?'DR. ASTRA':'ASTRA'} · CREW-WIDE PATTERNS</div><span class="text-[8px] mono text-slate-500">PATTERN · NOT A DIAGNOSIS</span></div>
+      <div class="space-y-2">${patHTML}</div>
+      <div class="flex justify-between gap-2 items-center mt-4 mb-2"><div class="eyebrow">REPORTED AREAS · ALL CREW</div><span class="text-[8px] mono text-slate-500">CLICK AN AREA OR A NAME</span></div>
+      <ul class="space-y-1.5">${rows||'<li class="text-[10px] text-slate-500">No crew member has reported symptoms.</li>'}</ul>`;
+    $('crewOverlayPane').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openRecord(b.dataset.open)));
+    $('crewOverlayPane').querySelectorAll('[data-zone-pick]').forEach(b=>b.addEventListener('click',()=>{
+      const z=b.dataset.zonePick; state.overlayZone=z;
+      const views=zoneMeta[z]?.views||[]; if(views.length&&!views.includes(state.bodyView)) state.bodyView=views[0];
+      renderBodyMap(); renderOverlay();
+    }));
+  }
+
+  function renderSurgeon(){
+    const r=currentRec();
+    if(r.sentAt){
+      $('sendSurgeon').textContent='SENT ✓ · SEND AN UPDATE ↗';
+      setText('surgeonStatus',`Sent to the flight surgeon at ${hhmm(r.sentAt)}. The signal takes about ${EARTH_DELAY_MIN} min each way (simulated), so the earliest reply is around ${hhmm(r.sentAt+EARTH_DELAY_MIN*2*60000)}. Keep monitoring ${r.live?'yourself':shortName(r)} until then.`);
+    } else {
+      $('sendSurgeon').textContent='SEND CASE TO FLIGHT SURGEON ↗';
+      setText('surgeonStatus',"Packages this record (body map, pain scores, onset, notes, vitals snapshot and ASTRA's review) for the flight surgeon on Earth. Replies are delayed by the signal time.");
+    }
+  }
+  function saveOpenRecord(){
+    const r=currentRec();
+    r.onset=$('onsetSelect').value; r.notes=$('triageText').value;
+    r.out={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:$('vegaNote').innerHTML,vegaHidden:$('vegaNote').hidden};
+  }
+  function defaultOut(r){
+    if(r.live) return {...DEFAULT_OUT};
+    return {...DEFAULT_OUT,badgeClass:'rounded px-2 py-1 text-[9px] mono border bg-amber/10 text-amber-200 border-amber/35',badgeText:'NOT REVIEWED',outHTML:`<div class="flex gap-2 items-center text-amber-200"><span class="text-lg">◈</span><span class="text-xs font-bold tracking-wider">REPORT ON FILE · NOT YET REVIEWED</span></div><p class="text-[11px] text-slate-400 mt-2 leading-relaxed">${esc(recName(r))} filed this report ${esc(agoText(r.reportedAt))}. Check the body map and notes, then run the triage simulation to review it.</p>`};
+  }
+  function openRecord(id){
+    if(!crewRecords[id]) id='you';
+    saveOpenRecord();
+    state.patient=id; state.overlay=false;
+    const r=currentRec();
+    state.symptoms=r.symptoms; state.painLevels=r.painLevels;
+    $('onsetSelect').value=r.onset; $('triageText').value=r.notes||'';
+    const o=r.out||defaultOut(r);
+    $('triageBadge').className=o.badgeClass; $('triageBadge').textContent=o.badgeText;
+    $('triageOutput').className=o.outClass; $('triageOutput').innerHTML=o.outHTML;
+    $('vegaNote').innerHTML=o.vega; $('vegaNote').hidden=o.vegaHidden;
+    const first=recZones(r)[0];   // land on their worst area
+    if(first&&zoneMeta[first]){ state.selectedZone=first; if(!zoneMeta[first].views.includes(state.bodyView)) state.bodyView=zoneMeta[first].views[0]; }
+    renderTriageRole();
+  }
+  function openWholeCrew(){
+    saveOpenRecord();
+    state.overlay=true; state.overlayZone='';
+    renderTriageRole();
+    const pats=crewPatterns(), p=pats[0];
+    companionWarn(p?`Whole-crew view. ${pats.length>1?`I see ${pats.length} things to check. First: `:''}${p.text}`:'Whole-crew view. No shared pattern right now.','crewOverlayPane',p?p.mood:'nominal',true);
+  }
+  function renderTriageRole(){
+    const cmo=state.role==='cmo', full=cmoFull(), ov=inOverlay(), compact=cmo&&state.view==='dual';
+    document.querySelectorAll('[data-role]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.role===state.role)));
+    $('cmoRoster').classList.toggle('hidden-view',!full);
+    $('compactRoster').classList.toggle('hidden-view',!compact);
+    $('openMedBay').classList.toggle('hidden-view',!compact);
+    setText('triageRoleEyebrow',full?'MEDICAL BAY · CMO CONSOLE':state.view==='ship'?'MEDICAL BAY · YOUR RECORD':'SHIP DISPLAY · CREW HEALTH');
+    setText('roleAccess',full?'CMO ACCESS · ALL CREW RECORDS':cmo?'CMO · ALL RECORDS OPEN IN THE MEDICAL BAY':'CREW ACCESS · YOUR RECORD ONLY');
+    $('roleAccess').style.color=cmo?'#ff7ab0':'';
+    $('symptomColumn').classList.toggle('hidden-view',ov);
+    $('crewOverlayPane').classList.toggle('hidden-view',!ov);
+    $('triageSnapshot').classList.toggle('hidden-view',ov);
+    $('triageReviewPanel').classList.toggle('hidden-view',ov);
+    $('surgeonBox').classList.toggle('hidden-view',!full);
+    setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
+    renderBanner(); renderSurgeon(); renderSnapshot();
+    renderBodyMap(); renderSymptoms(); renderReported();
+    if(ov) renderOverlay();
+    updateCompanion();
+  }
+  // Outside the CMO medical bay the triage only ever shows your own record.
+  function syncTriageContext(){
+    if(!cmoFull() && state.patient!=='you') openRecord('you');   // openRecord re-renders
+    else renderTriageRole();
+  }
+  // "Signed in as" in the header: one role for the whole page (a demo switch; a real server would assign it).
+  function setRole(role,quiet){
+    state.role=role==='cmo'?'cmo':'crew';
+    try{ localStorage.setItem('astrasight.triageRole',state.role); }catch(e){}
+    const near=state.view==='eva'?'metricsGrid':'triageSnapshot';
+    if(state.role==='crew'){
+      state.overlay=false; syncTriageContext();
+      if(!quiet) companionWarn('Signed in as crew. You see only your own health record, and only you and the CMO can open it.',near,'nominal',true);
+    } else if(state.view==='ship' && !quiet){
+      openWholeCrew();   // the CMO lands on the whole crew in the medical bay
+    } else {
+      state.overlay=true; syncTriageContext();
+      if(!quiet) companionWarn(state.view==='dual'
+        ?'Signed in as the Crew Medical Officer. The ship display now lists every crew member. Open the Medical bay for their full records and the whole-crew view.'
+        :'Signed in as the Crew Medical Officer. All crew records are in the Medical bay.',state.view==='dual'?'triageRoleBar':near,'nominal',true);
+    }
+  }
+
+  // ---------- Suit check: sensor health for every EVA suit, and the go/no-go gate on CABIN EXIT ----------
+  // Each suit's sensors stream simulated self-test readings once a second. ASTRA checks the sensors themselves,
+  // not just the values (rules listed on the page). A failed or untrustworthy life-support (LS) sensor makes the
+  // suit NO-GO and blocks CABIN EXIT for its wearer; a fault in a health-only sensor gives GO · LIMITED.
+  // Detection times are shortened for the demo. Suits are equipment, not medical records, so every role sees them.
+  const DAY=86400000;
+  const SUIT_SENSORS=[
+    {id:'o2a',  name:'primary O₂ sensor',     ls:true,  unit:' %',     dp:1, nominal:96.4, jitter:.25, bench:[94.5,98.5], phys:[0,100],    pair:'o2b', card:'card-o2'},
+    {id:'o2b',  name:'backup O₂ sensor',      ls:true,  unit:' %',     dp:1, nominal:96.2, jitter:.25, bench:[94.5,98.5], phys:[0,100],    pair:'o2a', card:'card-o2'},
+    {id:'co2',  name:'CO₂ sensor',            ls:true,  unit:' mmHg',  dp:2, nominal:1.6,  jitter:.06, bench:[0.4,3.5],   phys:[0,40],     card:'card-co2'},
+    {id:'psi',  name:'suit pressure sensor',  ls:true,  unit:' PSI',   dp:2, nominal:4.30, jitter:.012,bench:[4.15,4.45], phys:[0,8],      card:'card-psi'},
+    {id:'comms',name:'comms / telemetry link',ls:true,  unit:' dBm',   dp:0, nominal:-61,  jitter:1.2, bench:[-78,-45],   phys:[-120,0]},
+    {id:'hr',   name:'heart-rate sensor',     ls:false, unit:' bpm',   dp:0, nominal:71,   jitter:1.6, bench:[45,105],    phys:[25,230],   card:'card-hr'},
+    {id:'temp', name:'core temperature probe',ls:false, unit:' °C',    dp:1, nominal:36.9, jitter:.04, bench:[36.0,37.8], phys:[30,43],    card:'card-temp'},
+    {id:'spo2', name:'SpO₂ sensor',           ls:false, unit:' %',     dp:1, nominal:98.1, jitter:.2,  bench:[94,100],    phys:[50,100]},
+    {id:'dose', name:'radiation dosimeter',   ls:false, unit:' mSv/h', dp:2, nominal:.08,  jitter:.01, bench:[.01,.3],    phys:[0,50]},
+  ];
+  const FAULTS={stuck:'Stuck (frozen value)',nosignal:'No signal',drift:'Drifting',noisy:'Noisy',impossible:'Impossible reading'};
+  const VERDICT={go:{label:'GO',color:'#34d399'},limited:{label:'GO · LIMITED',color:'#ffb800'},nogo:{label:'NO-GO',color:'#ff2a4b'}};
+  const ST={ok:{icon:'✓',color:'#34d399'},warn:{icon:'◐',color:'#ffb800'},fail:{icon:'✕',color:'#ff2a4b'}};
+  const suits=['EMU-1','EMU-2','EMU-3','EMU-4'].map((id,i)=>({id,crew:['you','ortega','okafor',null][i],sensors:{}}));
+  suits.forEach((su,i)=>SUIT_SENSORS.forEach(d=>{ su.sensors[d.id]={v:d.nominal,lastAt:Date.now(),hist:[],fault:null,still:0,calDue:Date.now()+(40+i*25)*DAY}; }));
+  suits[3].sensors.hr.calDue=Date.now()-9*DAY;   // the spare's heart-rate sensor is overdue for calibration: GO · LIMITED
+  const suitEval={};
+  let checkoutUntil=0, suitSig='';
+  const lc=(t)=>t.charAt(0).toLowerCase()+t.slice(1);
+  const sensorDef=(id)=>SUIT_SENSORS.find(d=>d.id===id);
+  const wearer=(su)=>su.crew==='you'?'you':su.crew?shortName(crewRecords[su.crew]):'';
+  function spread(a){ const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length); }
+
+  function suitTick(){
+    const now=Date.now();
+    suits.forEach(su=>SUIT_SENSORS.forEach(d=>{
+      const x=su.sensors[d.id];
+      if(x.fault==='nosignal') return;                                  // nothing arrives
+      const prev=x.v;
+      if(x.fault==='impossible') x.v=d.phys[1]+(d.phys[1]-d.phys[0])*.3;
+      else if(x.fault==='drift') x.v+=(['o2a','o2b','psi'].includes(d.id)?-1:1)*(d.bench[1]-d.bench[0])*.12+(Math.random()-.5)*d.jitter;
+      else if(x.fault!=='stuck'){ const j=d.jitter*(x.fault==='noisy'?14:1); x.v=clamp(x.v+(d.nominal-x.v)*.3+(Math.random()-.5)*2*j,d.phys[0],d.phys[1]); }
+      x.still=x.v===prev?x.still+1:0;
+      x.lastAt=now; x.hist.push(x.v); if(x.hist.length>8) x.hist.shift();
+    }));
+    evaluateSuits();
+  }
+  function sensorStatus(su,d){
+    const x=su.sensors[d.id], now=Date.now(), fmt=(v)=>v.toFixed(d.dp)+d.unit, age=(now-x.lastAt)/1000;
+    if(age>=5) return {st:'fail',why:`Is sending no data (silent for ${Math.round(age)} s).`};
+    if(x.v<d.phys[0]||x.v>d.phys[1]) return {st:'fail',why:`Reads ${fmt(x.v)}, which no working sensor can give.`};
+    if(x.still>=6) return {st:'fail',why:`Is stuck at ${fmt(x.v)}: no change for ${x.still} s.`};
+    const out=(dd,v)=>v<dd.bench[0]||v>dd.bench[1];
+    if(d.pair){
+      const p=sensorDef(d.pair), y=su.sensors[d.pair];
+      const pairAlive=(now-y.lastAt)/1000<5 && y.v>=p.phys[0] && y.v<=p.phys[1] && y.still<6;
+      if(pairAlive && Math.abs(x.v-y.v)>3){
+        const meOut=out(d,x.v), otherOut=out(p,y.v);
+        if(meOut&&!otherOut) return {st:'fail',why:`Disagrees with the ${p.name} by ${Math.abs(x.v-y.v).toFixed(1)} % and is the one outside the normal range.`};
+        if(meOut===otherOut) return {st:'fail',why:`Disagrees with the ${p.name} by ${Math.abs(x.v-y.v).toFixed(1)} %. Can't tell which one is right.`};
+      }
+    }
+    if(x.hist.length>=6 && spread(x.hist)>d.jitter*4) return {st:'warn',why:`Is noisy: readings jump by up to ${(Math.max(...x.hist)-Math.min(...x.hist)).toFixed(d.dp)}${d.unit}.`};
+    const onEva=su.crew==='you'&&state.exited;                         // outside, real readings move: no rack range
+    if(!onEva && out(d,x.v)) return {st:'warn',why:`Reads ${fmt(x.v)}, outside the checkout range (${d.bench[0]} to ${d.bench[1]}${d.unit}).`};
+    if(x.calDue<now) return {st:'warn',why:`Is overdue for calibration (due ${new Date(x.calDue).toLocaleDateString([],{day:'numeric',month:'short'})}).`};
+    return {st:'ok',why:''};
+  }
+  function evaluateSuits(){
+    suits.forEach(su=>{
+      const rows={}, problems=[];
+      SUIT_SENSORS.forEach(d=>{ const r=sensorStatus(su,d); rows[d.id]=r; if(r.st!=='ok') problems.push({d,...r}); });
+      problems.sort((a,b)=>(b.d.ls-a.d.ls)||((b.st==='fail')-(a.st==='fail')));
+      const verdict=problems.some(p=>p.d.ls)?'nogo':problems.length?'limited':'go';
+      const prev=suitEval[su.id]&&suitEval[su.id].verdict;
+      suitEval[su.id]={verdict,rows,problems};
+      if(prev&&prev!==verdict) onVerdictChange(su,prev,verdict);
+    });
+    renderGate(); markFaultyCards();
+    if(state.view==='suits') renderSuits();
+  }
+  function spareFor(su){
+    const rank={go:0,limited:1};
+    return suits.filter(x=>!x.crew&&x!==su&&suitEval[x.id]&&suitEval[x.id].verdict!=='nogo').sort((a,b)=>rank[suitEval[a.id].verdict]-rank[suitEval[b.id].verdict])[0]||null;
+  }
+  function gateMessage(su){
+    const lead=suitEval[su.id].problems.find(p=>p.d.ls), sp=spareFor(su);
+    const who=su.crew==='you'?'Your suit':`${recName(crewRecords[su.crew])}, suit`;
+    return `No-go. ${who} ${su.id}: the ${lead.d.name} ${lc(lead.why)} ${sp?`Swap to ${sp.id}, which ${suitEval[sp.id].verdict==='go'?'passes all checks':'passes its life-support checks'}, or replace the sensor.`:'Replace the sensor before going outside.'}`;
+  }
+  function onVerdictChange(su,prev,verdict){
+    const e=suitEval[su.id], lead=e.problems[0], mine=su.crew==='you';
+    if(verdict==='nogo'){
+      if(mine&&state.exited){   // a life-support sensor failed while outside
+        const backupOk=lead.d.pair&&e.rows[lead.d.pair].st==='ok';
+        companionWarn(`Your ${lead.d.name} in ${su.id} has failed: it ${lc(lead.why)} Don't trust that reading.${backupOk?` I'm using the ${sensorDef(lead.d.pair).name} instead.`:''} Head back to the airlock.`,lead.d.card||'metricsGrid','critical');
+      } else if(state.view==='suits'||mine) companionWarn(su.crew?gateMessage(su):`Spare suit ${su.id} is now no-go: the ${lead.d.name} ${lc(lead.why)}`,state.view==='suits'?'suitGrid':'suitGateChip','caution',true);
+    } else if(verdict==='limited'&&prev==='go'&&state.view==='suits'){
+      companionWarn(`${su.id} is go, but limited: the ${lead.d.name} ${lc(lead.why)} The EVA can go ahead, but I can't watch that reading.`,'suitGrid','reminder',true);
+    } else if(prev==='nogo'&&state.view==='suits'){
+      companionWarn(`${su.id} passes its life-support checks again.`,'suitGrid','nominal',true);
+    }
+  }
+  function renderGate(){
+    const su=suits.find(x=>x.crew==='you'), chip=$('suitGateChip'), base=' rounded-md px-2.5 py-2 text-[9px] mono';
+    const v=su?suitEval[su.id].verdict:'nogo';
+    chip.className='suit-gate'+(v==='nogo'?' nogo':v==='limited'?' limited':'')+base;
+    chip.textContent=su?`SUIT ${su.id} · ${VERDICT[v].label}`:'NO SUIT ASSIGNED';
+    chip.title=!su?'Assign yourself a suit in Suit check.':v==='go'?'Every sensor in your suit passes. Open Suit check.':suitEval[su.id].problems.map(p=>`${cap(p.d.name)}: ${lc(p.why)}`).join('\n');
+    if(!state.exited) $('exitButton').textContent=v==='nogo'?'✕ CABIN EXIT · NO-GO':'↗ CABIN EXIT';
+  }
+  function markFaultyCards(){   // your suit's broken sensors flag the matching telemetry card while you wear it
+    const su=suits.find(x=>x.crew==='you'), bad=new Set();
+    if(su&&state.operatingMode==='eva') SUIT_SENSORS.forEach(d=>{ if(d.card&&suitEval[su.id].rows[d.id].st==='fail') bad.add(d.card); });
+    ['card-o2','card-co2','card-psi','card-hr','card-temp'].forEach(id=>{ const el=$(id); if(el) el.classList.toggle('sensor-fault',bad.has(id)); });
+  }
+  function renderSuits(force){
+    const checking=Date.now()<checkoutUntil;
+    const sig=JSON.stringify([checking,state.role,suits.map(su=>[su.crew,suitEval[su.id].verdict,su.crew&&(state.role==='cmo'||su.crew==='you')&&recLevel(crewRecords[su.crew]),SUIT_SENSORS.map(d=>[suitEval[su.id].rows[d.id].st,su.sensors[d.id].fault])])]);
+    if(force||sig!==suitSig){
+      suitSig=sig;
+      $('suitGrid').innerHTML=suits.map(su=>{
+        const e=suitEval[su.id], V=VERDICT[e.verdict], rec=su.crew&&crewRecords[su.crew], sp=e.verdict==='nogo'&&su.crew?spareFor(su):null;
+        const who=su.crew==='you'?`You${typeof Crew!=='undefined'&&Crew.callSign()?' · '+Crew.callSign():''}`:rec?`${recName(rec)} · ${rec.role}`:'Spare · not assigned';
+        const rows=SUIT_SENSORS.map(d=>{
+          const r=e.rows[d.id], c=ST[r.st].color, x=su.sensors[d.id];
+          const fix=r.st==='ok'?'':x.fault?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">REPLACE</button>`:x.calDue<Date.now()?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">RECALIBRATE</button>`:'';
+          return `<div class="sensor-row"><span class="s-icon" style="color:${c}">${ST[r.st].icon}</span><span class="s-name">${esc(cap(d.name))}${d.ls?'<span class="crit-tag" title="Life support: a fault here means no-go">LS</span>':''}</span><span class="s-val" id="sv-${su.id}-${d.id}"></span>${r.st!=='ok'?`<div class="s-detail" style="color:${c}"><span id="sw-${su.id}-${d.id}">${esc(r.why)}</span>${fix}</div>`:''}</div>`;
+        }).join('');
+        return `<article class="suit-card ${checking?'checking':''}" style="--verdict:${V.color}">
+          <div class="flex items-start justify-between gap-2"><div class="min-w-0"><div class="text-white font-bold mono text-sm">${su.id}</div><div class="text-[10px] text-slate-400 truncate">${esc(who)}</div></div><span class="verdict">${V.label}</span></div>
+          ${rec&&(state.role==='cmo'||su.crew==='you')&&recLevel(rec)==='critical'?`<div class="text-[9px] mono text-amber-200 mt-1">MEDICAL HOLD · ${esc(su.crew==='you'?'your':shortName(rec)+"'s")} triage is urgent (Medical bay)</div>`:''}
+          <div class="mt-2">${rows}</div>
+          ${sp?`<button type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono mt-2 w-full" data-swap="${su.id}|${sp.id}">SWAP ${esc(su.crew==='you'?'YOUR':shortName(rec).toUpperCase()+"'S")} SUIT TO ${sp.id} ↗</button>`:''}
+          ${e.verdict==='nogo'&&su.crew&&!sp?'<p class="text-[9px] text-rose-300 mt-2">No spare suit passes. Replace the sensor before going outside.</p>':''}
+        </article>`;
+      }).join('');
+    }
+    suits.forEach(su=>SUIT_SENSORS.forEach(d=>{   // live values and counters, every tick
+      const x=su.sensors[d.id], v=document.getElementById(`sv-${su.id}-${d.id}`), w=document.getElementById(`sw-${su.id}-${d.id}`);
+      if(v) v.textContent=(Date.now()-x.lastAt)/1000>=5?'—':x.v.toFixed(d.dp)+d.unit;
+      if(w) w.textContent=suitEval[su.id].rows[d.id].why;
+    }));
+    const n={go:0,limited:0,nogo:0}; suits.forEach(su=>n[suitEval[su.id].verdict]++);
+    setText('suitSummary',`${n.go} GO · ${n.limited} LIMITED · ${n.nogo} NO-GO`);
+  }
+  function fillFaultSuits(){
+    const sel=$('faultSuit'), keep=sel.value;
+    sel.innerHTML=suits.map(su=>`<option value="${su.id}">${su.id} · ${esc(su.crew==='you'?'You':su.crew?shortName(crewRecords[su.crew]):'spare')}</option>`).join('');
+    sel.value=keep||(suits.find(x=>x.crew==='okafor')||suits[0]).id;
+  }
+  evaluateSuits();   // first verdicts before anything renders (e.g. a ?view=suits deep link)
+  fillFaultSuits();
+  $('faultSensor').innerHTML=SUIT_SENSORS.map(d=>`<option value="${d.id}">${esc(cap(d.name))}${d.ls?' (LS)':''}</option>`).join('');
+  $('faultType').innerHTML=Object.entries(FAULTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  $('injectFault').addEventListener('click',()=>{
+    const su=suits.find(x=>x.id===$('faultSuit').value), x=su.sensors[$('faultSensor').value];
+    x.fault=$('faultType').value; x.still=0; x.hist=[];
+    $('injectFault').textContent='BROKEN · WATCH ASTRA CATCH IT'; setTimeout(()=>{$('injectFault').textContent='BREAK THIS SENSOR';},2500);
+  });
+  $('clearFaults').addEventListener('click',()=>{ suits.forEach(su=>SUIT_SENSORS.forEach(d=>{ const x=su.sensors[d.id]; if(x.fault){ x.fault=null; x.v=d.nominal; x.still=0; x.hist=[]; x.lastAt=Date.now(); } })); evaluateSuits(); });
+  $('suitGrid').addEventListener('click',e=>{
+    const fix=e.target.closest('[data-fix]'), swap=e.target.closest('[data-swap]');
+    if(fix){
+      const [sid,did]=fix.dataset.fix.split('|'), su=suits.find(x=>x.id===sid), x=su.sensors[did], d=sensorDef(did), wasFault=!!x.fault;
+      Object.assign(x,{fault:null,v:d.nominal,still:0,hist:[],lastAt:Date.now()}); if(x.calDue<Date.now()) x.calDue=Date.now()+180*DAY;
+      evaluateSuits(); renderSuits(true);
+      companionWarn(`${cap(d.name)} in ${sid} ${wasFault?'replaced':'recalibrated'}. ${VERDICT[suitEval[sid].verdict].label==='GO'?`${sid} passes all checks.`:`${sid} is ${VERDICT[suitEval[sid].verdict].label}.`}`,'suitGrid','nominal',true);
+    }
+    if(swap){
+      const [from,to]=swap.dataset.swap.split('|'), a=suits.find(x=>x.id===from), b=suits.find(x=>x.id===to), lead=suitEval[from].problems.find(p=>p.d.ls);
+      b.crew=a.crew; a.crew=null; fillFaultSuits(); evaluateSuits(); renderSuits(true);
+      companionWarn(`${b.crew==='you'?"You're":cap(wearer(b))+' is'} now in ${to}. ${from} is out of service until the ${lead?lead.d.name:'faulty sensor'} is fixed.`,'suitGrid','nominal',true);
+    }
+  });
+  $('runCheckout').addEventListener('click',()=>{
+    checkoutUntil=Date.now()+2500; renderSuits(true);
+    setTimeout(()=>{
+      checkoutUntil=0; renderSuits(true);
+      const parts=suits.map(su=>{ const e=suitEval[su.id], p=e.problems[0];
+        return e.verdict==='go'?`${su.id} go`:e.verdict==='limited'?`${su.id} go, limited: ${p.d.name}`:`${su.id} no-go: ${p.d.name} ${lc(p.why).replace(/\.$/,'')}`; });
+      const fix=suits.filter(su=>su.crew&&suitEval[su.id].verdict==='nogo').map(su=>{ const sp=spareFor(su); return sp?` Move ${wearer(su)==='you'?'yourself':wearer(su)} to ${sp.id}.`:''; }).join('');
+      companionWarn(`Checkout done. ${parts.join('. ')}.${fix}`,'suitGrid',suits.some(su=>suitEval[su.id].verdict==='nogo')?'caution':'nominal',true);
+    },2500);
+  });
+  $('suitGateChip').addEventListener('click',()=>setView('suits'));
 
   // Wire view controls.
   document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
@@ -1280,15 +2250,16 @@ const ReportLink = (() => {
   }));
   $('resetSensors').addEventListener('click',()=>{
     Object.assign(state,baseline,{spo2:98,hrv:64,gsr:2.6,co2ppm:650,cfDna:.84,protonFlux:2.4,neutronFlux:.04,cabinTemp:21.4,humidity:42,pm25:4.2,voc:.12});
-    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';ReportLink.clear();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    state.overrides.clear();state.scenario='nominal';state.lastWarning='';state.alertState='nominal';state.triageHold=false;ReportLink.clear();if(state.companionMode==='auto')state.expression='nominal';state.peakHr=state.hr;state.safeSeconds=1800;state.exited=false;state.timerActive=false;state.operatingMode='habitat';
+    state.outsideSeconds=0;state.lastOutside=0;emergencies.clear();emergencyCleared=null;
     syncButtons();syncLocationMode();updateCompanion();render();
   });
   $('habitatMode').addEventListener('click',()=>{
     if(state.exited){
-      $('companionMessage').textContent='Simulate airlock re-entry before switching back to habitat monitoring.'; teleportCompanion('safeTimer');
+      $('companionMessage').textContent='Simulate airlock re-entry before switching back to habitat monitoring.'; moveCompanion('safeTimer');
       return;
     }
-    state.operatingMode='habitat'; state.timerActive=false; syncLocationMode(); render();
+    state.operatingMode='habitat'; state.timerActive=false; emergencies.clear(); emergencyCleared=null; syncLocationMode(); render();
   });
   $('evaMode').addEventListener('click',()=>{
     if(state.exited){ state.operatingMode='eva'; syncLocationMode(); render(); return; }
@@ -1296,31 +2267,57 @@ const ReportLink = (() => {
   });
   $('exitButton').addEventListener('click',()=>{
     if(state.exited||state.operatingMode!=='eva')return;
-    state.exited=true; state.timerActive=true;
+    // Go/no-go gate: no cabin exit in a suit with a failed or untrustworthy life-support sensor.
+    const mySuit=suits.find(x=>x.crew==='you');
+    if(!mySuit){ companionWarn('You have no EVA suit assigned. Pick one in Suit check before going outside.','suitGateChip','caution',true); return; }
+    if(suitEval[mySuit.id].verdict==='nogo'){ companionWarn(gateMessage(mySuit),'suitGateChip','critical',true); return; }
+    state.exited=true; state.timerActive=true; state.outsideSeconds=0;
+    state.exitAt=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
     if(state.rad>=1)state.safeSeconds=Math.min(state.safeSeconds,165);
-    syncLocationMode(); render(); speak('Cabin exit simulated. Outside-time clock active.');
+    updateEmergencies(); const urgent=byUrgency(emergencies.values())[0];
+    if(urgent) urgent.announced=true;
+    syncLocationMode(); render(); speak('Cabin exit simulated. Outside-time clock active.'+(urgent?' '+emergencyLine(urgent):''), urgent?'critical':'nominal');
   });
   $('reentryButton').addEventListener('click',()=>{
+    state.lastOutside=state.outsideSeconds;
     state.exited=false; state.timerActive=false; state.operatingMode='habitat';
-    state.safeSeconds=1800; state.lastWarning='';
+    state.safeSeconds=1800; state.lastWarning=''; emergencies.clear(); emergencyCleared=null;
     syncLocationMode(); render();
     speak('Airlock re-entry simulated. Habitat watch resumed and sortie budget reset.');
   });
   document.querySelectorAll('[data-body-view]').forEach(b=>b.addEventListener('click',()=>{state.bodyView=b.dataset.bodyView;if(!(zoneMeta[state.selectedZone]?.views||[]).includes(state.bodyView)) state.selectedZone=state.bodyView==='front'?'forehead':'crown';renderBodyMap();renderSymptoms();}));
   $('painLevel').addEventListener('input',e=>{state.painLevels[state.selectedZone]=Number(e.target.value);renderSymptoms();renderReported();});
   $('analyzeButton').addEventListener('click',runTriage);
+  $('companionAck').addEventListener('click',()=>{ state.triageHold=false; });   // the voice/PA side is handled in the crew script below
+  document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ if(b.dataset.role!==state.role) setRole(b.dataset.role); }));
+  $('sendSurgeon').addEventListener('click',()=>{
+    const r=currentRec(); r.sentAt=Date.now(); renderSurgeon(); renderRoster();
+    companionWarn(`Case for ${recName(r)} sent to the flight surgeon. With the signal delay, expect a reply in about ${EARTH_DELAY_MIN*2} minutes. Keep monitoring until then.`,'surgeonBox','reminder',true);
+  });
+  $('openMedBay').addEventListener('click',()=>setView('ship'));
+  $('triageText').addEventListener('input',()=>{ if(state.role==='cmo') renderRoster(); });
+  $('onsetSelect').addEventListener('change',()=>{ if(state.role==='cmo') renderRoster(); });
+  setInterval(()=>{ if(state.role==='cmo'){ renderRoster(); if(inOverlay()) renderBanner(); } },30000);   // "18 min ago" and your live risk
   document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{state.palette=b.dataset.palette;updateCompanion();}));
   document.querySelectorAll('[data-expression]').forEach(b=>b.addEventListener('click',()=>{state.expression=b.dataset.expression;updateCompanion();}));
-  window.addEventListener('resize',()=>teleportCompanion(state.expression==='critical'?'card-psi':'metricsGrid'));
+  window.addEventListener('resize',()=>moveCompanion(state.view==='ship'?'bodyMap':'metricsGrid'));
 
   // Redraw once the embedded reference sprite is decoded.
   if(characterImage && !characterImage.complete) characterImage.addEventListener('load',updateCompanion,{once:true});
   else if(characterImage && characterImage.naturalWidth) updateCompanion();
   // Initial UI and deterministic one-second clocks.
-  renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
+  buildLimitScales();renderBodyMap();renderSymptoms();renderReported();syncButtons();syncLocationMode();setModule('vitals');updateSleepSchedule();updateCompanion();render();
+  // Ship triage role: remembered per browser; report.html?role=cmo opens straight into the CMO view.
+  let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
+  const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
+  setRole(startRole,true);
+  // ?view=display|eva|medical opens a tab directly (handy for the demo).
+  const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship',suits:'suits',suit:'suits'}[new URLSearchParams(location.search).get('view')];
+  if(VIEW_PARAM) setView(VIEW_PARAM);
   setInterval(tickSensors,1000);
+  setInterval(suitTick,1000);   // suit sensor health (Suit check tab and the cabin-exit gate)
   setInterval(sensorTimerTick,1000);
-  setTimeout(()=>teleportCompanion('metricsGrid'),350);
+  setTimeout(()=>moveCompanion('metricsGrid'),350);
 })();
 </script>
 <script>
@@ -1369,7 +2366,7 @@ const ReportLink = (() => {
     $('crewPaPanel').hidden = true;
   }
 
-  // Tell other tabs (the home-page VEGA pop-up) that the report screen is open.
+  // Tell other tabs (the home-page ASTRA pop-up) that the report screen is open.
   if (typeof ReportBus !== 'undefined') {
     ReportBus.send({ type: 'heartbeat' });
     setInterval(() => ReportBus.send({ type: 'heartbeat' }), 1000);

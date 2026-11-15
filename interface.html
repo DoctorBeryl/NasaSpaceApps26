@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AstraSight — Lens Interface</title>
-  <meta name="description" content="Interactive simulation of the AstraSight in-lens HUD, with the side panel and VEGA voice commands." />
+  <meta name="description" content="Interactive simulation of the AstraSight in-lens HUD, with the side panel and ASTRA voice commands." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -53,7 +53,7 @@
       <div class="sp-head">
         <div class="sp-title">
           <span class="dot pulse"></span>
-          <div>VEGA Vitals<small>LIVE · SIMULATED FEED</small></div>
+          <div>ASTRA Vitals<small>LIVE · SIMULATED FEED</small></div>
         </div>
         <div class="sp-actions">
           <button class="icon-btn" id="dock-btn" title="Dock to other side">
@@ -97,13 +97,13 @@
 
     <!-- VOICE BAR -->
     <div class="voice-bar">
-      <div class="vb-response" id="response"><span class="tag">VEGA</span><span id="response-text"></span></div>
+      <div class="vb-response" id="response"><span class="tag">ASTRA</span><span id="response-text"></span></div>
       <div class="vb-chips" id="chips"></div>
       <form class="vb-main" id="cmd-form" autocomplete="off">
         <button type="button" class="mic-btn" id="mic" aria-label="Start voice command">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
         </button>
-        <input id="cmd" placeholder="Press both side buttons or say “Hey VEGA” to talk, or type here…" aria-label="Command" />
+        <input id="cmd" placeholder="Press both side buttons or say “Hey ASTRA” to talk, or type here…" aria-label="Command" />
         <button class="vb-send" type="submit">Send</button>
       </form>
     </div>
