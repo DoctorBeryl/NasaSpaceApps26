@@ -36,8 +36,13 @@ const KEYS = [...new Set([
 ].map((k) => String(k).trim()).filter(Boolean))];
 const KEY = KEYS.length > 0; // "is the ElevenLabs voice available at all"
 let keyIdx = 0;
-const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
-const MODEL = process.env.ELEVENLABS_MODEL_ID || "eleven_flash_v2_5";
+/* One voice for every instance: Matilda (ElevenLabs premade, neutral American, free tier),
+   English only. Fixed on purpose, so .env can't give each machine a different ASTRA.
+   To change it for everyone, edit these two lines and push. */
+const VOICE = "XrExE9yKIg1WjnnlVkGX";
+const MODEL = "eleven_flash_v2_5";
+if (process.env.ELEVENLABS_VOICE_ID || process.env.ELEVENLABS_MODEL_ID)
+  console.warn("[tts] ELEVENLABS_VOICE_ID / ELEVENLABS_MODEL_ID in .env are ignored: ASTRA uses one shared voice (server.js)");
 const PORT = Number(process.env.PORT) || 8000;
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b"; // same default as server/ollama.js
@@ -144,7 +149,7 @@ async function tts(req, res) {
     const r = await elevenKeyed(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOICE)}?output_format=mp3_44100_128`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
-      body: JSON.stringify({ text, model_id: MODEL, voice_settings: settings }),
+      body: JSON.stringify({ text, model_id: MODEL, language_code: "en", voice_settings: settings }),
     }, "tts");
     if (!r.ok) {
       const msg = await r.text();

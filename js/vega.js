@@ -105,8 +105,11 @@ const VEGA = (() => {
   function pickVoice() {
     if (!("speechSynthesis" in window)) return;
     const vs = speechSynthesis.getVoices();
-    voice = vs.find((v) => /Google UK English Female|Samantha|Aria|Jenny|Libby|Sonia/i.test(v.name))
-      || vs.find((v) => /^en/i.test(v.lang)) || null;
+    // Fallback when ElevenLabs is unreachable: the same neutral American English voice on
+    // every machine where possible ("Google US English" ships with Chrome on all OSes).
+    const PREFER = [/^Google US English$/i, /Jenny.*Natural/i, /Aria.*Natural/i, /^Samantha/i, /Zira/i];
+    voice = PREFER.map((re) => vs.find((v) => re.test(v.name))).find(Boolean)
+      || vs.find((v) => /^en[-_]US/i.test(v.lang)) || vs.find((v) => /^en/i.test(v.lang)) || null;
   }
   if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 
@@ -129,6 +132,7 @@ const VEGA = (() => {
     if (!("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
     if (voice) u.voice = voice;
+    u.lang = "en-US";
     const t = TONES[tone] || TONES.calm;
     u.rate = t.rate; u.pitch = t.pitch;
     speechSynthesis.speak(u);
