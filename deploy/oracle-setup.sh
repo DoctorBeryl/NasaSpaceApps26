@@ -37,7 +37,11 @@ fi
 node --version
 
 say "Ollama"
-command -v ollama >/dev/null || curl -fsSL https://ollama.com/install.sh | sh
+# Reinstall if the binary or its systemd unit is missing (an install interrupted by a full disk
+# leaves the binary but no ollama.service).
+if ! command -v ollama >/dev/null || ! systemctl cat ollama.service >/dev/null 2>&1; then
+  curl -fsSL https://ollama.com/install.sh | sh
+fi
 # Keep both models loaded: no cold start for judges, and steady memory use keeps
 # Oracle's idle-instance reclaim from flagging the server.
 sudo mkdir -p /etc/systemd/system/ollama.service.d
