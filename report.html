@@ -318,6 +318,32 @@
     .viewing-banner { border:1px solid rgba(0,240,255,.3); background:rgba(0,240,255,.05); }
     .viewing-banner.other { border-color:rgba(255,184,0,.5); background:rgba(255,184,0,.06); }
     .viewing-banner.whole { border-color:rgba(255,42,133,.5); background:rgba(255,42,133,.06); }
+    /* Ship display: compact health-check launcher (opens the Medical bay). Pink so it stands apart from the cyan controls. */
+    .health-launcher { --hl:#ff2a85; position:relative; overflow:hidden; width:100%; display:flex; align-items:center; gap:14px; text-align:left; cursor:pointer;
+      padding:14px 16px; border-radius:14px; border:2px solid var(--hl); color:#eaf6ff;
+      background:radial-gradient(120% 140% at 0% 0%, color-mix(in srgb,var(--hl) 22%,transparent), transparent 60%), linear-gradient(135deg,#140a1c,#07111d 70%);
+      box-shadow:0 0 0 1px color-mix(in srgb,var(--hl) 25%,transparent), 0 0 26px color-mix(in srgb,var(--hl) 35%,transparent), inset 0 0 24px color-mix(in srgb,var(--hl) 10%,transparent);
+      transition:transform .15s ease, box-shadow .15s ease; animation:hl-glow 2.6s ease-in-out infinite; }
+    .health-launcher:hover { transform:translateY(-2px); box-shadow:0 0 0 1px var(--hl), 0 0 38px color-mix(in srgb,var(--hl) 55%,transparent), inset 0 0 28px color-mix(in srgb,var(--hl) 16%,transparent); }
+    .health-launcher:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+    .health-launcher:hover .hl-cta { background:var(--hl); color:#fff; }
+    .hl-body { flex:none; display:flex; gap:4px; width:118px; }
+    .hl-body svg { width:57px; height:auto; display:block; }
+    .hl-body .body-base { fill:rgba(23,54,75,.55); stroke:none; }
+    .hl-body .mz { fill:rgba(23,54,75,.82); stroke:#2f8fa0; stroke-width:.8; }
+    .hl-body .mz.on { fill:color-mix(in srgb,var(--hl) 70%,transparent); stroke:var(--hl); filter:drop-shadow(0 0 3px var(--hl)); }
+    .hl-body .hl-side { fill:#6f8ea3; font:700 14px 'JetBrains Mono',monospace; text-anchor:middle; }
+    .hl-text { min-width:0; display:flex; flex-direction:column; gap:3px; }
+    .hl-eyebrow { font:700 9px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--hl); }
+    .hl-title { font-family:'Press Start 2P',monospace; font-size:12px; line-height:1.5; color:#fff; text-shadow:0 0 10px color-mix(in srgb,var(--hl) 60%,transparent); }
+    .hl-status { font:800 10px 'JetBrains Mono',monospace; letter-spacing:.1em; color:var(--lvl,#34d399); }
+    .hl-detail { font-size:11px; color:#b9cfdd; line-height:1.4; }
+    .hl-cta { align-self:flex-start; margin-top:6px; font:700 10px 'JetBrains Mono',monospace; letter-spacing:.1em; color:var(--hl); border:1px solid var(--hl); border-radius:6px; padding:6px 10px; transition:background .15s ease,color .15s ease; }
+    .hl-scan { position:absolute; left:0; right:0; top:-30%; height:30%; pointer-events:none; background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--hl) 14%,transparent),transparent); animation:hl-scan 3.2s linear infinite; }
+    @keyframes hl-scan { to { top:100%; } }
+    @keyframes hl-glow { 50% { box-shadow:0 0 0 1px color-mix(in srgb,var(--hl) 40%,transparent), 0 0 36px color-mix(in srgb,var(--hl) 50%,transparent), inset 0 0 24px color-mix(in srgb,var(--hl) 14%,transparent); } }
+    @media (max-width:420px) { .hl-body { width:84px; } .hl-body svg { width:40px; } .hl-title { font-size:10px; } }
+    @media (prefers-reduced-motion:reduce) { .health-launcher, .hl-scan { animation:none; } .hl-scan { display:none; } .health-launcher:hover { transform:none; } }
     .pattern-card { border:1px solid rgba(255,42,133,.3); background:rgba(255,42,133,.05); border-radius:8px; padding:8px 10px; }
     .heat-row { border:1px solid rgba(63,103,130,.3); background:#091624; border-radius:7px; padding:6px 8px; }
     .heat-row.sel { border-color:var(--cyan); background:rgba(0,240,255,.06); }
@@ -623,6 +649,19 @@
 
       <!-- SHIP TRIAGE PANEL -->
       <section id="triagePanel" class="space-y-5 min-w-0">
+        <!-- SHIP DISPLAY ONLY: a compact launcher for the health check. The full form lives in the Medical bay. -->
+        <button type="button" id="healthLauncher" class="health-launcher hidden-view" aria-label="Open the health check in the Medical bay">
+          <span class="hl-scan" aria-hidden="true"></span>
+          <span class="hl-body" id="hlBody" aria-hidden="true"></span>
+          <span class="hl-text">
+            <span class="hl-eyebrow">✚ CREW HEALTH CHECK</span>
+            <span class="hl-title">Report a symptom</span>
+            <span class="hl-status" id="hlStatus">NO COMPLAINTS</span>
+            <span class="hl-detail" id="hlDetail">Tap a body area, rate the pain, and ASTRA reviews it.</span>
+            <span class="hl-cta">OPEN MEDICAL BAY <span aria-hidden="true">▶</span></span>
+          </span>
+        </button>
+
         <div class="panel rounded-xl p-3 sm:p-4" id="triageRoleBar">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div><div class="eyebrow" id="triageRoleEyebrow">CREW HEALTH · YOUR ROLE</div><div id="roleAccess" class="text-[10px] mono text-slate-300 mt-1">CREW ACCESS · YOUR RECORD ONLY</div></div>
@@ -640,7 +679,7 @@
           <p class="text-[8px] mono text-slate-600 mt-2">Your role comes from "Signed in as" at the top, a demo switch. A real ship server would check the CMO role before opening anyone else's record. Crew members other than you are simulated.</p>
         </div>
 
-        <div class="panel rounded-xl overflow-hidden">
+        <div class="panel rounded-xl overflow-hidden" id="triageFormPanel">
           <div class="panel-head p-4 flex items-center justify-between gap-3">
             <div><div class="eyebrow" id="triageContextLabel">03 / SHIP SERVER · CREW REVIEW</div><h2 class="text-white font-bold mt-1">CREW HEALTH REVIEW</h2></div>
             <span class="chip rounded px-2 py-1 text-[9px] mono text-cyan">OFFLINE CACHE</span>
@@ -1181,6 +1220,7 @@ const ReportLink = (() => {
     $('exitButton').classList.toggle('opacity-40',habitat||state.exited);
     $('reentryButton').classList.toggle('opacity-40',habitat||!state.exited);
     $('card-psi').classList.toggle('hidden-view',habitat);   // no suit on inside the habitat
+    if(typeof renderLauncher==='function') renderLauncher();   // live vitals can change your triage level (redraws only on change)
     setText('evaPanelEyebrow',habitat?'01 / HABITAT TELEMETRY':'01 / EVA SUIT TELEMETRY');
     setText('evaContextTitle',habitat?'HABITAT // LIVE SENSOR BUS':'EVA VISOR // LIVE SENSOR BUS');
     setText('triageContextLabel',habitat?'03 / SHIP SERVER · IN-MISSION CREW REVIEW':'03 / SHIP SERVER · EVA CREW REVIEW');
@@ -1836,6 +1876,7 @@ const ReportLink = (() => {
   // record's body map, vitals snapshot and review, a whole-crew body map with ASTRA's pattern notes, and
   // "send to flight surgeon". The other four crew are simulated. state.symptoms and state.painLevels point
   // at the open record, so the body map, symptom input and triage engine work on whoever is open.
+  var crewReady=false;
   const LEVEL_COLOR={critical:'#ff2a4b',caution:'#ffb800',low:'#00f0ff',none:'#34d399'};
   const LEVEL_LABEL={critical:'URGENT',caution:'REVIEW',low:'WATCH',none:'NO COMPLAINTS'};
   const LEVEL_RANK={critical:3,caution:2,low:1,none:0};
@@ -1860,6 +1901,7 @@ const ReportLink = (() => {
   const crewRecords={you:{id:'you',live:true,symptoms:state.symptoms,painLevels:state.painLevels,onset:$('onsetSelect').value,notes:'',reportedAt:0,out:null}};
   SEED_CREW.forEach(s=>{crewRecords[s.id]={...s,symptoms:new Map(Object.entries(s.symptoms).map(([z,a])=>[z,new Set(a)])),painLevels:{...s.pain},reportedAt:Date.now()-s.ago*60000,out:null};});
   const CREW_ORDER=['you',...SEED_CREW.map(s=>s.id)];
+  crewReady=true;   // render() runs before this point at startup; renderLauncher waits for the records
   const DEFAULT_OUT={badgeClass:$('triageBadge').className,badgeText:$('triageBadge').textContent,outClass:$('triageOutput').className,outHTML:$('triageOutput').innerHTML,vega:'',vegaHidden:true};
 
   // The full CMO console (every record, whole-crew view, flight surgeon) lives in the MEDICAL BAY tab (view 'ship').
@@ -2044,19 +2086,57 @@ const ReportLink = (() => {
     const pats=crewPatterns(), p=pats[0];
     companionWarn(p?`Whole-crew view. ${pats.length>1?`I see ${pats.length} things to check. First: `:''}${p.text}`:'Whole-crew view. No shared pattern right now.','crewOverlayPane',p?p.mood:'nominal',true);
   }
+  // Ship display: one compact launcher instead of a second copy of the health form. It shows your own record
+  // (a mini front/back body map with your reported areas lit) and opens the full form in the Medical bay.
+  var launcherKey='';
+  function renderLauncher(){
+    const btn=$('healthLauncher'); if(!crewReady || !btn || state.view!=='dual') return;
+    const r=crewRecords.you, lvl=recLevel(r), zones=recZones(r), cmo=state.role==='cmo';
+    const urgentCrew=cmo?CREW_ORDER.filter(id=>id!=='you'&&LEVEL_RANK[recLevel(crewRecords[id])]>=2).length:0;
+    const z=zones[0], pain=z?Number(r.painLevels[z]||0):0;
+    const status=zones.length?`${LEVEL_LABEL[lvl]} · ${zones.length} AREA${zones.length===1?'':'S'} REPORTED`:recNotes(r).trim()?`${LEVEL_LABEL[lvl]} · NOTE ON FILE`:'NO COMPLAINTS';
+    const detail=zones.length?`${cap(zoneMeta[z]?.label||z)}${pain?`, pain ${pain}/10`:''}${zones.length>1?` and ${zones.length-1} more`:''}. Open it to update or get ASTRA's review.`
+      :'Feeling off? Tap a body area, rate the pain, and ASTRA reviews it.';
+    const key=[lvl,zones.join(','),status,detail,cmo,urgentCrew].join('|');
+    if(key===launcherKey) return; launcherKey=key;
+    btn.style.setProperty('--lvl',LEVEL_COLOR[lvl]);
+    if(lvl==='critical') btn.style.setProperty('--hl','#ff2a4b'); else btn.style.removeProperty('--hl');
+    setText('hlStatus',status);
+    setText('hlDetail',detail+(cmo&&urgentCrew?` ${urgentCrew} other crew need review.`:''));
+    const lit=new Set(zones);
+    const mini=(view)=>{
+      const front=view==='front';
+      return `<svg viewBox="0 0 260 365"><g class="body-base">
+        <circle cx="130" cy="34" r="24"/><rect x="118" y="55" width="24" height="24" rx="7"/>
+        <path d="M96 76 Q130 67 164 76 L176 111 171 180 Q168 194 153 201 L107 201 Q92 194 89 180 L84 111Z"/>
+        <path d="M96 82 Q82 85 77 103 L58 193 Q55 207 51 222 L64 228 84 167 104 105Z"/>
+        <path d="M164 82 Q178 85 183 103 L202 193 Q205 207 209 222 L196 228 176 167 156 105Z"/>
+        <path d="M105 190 Q130 198 155 190 L161 247 169 333 150 341 140 265 130 219 120 265 110 341 91 333 99 247Z"/></g>
+        ${expandZones(view).map(zz=>zoneSvg(zz).replace('class="zone"',`class="mz${lit.has(zz.id)?' on':''}"`).replace(/<title>.*?<\/title>/,'')).join('')}
+        <text class="hl-side" x="130" y="362">${front?'FRONT':'BACK'}</text></svg>`;
+    };
+    $('hlBody').innerHTML=mini('front')+mini('back');
+    btn.setAttribute('aria-label',`Crew health check: ${status}. Open the full form in the Medical bay.`);
+  }
+
   function renderTriageRole(){
-    const cmo=state.role==='cmo', full=cmoFull(), ov=inOverlay(), compact=cmo&&state.view==='dual';
+    const cmo=state.role==='cmo', full=cmoFull(), ov=inOverlay(), compact=cmo&&state.view==='dual', dual=state.view==='dual';
     document.querySelectorAll('[data-role]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.role===state.role)));
+    // The ship display shows the launcher; the full health form and ASTRA's review live only in the Medical bay.
+    $('healthLauncher').classList.toggle('hidden-view',!dual);
+    $('triageFormPanel').classList.toggle('hidden-view',dual);
+    $('triageRoleBar').classList.toggle('hidden-view',dual&&!cmo);   // crew: the launcher says it all; CMO keeps the crew roster
+    if(dual){ launcherKey=''; renderLauncher(); }
     $('cmoRoster').classList.toggle('hidden-view',!full);
     $('compactRoster').classList.toggle('hidden-view',!compact);
-    $('openMedBay').classList.toggle('hidden-view',!compact);
+    $('openMedBay').classList.toggle('hidden-view',true);   // the launcher replaces this button
     setText('triageRoleEyebrow',full?'MEDICAL BAY · CMO CONSOLE':state.view==='ship'?'MEDICAL BAY · YOUR RECORD':'SHIP DISPLAY · CREW HEALTH');
     setText('roleAccess',full?'CMO ACCESS · ALL CREW RECORDS':cmo?'CMO · ALL RECORDS OPEN IN THE MEDICAL BAY':'CREW ACCESS · YOUR RECORD ONLY');
     $('roleAccess').style.color=cmo?'#ff7ab0':'';
     $('symptomColumn').classList.toggle('hidden-view',ov);
     $('crewOverlayPane').classList.toggle('hidden-view',!ov);
     $('triageSnapshot').classList.toggle('hidden-view',ov);
-    $('triageReviewPanel').classList.toggle('hidden-view',ov);
+    $('triageReviewPanel').classList.toggle('hidden-view',ov||dual);
     $('surgeonBox').classList.toggle('hidden-view',!full);
     setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
     renderBanner(); renderSurgeon(); renderSnapshot();
@@ -2347,6 +2427,11 @@ const ReportLink = (() => {
     companionWarn(`Case for ${recName(r)} sent to the flight surgeon. With the signal delay, expect a reply in about ${EARTH_DELAY_MIN*2} minutes. Keep monitoring until then.`,'surgeonBox','reminder',true);
   });
   $('openMedBay').addEventListener('click',()=>setView('ship'));
+  $('healthLauncher').addEventListener('click',()=>{
+    setView('ship');
+    if(state.role==='cmo') openRecord('you');   // the launcher is about your own record; the CMO can switch to the whole crew there
+    $('triageFormPanel').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  });
   $('triageText').addEventListener('input',()=>{ if(state.role==='cmo') renderRoster(); });
   $('onsetSelect').addEventListener('change',()=>{ if(state.role==='cmo') renderRoster(); });
   setInterval(()=>{ if(state.role==='cmo'){ renderRoster(); if(inOverlay()) renderBanner(); } },30000);   // "18 min ago" and your live risk
