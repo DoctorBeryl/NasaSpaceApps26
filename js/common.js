@@ -16,6 +16,8 @@ const NAV_LINKS = [
   ["tools.html", "Diagnostics"],
   ["report.html", "Report"],
   ["ultrasound.html", "Ultrasound"],
+  // External: AstroKinetic-ID, the team's companion smart-handrail studio (opens in a new tab)
+  ["https://shrill-hill-970c.m9aria9.workers.dev/", "Handrails ↗", "external"],
 ];
 // vega.html (ASTRA AI) is reached through the nav "?" (AstraHelp below). imca.html is no longer in the nav; the page still exists.
 
@@ -29,7 +31,9 @@ function renderChrome() {
         <a class="brand" href="index.html">${BRAND_MARK}<span>AstraSight<small>HELMET HEALTH HUD</small></span></a>
         <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
         <div class="nav-links">
-          ${NAV_LINKS.map(([href, label]) => `<a href="${href}" class="${page === href ? "active" : ""}">${label}</a>`).join("")}
+          ${NAV_LINKS.map(([href, label, ext]) => ext
+            ? `<a href="${href}" target="_blank" rel="noopener" title="AstroKinetic-ID: smart handrail sensor studio (opens in a new tab)">${label}</a>`
+            : `<a href="${href}" class="${page === href ? "active" : ""}">${label}</a>`).join("")}
         </div>
         <button type="button" class="nav-help" aria-label="What is ASTRA? Open the ASTRA guide" aria-haspopup="dialog" aria-expanded="false" title="ASTRA: what it is and what you can say">?</button>
       </div>`;
