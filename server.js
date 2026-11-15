@@ -28,8 +28,14 @@ try {
 const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
 const auth = require("./server/auth"); // face sign-in + Firebase custom tokens (docs/AUTH.md)
 
-// .env wins; otherwise every clone uses the team's shared, committed key (server/elevenlabs-key.js).
-const KEY = process.env.ELEVENLABS_API_KEY || (() => { try { return require("./server/elevenlabs-key"); } catch { return ""; } })();
+// Keys from .env (comma-separated) come first, then the team's shared, committed keys
+// (server/elevenlabs-key.js). When one runs out of credits, elevenKeyed() moves to the next.
+const KEYS = [...new Set([
+  ...String(process.env.ELEVENLABS_API_KEY || "").split(","),
+  ...(() => { try { return [].concat(require("./server/elevenlabs-key")); } catch { return []; } })(),
+].map((k) => String(k).trim()).filter(Boolean))];
+const KEY = KEYS.length > 0; // "is the ElevenLabs voice available at all"
+let keyIdx = 0;
 const VOICE = process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
 const MODEL = process.env.ELEVENLABS_MODEL_ID || "eleven_flash_v2_5";
 const PORT = Number(process.env.PORT) || 8000;
@@ -107,6 +113,24 @@ const why = (e) => {
   return `${e.message}${c ? ` (${c.code || c.message}${c.errors ? ": " + c.errors.map((x) => x.code).join(", ") : ""})` : ""}`;
 };
 
+/* elevenFetch() with key failover: 401 (quota_exceeded or a revoked key), 402 (no credits) and
+   429 (rate or concurrency limit) move to the next key and retry. The working key stays
+   selected for later requests; once every key has failed, the last error is returned. */
+async function elevenKeyed(url, opts, tag) {
+  let r;
+  for (let tried = 0; tried < KEYS.length; tried++) {
+    const i = keyIdx;
+    r = await elevenFetch(url, { ...opts, headers: { ...opts.headers, "xi-api-key": KEYS[i] } });
+    if (![401, 402, 429].includes(r.status)) return r;
+    const msg = (await r.clone().text()).slice(0, 200);
+    if (KEYS.length > 1) {
+      if (keyIdx === i) keyIdx = (i + 1) % KEYS.length;
+      console.warn(`[${tag}] ElevenLabs key ${i + 1}/${KEYS.length} got ${r.status} (${msg}); switching to key ${keyIdx + 1}`);
+    }
+  }
+  return r;
+}
+
 async function tts(req, res) {
   if (!KEY) return send(res, 503, "ELEVENLABS_API_KEY not set");
   let raw = "";
@@ -117,11 +141,11 @@ async function tts(req, res) {
   if (!text) return send(res, 400, "No text");
 
   try {
-    const r = await elevenFetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOICE)}?output_format=mp3_44100_128`, {
+    const r = await elevenKeyed(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(VOICE)}?output_format=mp3_44100_128`, {
       method: "POST",
-      headers: { "xi-api-key": KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+      headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
       body: JSON.stringify({ text, model_id: MODEL, voice_settings: settings }),
-    });
+    }, "tts");
     if (!r.ok) {
       const msg = await r.text();
       console.error(`[tts] ElevenLabs ${r.status}: ${msg.slice(0, 300)}`);
@@ -151,7 +175,7 @@ async function stt(req, res) {
   form.append("language_code", "en");
   form.append("file", new Blob([Buffer.concat(chunks)], { type }), type.includes("ogg") ? "speech.ogg" : type.includes("mp4") ? "speech.mp4" : "speech.webm");
   try {
-    const r = await elevenFetch("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: { "xi-api-key": KEY }, body: form });
+    const r = await elevenKeyed("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: {}, body: form }, "stt");
     if (!r.ok) {
       console.error(`[stt] ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
       return send(res, 502, "STT failed");
@@ -272,7 +296,7 @@ http.createServer((req, res) => {
   console.log(`AstraSight running at http://localhost:${PORT}`);
   console.log(auth.describe());
   console.log(`ASTRA AI: ${process.env.OLLAMA_MODEL || "qwen2.5:3b"} via Ollama (GET /api/ai/status to check)`);
-  console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL})` : "ELEVENLABS_API_KEY not set: using browser voice");
+  console.log(KEY ? `ElevenLabs voice enabled (voice ${VOICE}, model ${MODEL}, ${KEYS.length} key${KEYS.length === 1 ? "" : "s"} with failover)` : "ELEVENLABS_API_KEY not set: using browser voice");
   ollamaUp().then((up) => console.log(up
     ? `Ollama chat enabled (model ${OLLAMA_MODEL} at ${OLLAMA_URL})`
     : `Ollama not reachable or model "${OLLAMA_MODEL}" not pulled: ASTRA answers built-in commands only (run: ollama pull ${OLLAMA_MODEL})`));
