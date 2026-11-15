@@ -4,15 +4,19 @@
    Medical triage stays on MedGemma and chat on Qwen (server/ollama.js).
    Enabled when GEMINI_API_KEY is set (free key: aistudio.google.com → Get API key). Without it,
    or if a call fails, server/ai.js falls back to Ollama, so laptops stay fully on-device.
-   Env: GEMINI_API_KEY, GEMINI_MODEL (default gemini-flash-latest), GEMINI_REASONING
-        (none/low/medium/high, default low), GEMINI_TIMEOUT_MS (default 30000)
+   Env: GEMINI_API_KEY, GEMINI_MODEL (default gemini-flash-lite-latest), GEMINI_REASONING
+        (none/minimal/low/medium/high; unset = the model's default), GEMINI_TIMEOUT_MS (default 15000)
    Uses Google's OpenAI-compatible endpoint, so `chat()` matches ollama.chat(): it returns the
    text, or the parsed object when `format` is a JSON schema.
    ========================================================== */
 const KEY = (process.env.GEMINI_API_KEY || "").trim();
-const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
-const REASONING = process.env.GEMINI_REASONING || "low";
-const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
+// Flash-Lite: quick, and less often "high demand" (503) than Flash on the free tier.
+const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+// Unset by default: valid values differ between model generations, and a rejected value would
+// send every answer to the fallback.
+const REASONING = (process.env.GEMINI_REASONING || "").trim();
+// Short: on a timeout the questionnaire falls back to Qwen, so don't make the crew wait twice.
+const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 15000;
 const URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 class GeminiError extends Error {
@@ -25,7 +29,7 @@ class GeminiError extends Error {
 
 async function chat({ messages, format, temperature = 0.4, signal } = {}) {
   if (!KEY) throw new GeminiError("GEMINI_API_KEY isn't set", { status: 503, code: "gemini_disabled" });
-  const payload = { model: MODEL, messages, temperature, reasoning_effort: REASONING };
+  const payload = { model: MODEL, messages, temperature, ...(REASONING ? { reasoning_effort: REASONING } : {}) };
   if (format) payload.response_format = { type: "json_schema", json_schema: { name: "answer", schema: format } };
   let r;
   try {
