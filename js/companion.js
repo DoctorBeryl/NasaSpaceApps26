@@ -8,6 +8,9 @@
      event" button on tools.html) pops up a random hazard, announces it
      on the ship PA, and links to the report screen with that scenario.
    - Every bubble has Acknowledge: stops ASTRA's voice and collapses.
+   - Drag the portrait to move her; let go mid-drag to throw her (she
+     bounces off the screen edges). Double-click sends her home; arrow
+     keys move her. Position is saved per browser.
    - Stays hidden while report.html is open in another tab (that
      page sends heartbeats on ReportBus and does its own alerts).
    The sprite and moods match ASTRA on the report screen.
@@ -261,9 +264,154 @@
   });
   // Acknowledge: stop the voice, forget the alert (so PA on won't replay it), collapse.
   $(".vb-ack").addEventListener("click", () => { ShipPA.ack(); minimize(); });
-  $(".vb-avatar").addEventListener("click", () => {
-    if (root.classList.contains("minimized") || mood === "nominal") greet();
+  // Wait a moment before greeting so a double-click (send ASTRA home) can cancel it;
+  // otherwise the greeting's teleport animation would move the portrait out from under the second click.
+  let clickTimer = 0;
+  $(".vb-avatar").addEventListener("click", (e) => {
+    if (justDragged) return;   // the end of a drag isn't a click
+    clearTimeout(clickTimer);
+    if (e.detail > 1) return;
+    const run = () => { if (root.classList.contains("minimized") || mood === "nominal") greet(); };
+    if (e.detail === 0) run();   // keyboard (Enter / Space): no double-click to wait for
+    else clickTimer = setTimeout(run, 260);
   });
+
+  /* ---------------- drag, throw, bounce ----------------
+     Grab the portrait and drag ASTRA anywhere: she tilts with the motion. Let go while
+     moving and she glides on, bouncing off the screen edges with a squash. The bubble
+     flips to whichever side has room. Position is remembered per browser (as a fraction
+     of the window); double-click the portrait to send her home. Arrow keys move her too. */
+  const POS_KEY = "astrasight.astra.pos";
+  const av = $(".vb-avatar");
+  av.title = "Click to talk · drag (or throw) to move · double-click to send ASTRA home";
+  let pos = null;            // portrait centre in viewport px; null = default corner
+  let drag = null, flingId = 0, justDragged = false;
+  try {
+    const s = JSON.parse(localStorage.getItem(POS_KEY));
+    if (s && Number.isFinite(s.fx) && Number.isFinite(s.fy)) pos = { x: s.fx * innerWidth, y: s.fy * innerHeight };
+  } catch { /* storage blocked */ }
+  function savePos() {
+    try {
+      if (pos) localStorage.setItem(POS_KEY, JSON.stringify({ fx: pos.x / innerWidth, fy: pos.y / innerHeight }));
+      else localStorage.removeItem(POS_KEY);
+    } catch { /* storage blocked */ }
+  }
+  function orient() {
+    root.classList.toggle("vb-left", pos.x < innerWidth / 2);
+    root.classList.toggle("vb-top", pos.y < innerHeight * 0.4);
+  }
+  // Where the portrait centre may go so the whole card stays on screen.
+  function bounds() {
+    const m = 8, ax = av.offsetLeft + av.offsetWidth / 2, ay = av.offsetTop + av.offsetHeight / 2;
+    const minX = m + ax, minY = m + ay;
+    return { ax, ay, minX, minY,
+      maxX: Math.max(minX, innerWidth - m - (root.offsetWidth - ax)),
+      maxY: Math.max(minY, innerHeight - m - (root.offsetHeight - ay)) };
+  }
+  function place() {
+    if (!pos) {
+      root.classList.remove("placed", "vb-left", "vb-top");
+      root.style.left = root.style.top = "";
+      return;
+    }
+    root.classList.add("placed");
+    orient();
+    const b = bounds();
+    const x = Math.min(Math.max(pos.x, b.minX), b.maxX), y = Math.min(Math.max(pos.y, b.minY), b.maxY);
+    root.style.left = `${x - b.ax}px`;
+    root.style.top = `${y - b.ay}px`;
+  }
+  function bonk() {
+    root.classList.remove("bonk"); void av.offsetWidth; root.classList.add("bonk");
+  }
+  av.addEventListener("animationend", (e) => { if (e.animationName === "vb-bonk") root.classList.remove("bonk"); });
+
+  function fling(vx, vy) {   // velocities in px per 60 Hz frame
+    let last = performance.now();
+    const step = (now) => {
+      const dt = Math.min(48, now - last) / 16.67; last = now;
+      pos.x += vx * dt; pos.y += vy * dt;
+      const k = Math.pow(0.945, dt); vx *= k; vy *= k;
+      orient();
+      const b = bounds();
+      let hit = 0;
+      if (pos.x < b.minX) { pos.x = b.minX; hit = Math.abs(vx); vx = -vx * 0.6; }
+      else if (pos.x > b.maxX) { pos.x = b.maxX; hit = Math.abs(vx); vx = -vx * 0.6; }
+      if (pos.y < b.minY) { pos.y = b.minY; hit = Math.max(hit, Math.abs(vy)); vy = -vy * 0.6; }
+      else if (pos.y > b.maxY) { pos.y = b.maxY; hit = Math.max(hit, Math.abs(vy)); vy = -vy * 0.6; }
+      if (hit > 3) bonk();
+      place();
+      if (Math.hypot(vx, vy) > 0.3) flingId = requestAnimationFrame(step);
+      else { flingId = 0; savePos(); }
+    };
+    flingId = requestAnimationFrame(step);
+  }
+
+  av.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    cancelAnimationFrame(flingId); flingId = 0;
+    const r = av.getBoundingClientRect();
+    drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY,
+      ox: e.clientX - (r.left + r.width / 2), oy: e.clientY - (r.top + r.height / 2),
+      moved: false, samples: [{ x: e.clientX, y: e.clientY, t: e.timeStamp }] };
+    try { av.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  });
+  av.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) return;   // a plain click isn't a drag
+      drag.moved = true;
+      root.classList.add("dragging");
+    }
+    drag.samples.push({ x: e.clientX, y: e.clientY, t: e.timeStamp });
+    while (drag.samples.length > 2 && e.timeStamp - drag.samples[0].t > 90) drag.samples.shift();
+    const s0 = drag.samples[0], dt = Math.max(1, e.timeStamp - s0.t);
+    const tilt = Math.max(-28, Math.min(28, ((e.clientX - s0.x) / dt) * 22));
+    root.style.setProperty("--vb-tilt", `${reduceMotion ? 0 : tilt.toFixed(1)}deg`);
+    pos = { x: e.clientX - drag.ox, y: e.clientY - drag.oy };
+    place();
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    root.classList.remove("dragging");
+    root.style.setProperty("--vb-tilt", "0deg");
+    if (!d.moved) return;
+    justDragged = true; setTimeout(() => { justDragged = false; }, 250);
+    // Throw velocity from the last ~90 ms of movement; a pause before letting go means no throw.
+    const s0 = d.samples[0], s1 = d.samples[d.samples.length - 1], dt = s1.t - s0.t;
+    const fresh = e.timeStamp - s1.t < 60 && dt > 0;
+    const vx = fresh ? ((s1.x - s0.x) / dt) * 16.67 : 0, vy = fresh ? ((s1.y - s0.y) / dt) * 16.67 : 0;
+    const cap = 60, sp = Math.hypot(vx, vy), f = sp > cap ? cap / sp : 1;
+    if (!reduceMotion && sp > 2) fling(vx * f, vy * f);
+    else savePos();
+  }
+  av.addEventListener("pointerup", endDrag);
+  av.addEventListener("pointercancel", endDrag);
+  av.addEventListener("dblclick", () => {
+    clearTimeout(clickTimer);
+    cancelAnimationFrame(flingId); flingId = 0;
+    pos = null; savePos(); place();
+    if (!reduceMotion) { root.classList.remove("pop"); void root.offsetWidth; root.classList.add("pop"); }
+  });
+  av.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 80 : 24;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    if (!pos) { const r = av.getBoundingClientRect(); pos = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+    pos.x += d[0]; pos.y += d[1];
+    place();
+    const b = bounds(); pos.x = Math.min(Math.max(pos.x, b.minX), b.maxX); pos.y = Math.min(Math.max(pos.y, b.minY), b.maxY);
+    savePos();
+  });
+  // Re-fit when the bubble opens or closes, or the window changes size.
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!drag && !flingId) place(); }).observe(root);
+  addEventListener("resize", () => {
+    try { const s = JSON.parse(localStorage.getItem(POS_KEY)); if (s && pos) pos = { x: s.fx * innerWidth, y: s.fy * innerHeight }; } catch { /* ignore */ }
+    place();
+  });
+  place();
   nameForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const name = nameForm.querySelector("input").value.trim();

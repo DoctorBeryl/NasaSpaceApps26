@@ -106,6 +106,30 @@
   100% { opacity: 1; transform: none; filter: none; }
 }
 
+/* ---------- drag, throw, bounce (js/companion.js) ---------- */
+.vb-avatar { touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
+.vega-buddy.placed { right: auto; bottom: auto; max-width: min(400px, calc(100vw - 16px)); }
+.vega-buddy.vb-left { flex-direction: row-reverse; }
+.vega-buddy.vb-top { align-items: flex-start; }
+.vega-buddy.vb-left .vb-bubble { border-radius: 16px 16px 16px 4px; }
+.vega-buddy.vb-top .vb-bubble { border-radius: 16px 4px 16px 16px; }
+.vega-buddy.vb-top.vb-left .vb-bubble { border-radius: 4px 16px 16px 16px; }
+.vega-buddy.dragging { -webkit-user-select: none; user-select: none; }
+.vega-buddy.dragging .vb-avatar,
+.vega-buddy.dragging[data-mood="critical"] .vb-avatar {
+  cursor: grabbing; animation: none;
+  transform: rotate(var(--vb-tilt, 0deg)) scale(1.1);
+  transition: transform .09s ease-out;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, .55), 0 0 30px color-mix(in srgb, var(--vb-accent) 65%, transparent);
+}
+.vega-buddy.bonk .vb-avatar { animation: vb-bonk .32s ease-out; }
+@keyframes vb-bonk {
+  0% { transform: scale(1.18, .8); }
+  45% { transform: scale(.9, 1.12); }
+  75% { transform: scale(1.04, .97); }
+  100% { transform: none; }
+}
+
 @media (max-width: 520px) {
   .vega-buddy { right: 12px; left: 12px; bottom: 12px; max-width: none; }
   .vb-avatar { width: 64px; height: 64px; }
@@ -114,5 +138,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .vb-avatar, .vega-buddy.pop .vb-avatar, .vega-buddy.pop .vb-bubble,
-  .vega-buddy[data-mood="critical"] .vb-avatar, .vega-buddy[data-mood="critical"] .vb-badge i { animation: none; }
+  .vega-buddy[data-mood="critical"] .vb-avatar, .vega-buddy[data-mood="critical"] .vb-badge i,
+  .vega-buddy.bonk .vb-avatar { animation: none; }
+  .vega-buddy.dragging .vb-avatar { transform: scale(1.06); transition: none; }
 }
