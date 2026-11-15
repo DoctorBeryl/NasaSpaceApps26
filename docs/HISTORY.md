@@ -568,3 +568,13 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Changed:** `index.html` no longer loads `js/companion.js` or `css/companion.css`, so the draggable ASTRA "?" in the bottom corner is gone from the home page. The nav "?" next to Sign in (`AstraHelp`) opens the same guide and is the only help button left there. The companion stays on `tools.html` (its "Random health event" button uses `VegaBuddy.fireHazard()`) and `vega.html`.
 **Why:** Alex: two "?" buttons on one page doing the same thing.
 **Verified:** Playwright at 1280 px: no `.vega-buddy` on the home page, one nav "?", no page errors.
+
+## 2026-11-15: Alex (+ Claude): suit power switch and add/remove suits in Suit check
+**Changed (`report.html`, Suit check tab only):**
+- Each suit card has a ⏻ ON/OFF pill (`data-power`, `setSuitPower()`). Suits carry `on` and `bootUntil`; `VERDICT` gains `off` (gray, dashed card, "sensors offline") and `boot` (2 s power-on self-test, `BOOT_MS`). `suitTick()` skips off suits; `evaluateSuits()` gives off/starting suits empty rows; `isLive(v)` tells the real verdicts (go/limited/nogo) apart.
+- Rules Alex asked for: an off or starting suit blocks CABIN EXIT for its wearer (chip reads `SUIT EMU-1 · OFF` / `STARTING`, exit button `✕ CABIN EXIT · SUIT OFF`). Your own suit can't be powered down while `state.exited`. A worn suit (yours or another crew member's) powers down only after an in-card confirm (`powerConfirm`, "Yes, power down" / "Wearer agrees · power down"). An unassigned spare powers down at once. Power-on always works.
+- "Suit rack" row above the grid with − / + (`#suitRemove`, `#suitAdd`, `addSuit()`, `removeSuit()`, `makeSuit()`): + adds the next EMU-n spare, − removes the newest unassigned suit, never a worn one; 1 to 8 suits. The fault-injection suit picker refreshes and marks off suits.
+- `spareFor()` only offers spares that are on and pass; checkout summary and the header count report off suits; `onVerdictChange()` stays quiet on power changes and announces the self-test result after power-on.
+**Why:** Alex wanted suits switched on only when used for an EVA, and to add or remove suits at will.
+**Gotchas:** Other crew members' location isn't simulated, so "inside the airlock" for their suits is assumed; only your own EVA (`state.exited`) is tracked. The − / + control sits on the left because ASTRA's bubble parks over the panel's top right when she speaks about `suitGrid`.
+**Verified:** Playwright at 1400 px: add/remove (worn suits never removed), spare off without confirm, own suit asks to confirm, cabin exit blocked while off and while starting, GO after self-test, power-down refused while outside, Ortega's suit needs the wearer's OK, checkout lists off suits, no page errors.

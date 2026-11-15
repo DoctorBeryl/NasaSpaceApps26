@@ -390,6 +390,24 @@
     .suit-gate { border:1px solid rgba(52,211,153,.5); color:#6ee7b7; background:rgba(52,211,153,.07); cursor:pointer; }
     .suit-gate.limited { border-color:rgba(255,184,0,.55); color:#ffd46a; background:rgba(255,184,0,.07); }
     .suit-gate.nogo { border-color:rgba(255,42,75,.65); color:#ff8094; background:rgba(255,42,75,.08); }
+    .suit-gate.off { border-color:rgba(100,116,139,.6); color:#94a3b8; background:rgba(100,116,139,.08); }
+    .suit-card.off { border-style:dashed; border-top-style:solid; background:rgba(6,12,20,.7); }
+    .suit-card.boot { animation:suitBoot 1s ease-in-out infinite alternate; }
+    @keyframes suitBoot { from { box-shadow:0 0 0 rgba(0,240,255,0); } to { box-shadow:0 0 14px rgba(0,240,255,.25); } }
+    .suit-offline { font-size:10px; line-height:1.4; color:#94a3b8; margin-top:10px; padding-top:8px; border-top:1px solid rgba(63,103,130,.18); }
+    .s-power { font:700 8px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#94a3b8; border:1px solid rgba(100,116,139,.55); border-radius:999px; padding:2px 8px; background:transparent; cursor:pointer; }
+    .s-power.on { color:#6ee7b7; border-color:rgba(52,211,153,.55); background:rgba(52,211,153,.08); }
+    .s-power.locked { cursor:not-allowed; opacity:.7; }
+    .s-power:hover:not(.locked) { filter:brightness(1.3); }
+    .power-confirm { margin-top:8px; padding:7px 8px; border:1px solid rgba(255,184,0,.45); background:rgba(255,184,0,.07); border-radius:6px; font-size:9.5px; line-height:1.4; color:#ffd46a; }
+    .power-confirm .s-fix { margin-left:0; }
+    .s-fix.danger { color:#ff8094; border-color:rgba(255,42,75,.55); }
+    .s-fix.danger:hover { background:rgba(255,42,75,.12); }
+    .suit-stepper { display:inline-flex; align-items:center; border:1px solid rgba(0,240,255,.35); border-radius:6px; overflow:hidden; }
+    .suit-stepper button { width:28px; height:30px; color:var(--cyan); font:700 14px 'JetBrains Mono',monospace; background:transparent; cursor:pointer; }
+    .suit-stepper button:hover:not(:disabled) { background:rgba(0,240,255,.1); }
+    .suit-stepper button:disabled { color:#475569; cursor:not-allowed; }
+    .suit-stepper span { font-size:9px; color:#cfe3ef; padding:0 8px; border-left:1px solid rgba(0,240,255,.2); border-right:1px solid rgba(0,240,255,.2); line-height:30px; white-space:nowrap; }
     .metric.sensor-fault { border-color:rgba(255,184,0,.7); }
     .metric.sensor-fault::before { content:"SENSOR FAULT · DON'T TRUST"; position:absolute; right:10px; bottom:8px; font:700 7.5px 'JetBrains Mono',monospace; letter-spacing:.08em; color:#ffb800; z-index:2; }
     /* Moving ASTRA: hold and drag her card or portrait to park her. */
@@ -774,6 +792,11 @@
           </div>
           <div class="p-4">
             <p class="text-[10px] text-slate-400 leading-relaxed mb-3">ASTRA watches every sensor in every suit, not just the readings. A suit with a failed or untrustworthy <b class="text-slate-200">life-support</b> sensor (marked LS) is <b class="text-rose-300">NO-GO</b>: its wearer can't leave through the airlock until the sensor is replaced or they swap to a suit that passes. A fault in a health sensor alone gives <b class="text-amber-200">GO · LIMITED</b>: the EVA can go ahead, but ASTRA can't watch that reading.</p>
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+              <span class="text-[8px] mono text-slate-500 tracking-[.14em]">SUIT RACK</span>
+              <div class="suit-stepper" role="group" aria-label="Suits on the rack"><button id="suitRemove" type="button" title="Remove the newest unassigned suit" aria-label="Remove a suit">−</button><span id="suitCount" class="mono">4 SUITS</span><button id="suitAdd" type="button" title="Add a spare suit" aria-label="Add a suit">+</button></div>
+              <p class="text-[9.5px] text-slate-400 leading-snug min-w-0 flex-1">Use <b class="text-slate-200">⏻</b> to power a suit on or off. An off suit's sensors are offline and its wearer can't use the cabin exit. A suit someone is wearing powers down only inside, with their OK, and never while you're outside in it.</p>
+            </div>
             <div id="suitGrid" class="suit-grid"></div>
           </div>
         </div>
@@ -2275,13 +2298,25 @@ const ReportLink = (() => {
     {id:'dose', name:'radiation dosimeter',   ls:false, unit:' mSv/h', dp:2, nominal:.08,  jitter:.01, bench:[.01,.3],    phys:[0,50]},
   ];
   const FAULTS={stuck:'Stuck (frozen value)',nosignal:'No signal',drift:'Drifting',noisy:'Noisy',impossible:'Impossible reading'};
-  const VERDICT={go:{label:'GO',color:'#34d399'},limited:{label:'GO · LIMITED',color:'#ffb800'},nogo:{label:'NO-GO',color:'#ff2a4b'}};
+  const VERDICT={go:{label:'GO',color:'#34d399'},limited:{label:'GO · LIMITED',color:'#ffb800'},nogo:{label:'NO-GO',color:'#ff2a4b'},
+    boot:{label:'STARTING',color:'#00f0ff'},off:{label:'OFF',color:'#64748b'}};   // boot/off: sensors offline, so no cabin exit
   const ST={ok:{icon:'✓',color:'#34d399'},warn:{icon:'◐',color:'#ffb800'},fail:{icon:'✕',color:'#ff2a4b'}};
-  const suits=['EMU-1','EMU-2','EMU-3','EMU-4'].map((id,i)=>({id,crew:['you','ortega','okafor',null][i],sensors:{}}));
-  suits.forEach((su,i)=>SUIT_SENSORS.forEach(d=>{ su.sensors[d.id]={v:d.nominal,lastAt:Date.now(),hist:[],fault:null,still:0,calDue:Date.now()+(40+i*25)*DAY}; }));
+  // Power: a suit is on (sensors streaming), starting (2 s self-test after power-on) or off (stowed, sensors offline).
+  // An off or starting suit blocks CABIN EXIT for its wearer. A suit can't be powered down while you're outside in it,
+  // and a worn suit (yours or another crew member's) only powers down inside, after the wearer confirms.
+  // The + / − buttons add a spare suit or remove the newest unassigned one.
+  const SUIT_MIN=1, SUIT_MAX=8, BOOT_MS=2000;
+  function makeSuit(id,crew,i){
+    const su={id,crew,on:true,bootUntil:0,sensors:{}};
+    SUIT_SENSORS.forEach(d=>{ su.sensors[d.id]={v:d.nominal,lastAt:Date.now(),hist:[],fault:null,still:0,calDue:Date.now()+(40+i*25)*DAY}; });
+    return su;
+  }
+  const suits=['EMU-1','EMU-2','EMU-3','EMU-4'].map((id,i)=>makeSuit(id,['you','ortega','okafor',null][i],i));
   suits[3].sensors.hr.calDue=Date.now()-9*DAY;   // the spare's heart-rate sensor is overdue for calibration: GO · LIMITED
   const suitEval={};
-  let checkoutUntil=0, suitSig='';
+  let checkoutUntil=0, suitSig='', powerConfirm=null;   // powerConfirm: id of the worn suit waiting for "power down?" confirmation
+  const online=(su)=>su.on&&Date.now()>=su.bootUntil;
+  const isLive=(v)=>v==='go'||v==='limited'||v==='nogo';
   const lc=(t)=>t.charAt(0).toLowerCase()+t.slice(1);
   const sensorDef=(id)=>SUIT_SENSORS.find(d=>d.id===id);
   const wearer=(su)=>su.crew==='you'?'you':su.crew?shortName(crewRecords[su.crew]):'';
@@ -2291,6 +2326,7 @@ const ReportLink = (() => {
     const now=Date.now();
     suits.forEach(su=>SUIT_SENSORS.forEach(d=>{
       const x=su.sensors[d.id];
+      if(!su.on) return;                                                // powered off: sensors offline
       if(x.fault==='nosignal') return;                                  // nothing arrives
       const prev=x.v;
       if(x.fault==='impossible') x.v=d.phys[1]+(d.phys[1]-d.phys[0])*.3;
@@ -2325,9 +2361,12 @@ const ReportLink = (() => {
   function evaluateSuits(){
     suits.forEach(su=>{
       const rows={}, problems=[];
-      SUIT_SENSORS.forEach(d=>{ const r=sensorStatus(su,d); rows[d.id]=r; if(r.st!=='ok') problems.push({d,...r}); });
-      problems.sort((a,b)=>(b.d.ls-a.d.ls)||((b.st==='fail')-(a.st==='fail')));
-      const verdict=problems.some(p=>p.d.ls)?'nogo':problems.length?'limited':'go';
+      let verdict=!su.on?'off':!online(su)?'boot':null;
+      if(!verdict){
+        SUIT_SENSORS.forEach(d=>{ const r=sensorStatus(su,d); rows[d.id]=r; if(r.st!=='ok') problems.push({d,...r}); });
+        problems.sort((a,b)=>(b.d.ls-a.d.ls)||((b.st==='fail')-(a.st==='fail')));
+        verdict=problems.some(p=>p.d.ls)?'nogo':problems.length?'limited':'go';
+      }
       const prev=suitEval[su.id]&&suitEval[su.id].verdict;
       suitEval[su.id]={verdict,rows,problems};
       if(prev&&prev!==verdict) onVerdictChange(su,prev,verdict);
@@ -2337,7 +2376,7 @@ const ReportLink = (() => {
   }
   function spareFor(su){
     const rank={go:0,limited:1};
-    return suits.filter(x=>!x.crew&&x!==su&&suitEval[x.id]&&suitEval[x.id].verdict!=='nogo').sort((a,b)=>rank[suitEval[a.id].verdict]-rank[suitEval[b.id].verdict])[0]||null;
+    return suits.filter(x=>!x.crew&&x!==su&&suitEval[x.id]&&rank[suitEval[x.id].verdict]!==undefined).sort((a,b)=>rank[suitEval[a.id].verdict]-rank[suitEval[b.id].verdict])[0]||null;
   }
   function gateMessage(su){
     const lead=suitEval[su.id].problems.find(p=>p.d.ls), sp=spareFor(su);
@@ -2346,6 +2385,12 @@ const ReportLink = (() => {
   }
   function onVerdictChange(su,prev,verdict){
     const e=suitEval[su.id], lead=e.problems[0], mine=su.crew==='you';
+    if(prev==='boot'&&isLive(verdict)){   // self-test finished after power-on
+      const msg=verdict==='go'?'passes all checks.':verdict==='limited'?`is go, but limited: the ${lead.d.name} ${lc(lead.why)}`:`is no-go: the ${lead.d.name} ${lc(lead.why)}`;
+      companionWarn(`${su.id} is on. Self-test done: it ${msg}${mine&&verdict!=='nogo'?' You can use the cabin exit.':''}`,state.view==='suits'?'suitGrid':'suitGateChip',verdict==='nogo'?'caution':'nominal',true);
+      return;
+    }
+    if(!isLive(prev)||!isLive(verdict)) return;   // power changes speak for themselves (see setSuitPower)
     if(verdict==='nogo'){
       if(mine&&state.exited){   // a life-support sensor failed while outside
         const backupOk=lead.d.pair&&e.rows[lead.d.pair].st==='ok';
@@ -2360,31 +2405,37 @@ const ReportLink = (() => {
   function renderGate(){
     const su=suits.find(x=>x.crew==='you'), chip=$('suitGateChip'), base=' rounded-md px-2.5 py-2 text-[9px] mono';
     const v=su?suitEval[su.id].verdict:'nogo';
-    chip.className='suit-gate'+(v==='nogo'?' nogo':v==='limited'?' limited':'')+base;
+    chip.className='suit-gate'+(v==='nogo'?' nogo':v==='limited'?' limited':v==='off'||v==='boot'?' off':'')+base;
     chip.textContent=su?`SUIT ${su.id} · ${VERDICT[v].label}`:'NO SUIT ASSIGNED';
-    chip.title=!su?'Assign yourself a suit in Suit check.':v==='go'?'Every sensor in your suit passes. Open Suit check.':suitEval[su.id].problems.map(p=>`${cap(p.d.name)}: ${lc(p.why)}`).join('\n');
-    if(!state.exited) $('exitButton').textContent=v==='nogo'?'✕ CABIN EXIT · NO-GO':'↗ CABIN EXIT';
+    chip.title=!su?'Assign yourself a suit in Suit check.':v==='off'?'Your suit is powered off. Turn it on in Suit check before going outside.':v==='boot'?'Your suit is running its power-on self-test.':v==='go'?'Every sensor in your suit passes. Open Suit check.':suitEval[su.id].problems.map(p=>`${cap(p.d.name)}: ${lc(p.why)}`).join('\n');
+    if(!state.exited) $('exitButton').textContent=v==='nogo'?'✕ CABIN EXIT · NO-GO':v==='off'?'✕ CABIN EXIT · SUIT OFF':v==='boot'?'… CABIN EXIT · SUIT STARTING':'↗ CABIN EXIT';
   }
   function markFaultyCards(){   // your suit's broken sensors flag the matching telemetry card while you wear it
     const su=suits.find(x=>x.crew==='you'), bad=new Set();
-    if(su&&state.operatingMode==='eva') SUIT_SENSORS.forEach(d=>{ if(d.card&&suitEval[su.id].rows[d.id].st==='fail') bad.add(d.card); });
+    if(su&&isLive(suitEval[su.id].verdict)&&state.operatingMode==='eva') SUIT_SENSORS.forEach(d=>{ if(d.card&&suitEval[su.id].rows[d.id].st==='fail') bad.add(d.card); });
     ['card-o2','card-co2','card-psi','card-hr','card-temp'].forEach(id=>{ const el=$(id); if(el) el.classList.toggle('sensor-fault',bad.has(id)); });
   }
   function renderSuits(force){
     const checking=Date.now()<checkoutUntil;
-    const sig=JSON.stringify([checking,state.role,suits.map(su=>[su.crew,suitEval[su.id].verdict,su.crew&&(state.role==='cmo'||su.crew==='you')&&recLevel(crewRecords[su.crew]),SUIT_SENSORS.map(d=>[suitEval[su.id].rows[d.id].st,su.sensors[d.id].fault])])]);
+    const sig=JSON.stringify([checking,state.role,state.exited,powerConfirm,suits.map(su=>[su.id,su.crew,su.on,suitEval[su.id].verdict,su.crew&&(state.role==='cmo'||su.crew==='you')&&recLevel(crewRecords[su.crew]),SUIT_SENSORS.map(d=>[suitEval[su.id].rows[d.id]&&suitEval[su.id].rows[d.id].st,su.sensors[d.id].fault])])]);
     if(force||sig!==suitSig){
       suitSig=sig;
       $('suitGrid').innerHTML=suits.map(su=>{
         const e=suitEval[su.id], V=VERDICT[e.verdict], rec=su.crew&&crewRecords[su.crew], sp=e.verdict==='nogo'&&su.crew?spareFor(su):null;
         const who=su.crew==='you'?`You${typeof Crew!=='undefined'&&Crew.callSign()?' · '+Crew.callSign():''}`:rec?`${recName(rec)} · ${rec.role}`:'Spare · not assigned';
+        const locked=su.on&&su.crew==='you'&&state.exited;   // you're outside in it: no power-down
+        const power=`<button type="button" class="s-power ${su.on?'on':''} ${locked?'locked':''}" data-power="${su.id}" title="${locked?"You're outside in this suit. It can't power down until you're back through the airlock.":su.on?'Power this suit down':'Power this suit on'}">⏻ ${su.on?'ON':'OFF'}</button>`;
+        const head=`<div class="flex items-start justify-between gap-2"><div class="min-w-0"><div class="text-white font-bold mono text-sm">${su.id}</div><div class="text-[10px] text-slate-400 truncate">${esc(who)}</div></div><div class="flex flex-col items-end gap-1"><span class="verdict">${V.label}</span>${power}</div></div>`;
+        const ask=powerConfirm===su.id?`<div class="power-confirm"><p>${su.crew==='you'?`Power down ${su.id}? You're wearing it. Its sensors go offline and you can't use the cabin exit until it's back on.`:`Power down ${su.id}? ${esc(recName(rec))} is wearing it. Only with their OK, inside the airlock. They can't go outside until it's back on.`}</p><div class="flex flex-wrap gap-2 mt-1.5"><button type="button" class="s-fix danger" data-power-yes="${su.id}">${su.crew==='you'?'YES, POWER DOWN':'WEARER AGREES · POWER DOWN'}</button><button type="button" class="s-fix" data-power-no="${su.id}">CANCEL</button></div></div>`:'';
+        if(!isLive(e.verdict)) return `<article class="suit-card ${e.verdict}" style="--verdict:${V.color}">${head}${ask}
+          <p class="suit-offline">${e.verdict==='boot'?'Power-on self-test running. Sensors coming online…':su.crew?`Powered off. Sensors offline. ${su.crew==='you'?"You can't":esc(shortName(rec))+" can't"} use the cabin exit until it's on.`:'Powered off and stowed. Sensors offline.'}</p></article>`;
         const rows=SUIT_SENSORS.map(d=>{
           const r=e.rows[d.id], c=ST[r.st].color, x=su.sensors[d.id];
           const fix=r.st==='ok'?'':x.fault?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">REPLACE</button>`:x.calDue<Date.now()?`<button type="button" class="s-fix" data-fix="${su.id}|${d.id}">RECALIBRATE</button>`:'';
           return `<div class="sensor-row"><span class="s-icon" style="color:${c}">${ST[r.st].icon}</span><span class="s-name">${esc(cap(d.name))}${d.ls?'<span class="crit-tag" title="Life support: a fault here means no-go">LS</span>':''}</span><span class="s-val" id="sv-${su.id}-${d.id}"></span>${r.st!=='ok'?`<div class="s-detail" style="color:${c}"><span id="sw-${su.id}-${d.id}">${esc(r.why)}</span>${fix}</div>`:''}</div>`;
         }).join('');
         return `<article class="suit-card ${checking?'checking':''}" style="--verdict:${V.color}">
-          <div class="flex items-start justify-between gap-2"><div class="min-w-0"><div class="text-white font-bold mono text-sm">${su.id}</div><div class="text-[10px] text-slate-400 truncate">${esc(who)}</div></div><span class="verdict">${V.label}</span></div>
+          ${head}${ask}
           ${rec&&(state.role==='cmo'||su.crew==='you')&&recLevel(rec)==='critical'?`<div class="text-[9px] mono text-amber-200 mt-1">MEDICAL HOLD · ${esc(su.crew==='you'?'your':shortName(rec)+"'s")} triage is urgent (Medical bay)</div>`:''}
           <div class="mt-2">${rows}</div>
           ${sp?`<button type="button" class="btn rounded-md px-3 py-1.5 text-[9px] mono mt-2 w-full" data-swap="${su.id}|${sp.id}">SWAP ${esc(su.crew==='you'?'YOUR':shortName(rec).toUpperCase()+"'S")} SUIT TO ${sp.id} ↗</button>`:''}
@@ -2395,15 +2446,57 @@ const ReportLink = (() => {
     suits.forEach(su=>SUIT_SENSORS.forEach(d=>{   // live values and counters, every tick
       const x=su.sensors[d.id], v=document.getElementById(`sv-${su.id}-${d.id}`), w=document.getElementById(`sw-${su.id}-${d.id}`);
       if(v) v.textContent=(Date.now()-x.lastAt)/1000>=5?'—':x.v.toFixed(d.dp)+d.unit;
-      if(w) w.textContent=suitEval[su.id].rows[d.id].why;
+      if(w&&suitEval[su.id].rows[d.id]) w.textContent=suitEval[su.id].rows[d.id].why;
     }));
-    const n={go:0,limited:0,nogo:0}; suits.forEach(su=>n[suitEval[su.id].verdict]++);
-    setText('suitSummary',`${n.go} GO · ${n.limited} LIMITED · ${n.nogo} NO-GO`);
+    const n={go:0,limited:0,nogo:0,boot:0,off:0}; suits.forEach(su=>n[suitEval[su.id].verdict]++);
+    setText('suitSummary',`${n.go} GO · ${n.limited} LIMITED · ${n.nogo} NO-GO${n.off+n.boot?` · ${n.off+n.boot} OFF`:''}`);
+    setText('suitCount',`${suits.length} SUIT${suits.length===1?'':'S'}`);
+    $('suitRemove').disabled=suits.length<=SUIT_MIN; $('suitAdd').disabled=suits.length>=SUIT_MAX;
   }
   function fillFaultSuits(){
     const sel=$('faultSuit'), keep=sel.value;
-    sel.innerHTML=suits.map(su=>`<option value="${su.id}">${su.id} · ${esc(su.crew==='you'?'You':su.crew?shortName(crewRecords[su.crew]):'spare')}</option>`).join('');
-    sel.value=keep||(suits.find(x=>x.crew==='okafor')||suits[0]).id;
+    sel.innerHTML=suits.map(su=>`<option value="${su.id}">${su.id} · ${esc(su.crew==='you'?'You':su.crew?shortName(crewRecords[su.crew]):'spare')}${su.on?'':' (off)'}</option>`).join('');
+    sel.value=suits.some(x=>x.id===keep)?keep:(suits.find(x=>x.crew==='okafor')||suits[0]).id;
+  }
+  // Power on/off. Power-on always works (2 s self-test). Power-down: never while you're outside in the suit;
+  // a worn suit (yours or another crew member's) needs the wearer's confirmation, given inside.
+  function setSuitPower(su,on){
+    const near=state.view==='suits'?'suitGrid':'suitGateChip';
+    if(on){
+      if(su.on) return;
+      su.on=true; su.bootUntil=Date.now()+BOOT_MS;
+      SUIT_SENSORS.forEach(d=>{ const x=su.sensors[d.id]; Object.assign(x,{v:x.fault?x.v:d.nominal,lastAt:Date.now(),hist:[],still:0}); });
+      powerConfirm=null; evaluateSuits(); renderSuits(true); fillFaultSuits();
+      companionWarn(`Powering on ${su.id}. Running its self-test.`,near,'nominal',true);
+      setTimeout(suitTick,BOOT_MS+50);
+      return;
+    }
+    if(!su.on) return;
+    if(su.crew==='you'&&state.exited){
+      powerConfirm=null; renderSuits(true);
+      companionWarn(`You can't power down ${su.id}: you're outside and it's keeping you alive. Come back through the airlock first.`,near,'critical',true);
+      return;
+    }
+    if(su.crew&&powerConfirm!==su.id){ powerConfirm=su.id; renderSuits(true); return; }   // ask the wearer first
+    su.on=false; su.bootUntil=0; powerConfirm=null;
+    evaluateSuits(); renderSuits(true); fillFaultSuits();
+    companionWarn(`${su.id} is powered off. Its sensors are offline.${su.crew?` ${su.crew==='you'?"You can't":cap(wearer(su))+" can't"} use the cabin exit until it's back on.`:''}`,near,su.crew==='you'?'caution':'nominal',true);
+  }
+  function addSuit(){
+    if(suits.length>=SUIT_MAX){ companionWarn(`The suit rack holds ${SUIT_MAX} suits.`,'suitGrid','reminder',true); return; }
+    const n=Math.max(0,...suits.map(x=>parseInt(x.id.split('-')[1],10)||0))+1;
+    const su=makeSuit(`EMU-${n}`,null,4); su.sensors.hr.calDue=Date.now()+180*DAY;
+    suits.push(su); evaluateSuits(); renderSuits(true); fillFaultSuits();
+    companionWarn(`${su.id} added to the rack as a spare. It's on and its sensors are online.`,'suitGrid','nominal',true);
+  }
+  function removeSuit(){
+    if(suits.length<=SUIT_MIN){ companionWarn('At least one suit stays on the rack.','suitGrid','reminder',true); return; }
+    const spares=suits.filter(x=>!x.crew);
+    if(!spares.length){ companionWarn("Every suit is assigned to someone, so I can't remove one. Free a suit first.",'suitGrid','caution',true); return; }
+    const su=spares[spares.length-1];
+    suits.splice(suits.indexOf(su),1); delete suitEval[su.id]; if(powerConfirm===su.id) powerConfirm=null;
+    evaluateSuits(); renderSuits(true); fillFaultSuits();
+    companionWarn(`${su.id} removed from the rack.`,'suitGrid','nominal',true);
   }
   evaluateSuits();   // first verdicts before anything renders (e.g. a ?view=suits deep link)
   fillFaultSuits();
@@ -2415,7 +2508,14 @@ const ReportLink = (() => {
     $('injectFault').textContent='BROKEN · WATCH ASTRA CATCH IT'; setTimeout(()=>{$('injectFault').textContent='BREAK THIS SENSOR';},2500);
   });
   $('clearFaults').addEventListener('click',()=>{ suits.forEach(su=>SUIT_SENSORS.forEach(d=>{ const x=su.sensors[d.id]; if(x.fault){ x.fault=null; x.v=d.nominal; x.still=0; x.hist=[]; x.lastAt=Date.now(); } })); evaluateSuits(); });
+  $('suitAdd').addEventListener('click',addSuit);
+  $('suitRemove').addEventListener('click',removeSuit);
   $('suitGrid').addEventListener('click',e=>{
+    const pw=e.target.closest('[data-power]'), yes=e.target.closest('[data-power-yes]'), no=e.target.closest('[data-power-no]');
+    const byId=(id)=>suits.find(x=>x.id===id);
+    if(pw){ const su=byId(pw.dataset.power); if(su) setSuitPower(su,!su.on); return; }
+    if(yes){ const su=byId(yes.dataset.powerYes); if(su&&powerConfirm===su.id) setSuitPower(su,false); return; }
+    if(no){ powerConfirm=null; renderSuits(true); return; }
     const fix=e.target.closest('[data-fix]'), swap=e.target.closest('[data-swap]');
     if(fix){
       const [sid,did]=fix.dataset.fix.split('|'), su=suits.find(x=>x.id===sid), x=su.sensors[did], d=sensorDef(did), wasFault=!!x.fault;
@@ -2434,7 +2534,7 @@ const ReportLink = (() => {
     setTimeout(()=>{
       checkoutUntil=0; renderSuits(true);
       const parts=suits.map(su=>{ const e=suitEval[su.id], p=e.problems[0];
-        return e.verdict==='go'?`${su.id} go`:e.verdict==='limited'?`${su.id} go, limited: ${p.d.name}`:`${su.id} no-go: ${p.d.name} ${lc(p.why).replace(/\.$/,'')}`; });
+        return e.verdict==='off'?`${su.id} off`:e.verdict==='boot'?`${su.id} still starting`:e.verdict==='go'?`${su.id} go`:e.verdict==='limited'?`${su.id} go, limited: ${p.d.name}`:`${su.id} no-go: ${p.d.name} ${lc(p.why).replace(/\.$/,'')}`; });
       const fix=suits.filter(su=>su.crew&&suitEval[su.id].verdict==='nogo').map(su=>{ const sp=spareFor(su); return sp?` Move ${wearer(su)==='you'?'yourself':wearer(su)} to ${sp.id}.`:''; }).join('');
       companionWarn(`Checkout done. ${parts.join('. ')}.${fix}`,'suitGrid',suits.some(su=>suitEval[su.id].verdict==='nogo')?'caution':'nominal',true);
     },2500);
@@ -2492,6 +2592,8 @@ const ReportLink = (() => {
     // Go/no-go gate: no cabin exit in a suit with a failed or untrustworthy life-support sensor.
     const mySuit=suits.find(x=>x.crew==='you');
     if(!mySuit){ companionWarn('You have no EVA suit assigned. Pick one in Suit check before going outside.','suitGateChip','caution',true); return; }
+    if(suitEval[mySuit.id].verdict==='off'){ companionWarn(`Your suit ${mySuit.id} is powered off, so its sensors are offline. Turn it on in Suit check before going outside.`,'suitGateChip','critical',true); return; }
+    if(suitEval[mySuit.id].verdict==='boot'){ companionWarn(`${mySuit.id} is still running its power-on self-test. Wait a moment.`,'suitGateChip','caution',true); return; }
     if(suitEval[mySuit.id].verdict==='nogo'){ companionWarn(gateMessage(mySuit),'suitGateChip','critical',true); return; }
     state.exited=true; state.timerActive=true; state.outsideSeconds=0;
     state.exitAt=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
