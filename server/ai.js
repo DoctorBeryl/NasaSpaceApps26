@@ -197,8 +197,9 @@ async function chat(req, res) {
 
 /*
  * Body-map triage (report.html): MedGemma, a model trained on medical text, lists
- * possible causes to consider and what to check next. It flags and suggests; it
- * does not diagnose. Escalation is decided in code (rule-based level or a red-flag
+ * possible causes to consider, what to do for each (first aid and self-care), and
+ * what to check next. It flags and suggests; it does not diagnose, and it never
+ * gives drug doses (steps that contain one are dropped here). Escalation is decided in code (rule-based level or a red-flag
  * symptom) and the model can only add to it, never clear it.
  * If MedGemma isn't pulled, the same prompt goes to the general model (Qwen).
  */
@@ -210,8 +211,13 @@ const TRIAGE_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { name: { type: "string" }, likelihood: { type: "string", enum: ["more likely", "possible", "less likely"] }, why: { type: "string" } },
-        required: ["name", "likelihood", "why"],
+        properties: {
+          name: { type: "string" },
+          likelihood: { type: "string", enum: ["more likely", "possible", "less likely"] },
+          why: { type: "string" },
+          whatToDo: { type: "array", items: { type: "string" } },
+        },
+        required: ["name", "likelihood", "why", "whatToDo"],
       },
     },
     checkNext: { type: "array", items: { type: "string" } },
@@ -227,10 +233,13 @@ function triagePrompt(profile, rows, context) {
     "A crew member marked symptoms on a body map. Help the crew medical officer think it through.",
     "Rules:",
     "- You do NOT diagnose. List 2 to 4 possible causes to consider, most likely first, each with one short sentence on why it fits.",
-    "- Weigh spaceflight causes where they fit: decompression sickness after EVA, suit or glove pressure points, fluid shift and SANS (eyes, headache), radiation exposure, space motion sickness, back pain from spinal lengthening, bone loss, kidney stones, muscle strain from exercise.",
-    "- Decompression sickness (DCS) is a real risk after any EVA (suit pressure is about 4.3 psi), not only in diving. If onset is during or after an EVA and the symptom is joint or limb pain, numbness, tingling, skin mottling, or anything neurological, list DCS first as \"more likely\".",
-    "- checkNext: 2 to 4 short, concrete things the crew can check or record now (no drugs, doses, or procedures).",
-    "- escalate: true if any cause could be serious or time-critical.",
+    "- Weigh spaceflight causes where they fit: decompression sickness after EVA, suit or glove pressure points, fluid shift and SANS (Spaceflight-Associated Neuro-ocular Syndrome: blurred vision, headache), radiation exposure, space motion sickness (very common in the first 2 to 3 days of flight), back pain from spinal lengthening, bone loss, kidney stones, muscle strain from exercise.",
+    "- Decompression sickness (DCS) is a real risk after any EVA (suit pressure is about 4.3 psi), not only in diving. If onset is during or after an EVA and the symptom is joint or limb pain, numbness, tingling, skin mottling, or anything neurological, list DCS first as \"more likely\". If there was no EVA or pressure change, don't list DCS.",
+    "- whatToDo: for each cause, 2 or 3 short imperative steps the crew can take now if that cause is right: first aid, self-care, and spaceflight countermeasures (rest the area, cold pack, loosen or refit the suit or glove, hydrate, adjust exercise, keep the head still and look at a fixed point for nausea, move to the radiation shelter).",
+    "- For suspected DCS, whatToDo is: stop the EVA or postpone the next one, start 100% oxygen per the mission DCS protocol, and call the flight surgeon now. Don't rub or heat the joint.",
+    "- Medicines: you may say a kind of medicine from the onboard kit is worth asking the crew medical officer about (for example, a pain reliever or an anti-nausea medicine). Never give a drug name with a dose, an amount, or how often to take it; the flight surgeon decides that.",
+    "- checkNext: 2 to 4 short, concrete things the crew can check or record now.",
+    "- escalate: true if a likely cause could be serious or time-critical (DCS, neurological signs, chest pain, breathing trouble, vision loss, severe or worsening pain). Expected, self-limiting problems such as space motion sickness or a mild strain don't need escalation.",
     "- summary: one plain sentence. Keep everything short; it shows in a small panel.",
     Object.keys(facts).length ? `Crew profile: ${JSON.stringify(facts)}` : "",
     rows.length ? `Live readings (simulated):\n${rows.map(readingLine).join("\n")}` : "",
@@ -239,6 +248,12 @@ function triagePrompt(profile, rows, context) {
 }
 
 const str = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+/* Onset text comes from report.html's onset select ("During EVA", "Immediately after EVA", "Delayed after EVA") or crew notes. */
+const POST_EVA = /\b(during|after|following|post-?)\s+(an?\s+|the\s+)?EVA\b|\bpost-?EVA\b|\bafter (a |the )?spacewalk\b/i;
+const DCS_SIGNS = /\b(pain\w*|ache|aching|joint|numb\w*|tingl\w*|pins and needles|mottl\w*|itch\w*|rash|weak\w*|swell\w*|confus\w*|dizz\w*|vision|visual)\b/i;
+const DCS_STEPS = ["Stop the EVA, or postpone the next one.", "Start 100% oxygen per the mission DCS protocol.", "Call the flight surgeon now. Don't rub or heat the joint."];
+/* A step with a dose ("400 mg", "2 tablets", "every 6 hours") is the flight surgeon's call, not the AI's. */
+const DOSE = /\b\d+(\.\d+)?\s*(mg|mcg|µg|g|cc|units?|iu|tablets?|tabs?|pills?|capsules?|puffs?|drops?)\b|\bevery \d+\s*(h|hours?)\b/i;
 
 async function triage(req, res) {
   const body = await readJson(req);
@@ -266,12 +281,44 @@ async function triage(req, res) {
   const possibleCauses = (Array.isArray(out.possibleCauses) ? out.possibleCauses : [])
     .filter((c) => c && str(c.name, 80))
     .slice(0, 4)
-    .map((c) => ({ name: str(c.name, 80), likelihood: ["more likely", "possible", "less likely"].includes(c.likelihood) ? c.likelihood : "possible", why: str(c.why, 220) }));
+    .map((c) => ({
+      name: str(c.name, 80),
+      likelihood: ["more likely", "possible", "less likely"].includes(c.likelihood) ? c.likelihood : "possible",
+      why: str(c.why, 220),
+      whatToDo: (Array.isArray(c.whatToDo) ? c.whatToDo : []).map((x) => str(x, 180)).filter((x) => x && !DOSE.test(x)).slice(0, 3),
+    }));
   const checkNext = (Array.isArray(out.checkNext) ? out.checkNext : []).map((x) => str(x, 180)).filter(Boolean).slice(0, 4);
-  const escalate = ruleEscalate || out.escalate === true;
+  // Same cause twice ("Space motion sickness" and "Motion sickness"): keep the first.
+  const seen = new Set();
+  for (let i = possibleCauses.length - 1; i >= 0; i--) possibleCauses[i].key = possibleCauses[i].name.toLowerCase().replace(/^space\s+|\s*\(.*\)$/g, "");
+  possibleCauses.splice(0, possibleCauses.length, ...possibleCauses.filter((c) => !seen.has(c.key) && seen.add(c.key)).map(({ key, ...c }) => c));
+
+  // Pain, numbness, tingling or skin changes during or after an EVA are treated as DCS until
+  // the flight surgeon rules it out. A 4B model doesn't hold that reliably, so code enforces it.
+  const postEva = POST_EVA.test(report);
+  if (postEva && DCS_SIGNS.test(report)) {
+    const i = possibleCauses.findIndex((c) => /decompression|\bDCS\b/i.test(c.name));
+    if (i >= 0) possibleCauses.splice(i, 1);
+    possibleCauses.unshift({
+      name: "Decompression sickness (DCS)",
+      likelihood: "more likely",
+      why: "Pain, numbness, tingling or skin changes during or after an EVA count as DCS until the flight surgeon rules it out.",
+      whatToDo: DCS_STEPS,
+    });
+    possibleCauses.splice(4);
+  } else if (!postEva) {
+    // No EVA, no DCS: the model sometimes lists it anyway.
+    const i = possibleCauses.findIndex((c) => /decompression|\bDCS\b/i.test(c.name));
+    if (i >= 0 && possibleCauses.length > 1) possibleCauses.splice(i, 1);
+  }
+
+  const RANK = { "more likely": 0, possible: 1, "less likely": 2 };
+  possibleCauses.sort((a, b) => RANK[a.likelihood] - RANK[b.likelihood]);   // stable: model order within a tier
+
+  const escalate = ruleEscalate || out.escalate === true || (postEva && DCS_SIGNS.test(report));
   if (escalate && !checkNext.some((a) => MENTIONS_SURGEON.test(a))) checkNext.unshift(ESCALATION_LINE);
 
-  json(res, 200, { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis. Confirm with the flight surgeon." });
+  json(res, 200, { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis or a prescription. Confirm with the flight surgeon." });
 }
 
 /* Critical-stats screen: a short ASTRA briefing. Status and escalation are decided in code, the words by Qwen. */

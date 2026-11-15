@@ -279,3 +279,14 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 - In this tab ASTRA becomes **ENG. ASTRA**: a hard hat, a hi-vis vest and a wrench, drawn as pixels by `drawEngineer`.
 **Decisions:** Suits are equipment, not medical records, so every role sees all suits; only the medical hold is CMO-only. Detection times are shortened for the demo, and the rules panel says so. A sensor fault on a health-only sensor doesn't block the EVA, because life support is what must be trusted outside.
 **Gotchas:** `evaluateSuits()` runs once when the module loads, so a `?view=suits` deep link has verdicts to draw. Suit sensor values are their own simulated channels, not the live telemetry in `state`. Only the fault badges link the two.
+
+## 2026-11-15: Alex (+ Claude): triage gives remedies ("what to do") and enforces the DCS rule in code
+**Changed:**
+- `/api/ai/triage` (`server/ai.js`): each possible cause now has `whatToDo` (up to 3 first-aid, self-care, or countermeasure steps). The model may suggest asking the CMO about a kind of medicine, but never a dose: steps that match `DOSE` ("400 mg", "2 tablets", "every 6 hours") are dropped.
+- Code-side rules: if the onset is during or after an EVA and the report has pain, numbness, tingling, skin, neuro, or vision signs, DCS is forced to the top as "more likely", with fixed steps (stop the EVA, 100% O2 per protocol, flight surgeon now) and `escalate: true`. With no EVA, a DCS entry from the model is dropped. Causes are sorted by likelihood and near-duplicates merged. The prompt names SANS correctly and limits escalation to serious causes.
+- `report.html`: under each cause, a green "What to do" list. The footer now reads "AI suggestion · not a diagnosis or prescription · simulated data".
+**Decisions:**
+- **CMO-DA (NASA + Google's Crew Medical Officer Digital Assistant) can't replace MedGemma.** Its code is owned by NASA and not released, and it runs on Google Cloud Vertex AI with fine-tuned Llama 3 and Mistral Small models. No weights or Ollama package are public. MedGemma stays. We can cite CMO-DA in the pitch as the real-world precedent for this feature.
+- MedGemma 4B ranked DCS differently from run to run on the same post-EVA knee-pain report ("more likely" one run, "less likely" the next). That's why the DCS rule lives in code, not in the prompt.
+**Verified:** Three API cases (post-EVA knee and shoulder pain: DCS first, escalates; first-day headache and nausea: no DCS, no escalation; habitat back pain: no DCS, no escalation). Playwright on `report.html` with "Immediately after EVA" selected: the remedies render and there are no console errors.
+**Open:** Other causes for post-EVA limb pain are still sometimes off-topic (for example, SANS listed for knee pain). It's a small-model limit; `medgemma:27b` would be better but needs much more RAM.
