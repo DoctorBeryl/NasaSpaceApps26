@@ -253,12 +253,19 @@ async function chat(req, res) {
   }
 }
 
+/* Never served: anything under a dot folder or dot file (.git, .env, .claude), server code and
+   its data (server/data/faces.json holds face templates), deploy scripts and dev tooling.
+   Compared in lower case, because Windows and macOS file systems ignore case (/SERVER/...). */
+const PRIVATE_DIRS = new Set(["server", "deploy", "node_modules"]);
+const PRIVATE_FILES = new Set(["server.js", "dev.js", "build-static.js", "package.json", "package-lock.json", "claude.local.md"]);
 function serveStatic(req, res) {
-  let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  let p;
+  try { p = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { return send(res, 400, "Bad path"); }
   if (p.endsWith("/")) p += "index.html";
   const file = path.normalize(path.join(ROOT, p));
-  const base = path.basename(file);
-  if (!file.startsWith(ROOT + path.sep) || base.startsWith(".") || base === "server.js" || file.startsWith(path.join(ROOT, "server") + path.sep)) return send(res, 404, "Not found");
+  const rel = path.relative(ROOT, file).split(path.sep).map((s) => s.toLowerCase());
+  if (!file.startsWith(ROOT + path.sep) || p.includes("\0") || rel.some((s) => s.startsWith(".")) ||
+      PRIVATE_DIRS.has(rel[0]) || (rel.length === 1 && PRIVATE_FILES.has(rel[0]))) return send(res, 404, "Not found");
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, "Not found");
     res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream" });
@@ -279,6 +286,12 @@ http.createServer((req, res) => {
       res.setHeader("Vary", "Origin");
     }
     if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
+    // The site is public and these routes spend paid credits (ElevenLabs, Gemini) or a lot of CPU
+    // (Ollama), so each visitor gets a budget. Generous for a person, tight for a script.
+    if (req.method === "POST" && /^\/api\/(tts|stt|chat|ai\/)/.test(url) && !auth.allow(`api:${auth.clientIp(req)}`, 60)) {
+      res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60" });
+      return res.end(JSON.stringify({ error: "rate_limited", message: "Too many requests. Wait a minute and try again." }));
+    }
   }
   if (ai.handle(req, res)) return;
   if (auth.handle(req, res)) return;

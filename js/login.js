@@ -8,7 +8,7 @@
      keeps them on this machine. The camera starts only after the
      user picks face scan and has seen the demo-only notice.
        sign-in: 3 frontal samples + 1 slight head turn -> /verify
-       enroll:  name + 4 frontal + 2 per side          -> /enroll
+       enroll:  name + role + 4 frontal + 2 per side   -> /enroll
    - Email and password: Firebase Email/Password (js/auth.js).
    ========================================================== */
 (function () {
@@ -22,7 +22,7 @@
   const $ = (id) => document.getElementById(id);
   const video = $("cam"), overlay = $("overlay"), frame = $("scan-frame");
   const statusEl = $("status"), detailEl = $("detail");
-  const form = $("enroll-form"), nameInput = $("crew-name");
+  const form = $("enroll-form"), nameInput = $("crew-name"), roleInput = $("crew-role");
   const btnRetry = $("btn-retry"), btnNew = $("btn-new"), btnBack = $("btn-back");
   const ringArc = $("ring-arc");
   const RING_LEN = 2 * Math.PI * 48;
@@ -261,8 +261,8 @@
   function startFace() {
     remember.set("face");
     showView("face");
-    if (params.has("enroll")) return askName("New crew member? Tell me your name or call sign.");
-    if (AstraAuth.config?.enrolled === 0) return askName("No crew are enrolled on this device yet. Tell me your name to enroll.");
+    if (params.has("enroll")) return askName("New crew member? Tell me your name and your role.");
+    if (AstraAuth.config?.enrolled === 0) return askName("No crew are enrolled on this device yet. Tell me your name and role to enroll.");
     signIn();
   }
 
@@ -279,7 +279,7 @@
       if (res.ok) return finishFace(res.data);
       if (res.status === 401) {
         stepState("match", "fail");
-        return askName("I don't recognize you. If you're new, tell me your name.");
+        return askName("I don't recognize you. If you're new, tell me your name and role.");
       }
       throw new Error(res.data.message || "Sign-in failed.");
     } catch (e) {
@@ -296,7 +296,7 @@
     setTimeout(() => nameInput.focus(), 50);
   }
 
-  async function enroll(name) {
+  async function enroll(name, role) {
     const flow = ++run;
     controls({ back: true });
     setSteps([["face", "Face"], ["side1", "Side"], ["side2", "Other side"]]);
@@ -304,7 +304,7 @@
       await prepare(flow);
       const descriptors = await capture(ENROLL_STEPS, flow);
       say("Saving your face template on this device…", "", "busy");
-      let res = await post("/api/auth/face/enroll", { name, descriptors });
+      let res = await post("/api/auth/face/enroll", { name, role, descriptors });
       if (res.status === 409) {
         say(`You're already enrolled as ${res.data.name}. Signing you in.`, "", "busy");
         res = await post("/api/auth/face/verify", { descriptors: descriptors.slice(0, 4) });
@@ -344,17 +344,18 @@
   let noServer = false;
   btnRetry.onclick = () => (noServer ? location.reload() : signIn());
   btnBack.onclick = () => signIn();
-  btnNew.onclick = () => askName("New crew member? Tell me your name or call sign.");
+  btnNew.onclick = () => askName("New crew member? Tell me your name and your role.");
   form.onsubmit = (ev) => {
     ev.preventDefault();
-    const name = nameInput.value.trim();
+    const name = nameInput.value.trim(), role = roleInput.value;
     if (!name) return nameInput.focus();
-    enroll(name);
+    if (!role) return roleInput.focus();
+    enroll(name, role);
   };
 
   /* ---------------- email and password ---------------- */
   const pwForm = $("pw-form"), pwMsg = $("pw-msg"), pwSubmit = $("pw-submit");
-  const pwName = $("pw-name"), pwEmail = $("pw-email"), pwPass = $("pw-pass");
+  const pwName = $("pw-name"), pwRole = $("pw-role"), pwEmail = $("pw-email"), pwPass = $("pw-pass");
   let pwMode = "signin";
 
   const PW_ERRORS = {
@@ -396,13 +397,14 @@
     ev.preventDefault();
     const name = pwName.value.trim(), email = pwEmail.value.trim(), pass = pwPass.value;
     if (pwMode === "create" && !name) return pwSay("Enter a name or call sign.", "fail"), pwName.focus();
+    if (pwMode === "create" && !pwRole.value) return pwSay("Choose your role on the crew.", "fail"), pwRole.focus();
     if (!email) return pwSay("Enter your email.", "fail"), pwEmail.focus();
     if (!pass) return pwSay("Enter your password.", "fail"), pwPass.focus();
     pwSubmit.disabled = true;
     pwSay(pwMode === "create" ? "Creating your account…" : "Signing in…");
     try {
       const u = pwMode === "create"
-        ? await AstraAuth.createAccount(name, email, pass)
+        ? await AstraAuth.createAccount(name, email, pass, pwRole.value)
         : await AstraAuth.signInWithPassword(email, pass);
       const isNew = pwMode === "create";
       pwSay(isNew ? `Welcome aboard, ${u.name}.` : `Welcome back, ${u.name}.`, "ok");

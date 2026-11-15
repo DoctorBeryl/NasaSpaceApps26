@@ -10,6 +10,12 @@ const { TOOLS, TOOL_IDS, byId } = require("./registry");
 
 const opts = (...pairs) => pairs.map(([value, label]) => ({ value, label }));
 
+/* Crew roles: picked on the sign-in page when a new crew member enrolls (server/auth.js stores it
+   with their face template), so the questionnaire doesn't ask again. "medical-officer" is the
+   Crew Medical Officer, who gets the CMO console on report.html. */
+const ROLES = opts(["commander", "Commander"], ["pilot", "Pilot"], ["flight-engineer", "Flight engineer"], ["mission-specialist", "Mission specialist"], ["payload-specialist", "Payload specialist"], ["medical-officer", "Crew medical officer"], ["other", "Other"]);
+const cleanRole = (v) => (ROLES.some((o) => o.value === v) ? v : null);
+
 /* kind: "text" -> Qwen extracts `schema`; "choice"/"multi" -> stored as-is, no model call */
 const QUESTIONS = [
   {
@@ -22,7 +28,7 @@ const QUESTIONS = [
     id: "role", topic: "About you", kind: "choice",
     text: "What's your role on this mission?",
     field: "role",
-    options: opts(["commander", "Commander"], ["pilot", "Pilot"], ["flight-engineer", "Flight engineer"], ["mission-specialist", "Mission specialist"], ["payload-specialist", "Payload specialist"], ["other", "Other"]),
+    options: ROLES,
   },
   {
     id: "mission", topic: "Mission", kind: "text",
@@ -394,4 +400,4 @@ async function finish(ai, { profile: rawProfile }) {
   return { profile: p };
 }
 
-module.exports = { QUESTIONS, publicQuestions, answer, finish, cleanProfile, profileForModel, clampBand };
+module.exports = { ROLES, cleanRole, QUESTIONS, publicQuestions, answer, finish, cleanProfile, profileForModel, clampBand };
