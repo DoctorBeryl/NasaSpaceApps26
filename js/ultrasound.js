@@ -266,7 +266,7 @@
     if (now - lastLive > 2000 || g.kind === "hold") { live.textContent = g.text; lastLive = now; }
     if (state.voice && hasVoice() && g.text !== state.lastSpoken && now - state.lastSpokenAt > 3500) {
       state.lastSpoken = g.text; state.lastSpokenAt = now;
-      VEGA.speak(g.text, { tone: "calm", local: true });   // browser voice: instant, no ElevenLabs credits
+      VEGA.speak(g.text, { tone: "calm", cache: true });   // ASTRA voice; repeated phrases replay from cache
     }
   }
 
@@ -284,7 +284,7 @@
     state.captures.unshift({ organ: t.label, q: state.q, at: new Date(), src: scan.toDataURL("image/jpeg", 0.8), status: "saved", auto });
     state.captures = state.captures.slice(0, 8);
     renderCaptures();
-    if (state.voice && hasVoice()) VEGA.speak(`${t.label} image saved.`, { tone: "calm", local: true });
+    if (state.voice && hasVoice()) VEGA.speak(`${t.label} image saved.`, { tone: "calm", cache: true });
   }
 
   function renderCaptures() {
@@ -369,7 +369,7 @@
     state.voice = !state.voice;
     e.currentTarget.setAttribute("aria-pressed", String(state.voice));
     e.currentTarget.textContent = state.voice ? "Voice guidance: on" : "Voice guidance: off";
-    if (state.voice) { state.lastSpoken = ""; state.lastSpokenAt = 0; if (hasVoice()) VEGA.speak("Voice guidance on.", { tone: "calm", local: true }); } else if (hasVoice() && VEGA.stop) VEGA.stop();
+    if (state.voice) { state.lastSpoken = ""; state.lastSpokenAt = 0; if (hasVoice()) VEGA.speak("Voice guidance on.", { tone: "calm", cache: true }); } else if (hasVoice() && VEGA.stop) VEGA.stop();
   });
 
   MedLink.mountPicker($("us-mission"));
