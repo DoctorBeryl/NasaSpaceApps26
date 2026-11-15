@@ -1,11 +1,11 @@
 /* ==========================================================
-   AstraSight: home-page ASTRA pop-up (js/companion.js)
+   AstraSight: ASTRA help button and alert bubble (js/companion.js)
    Uses the design tokens from styles.css.
    ========================================================== */
 .vega-buddy {
   --vb-accent: var(--cyan);
   position: fixed; right: 20px; bottom: 20px; z-index: 70;
-  display: flex; align-items: flex-end; gap: 12px;
+  display: flex; align-items: flex-end; justify-content: flex-end; gap: 10px;
   max-width: min(400px, calc(100vw - 32px));
   font-family: var(--font);
 }
@@ -14,6 +14,7 @@
 
 .vb-bubble {
   flex: 1; min-width: 0; position: relative;
+  max-height: calc(100vh - 40px); overflow-y: auto;
   padding: 14px 16px 12px; border-radius: 16px 16px 4px 16px;
   background: rgba(8, 12, 24, 0.94);
   border: 1px solid color-mix(in srgb, var(--vb-accent) 55%, transparent);
@@ -27,7 +28,13 @@
   display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--vb-accent);
 }
+.vb-face {
+  width: 32px; height: 32px; flex: none; border-radius: 7px;
+  background: #04070d; border: 1px solid color-mix(in srgb, var(--vb-accent) 60%, transparent);
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
 .vb-badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--vb-accent); box-shadow: 0 0 8px var(--vb-accent); }
+.vega-buddy[data-mode="help"] .vb-badge i { display: none; }
 .vega-buddy[data-mood="critical"] .vb-badge i { animation: vb-blink 0.9s steps(2) infinite; }
 .vb-x {
   background: none; border: 0; color: var(--text-faint); cursor: pointer;
@@ -36,35 +43,34 @@
 .vb-x:hover, .vb-x:focus-visible { color: var(--text); background: var(--surface-hi); }
 
 .vb-msg { font-size: 14px; line-height: 1.5; color: var(--text); }
+.vb-msg p { margin: 0 0 8px; }
 .vb-msg b { color: var(--vb-accent); font-weight: 600; }
+.vb-msg a { color: var(--cyan); }
 .vb-loc {
   display: block; margin-bottom: 4px;
   font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
 }
-
-.vb-name { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; margin-top: 10px; }
-.vb-name select, .vb-name input, .vb-name button {
-  font: inherit; font-size: 13px; color: var(--text);
-  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; min-width: 0;
-}
-.vb-name select { max-width: 120px; }
-.vb-name input:focus, .vb-name select:focus { outline: none; border-color: var(--border-hi); }
-.vb-name button { cursor: pointer; border-color: var(--border-hi); color: var(--cyan); }
-.vb-name button:hover { background: rgba(94, 242, 255, 0.1); }
+.vb-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; font-size: 13px; color: var(--text-dim); }
+.vb-list li { padding-left: 14px; position: relative; }
+.vb-list li::before { content: "›"; position: absolute; left: 2px; color: var(--vb-accent); }
+.vb-list b { color: var(--text); }
+.vb-note { font-size: 12.5px; color: var(--text-dim); }
+.vb-tip { font-size: 12.5px; color: var(--text-dim); padding-top: 8px; border-top: 1px solid var(--border); }
+.vb-tip span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--vb-accent); margin-right: 4px; }
 
 .vb-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.vega-buddy[data-mode="help"] .vb-ack, .vega-buddy[data-mode="help"] .vb-pa { display: none; }
 .vb-ack {
   font-family: var(--mono); font-size: 11px; cursor: pointer;
   color: var(--vb-accent); background: none;
   border: 1px solid color-mix(in srgb, var(--vb-accent) 60%, transparent); border-radius: 999px; padding: 4px 10px;
 }
 .vb-ack:hover, .vb-ack:focus-visible { color: var(--text); border-color: var(--vb-accent); }
-.vb-ack + .vb-open { margin-left: 0; margin-right: auto; }
-.vb-open { margin-left: 0; margin-right: auto; }
 .vb-open {
   font-size: 13px; font-weight: 600; color: var(--vb-accent); text-decoration: none;
-  padding: 6px 10px; margin-left: -10px; border-radius: 8px;
+  padding: 6px 10px; margin-left: 0; margin-right: auto; border-radius: 8px;
 }
+.vega-buddy[data-mode="help"] .vb-open { margin-left: -10px; }
 .vb-open:hover, .vb-open:focus-visible { background: color-mix(in srgb, var(--vb-accent) 12%, transparent); }
 .vb-pa {
   font-family: var(--mono); font-size: 11px; color: var(--text-dim); cursor: pointer;
@@ -73,46 +79,57 @@
 .vb-pa:hover { color: var(--text); border-color: var(--border-hi); }
 .vb-foot { margin-top: 8px; font-family: var(--mono); font-size: 10px; color: var(--text-faint); }
 
-.vb-avatar {
-  position: relative; flex: none; width: 84px; height: 84px; padding: 0; cursor: pointer;
-  border-radius: 14px; overflow: hidden;
-  background: #04070d; border: 2px solid var(--vb-accent);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--vb-accent) 45%, transparent);
-  animation: vb-float 3s ease-in-out infinite;
+/* The resting state: a small "?" button */
+.vb-help {
+  flex: none; width: 40px; height: 40px; padding: 0; cursor: pointer;
+  border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 19px; font-weight: 700; line-height: 1; color: var(--vb-accent);
+  background: var(--surface-solid); border: 2px solid var(--vb-accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--vb-accent) 35%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.vb-avatar canvas { width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
-.vb-avatar span {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; text-align: center; color: var(--vb-accent);
-  background: rgba(8, 12, 24, 0.92); border-top: 1px solid color-mix(in srgb, var(--vb-accent) 40%, transparent); padding: 1px 0;
-}
-.vb-avatar:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
-.vega-buddy[data-mood="critical"] .vb-avatar { animation: vb-shake 0.45s ease-in-out infinite; }
-.vega-buddy.minimized .vb-avatar { width: 64px; height: 64px; }
+.vb-help:hover { transform: scale(1.08); box-shadow: 0 0 22px color-mix(in srgb, var(--vb-accent) 55%, transparent); }
+.vb-help:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.vb-help[aria-expanded="true"] { background: color-mix(in srgb, var(--vb-accent) 18%, var(--surface-solid)); }
+.vega-buddy[data-mood="critical"] .vb-help { animation: vb-shake 0.45s ease-in-out infinite; }
 
-/* pixel "teleport-in" when ASTRA pops up */
-.vega-buddy.pop .vb-avatar { animation: vb-teleport 0.45s steps(5) both, vb-float 3s ease-in-out 0.45s infinite; }
 .vega-buddy.pop .vb-bubble { animation: vb-rise 0.35s cubic-bezier(.2, .8, .2, 1) both; }
-.vega-buddy.pop[data-mood="critical"] .vb-avatar { animation: vb-teleport 0.45s steps(5) both, vb-shake 0.45s ease-in-out 0.45s infinite; }
 
-@keyframes vb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes vb-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 @keyframes vb-blink { 50% { opacity: 0.2; } }
 @keyframes vb-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes vb-teleport {
-  0% { opacity: 0; transform: scaleY(0.05); filter: hue-rotate(90deg); }
-  40% { opacity: 1; transform: scaleY(1.2) skewX(10deg); }
-  70% { transform: scaleY(0.9) skewX(-6deg); }
-  100% { opacity: 1; transform: none; filter: none; }
+
+/* ---------- drag, throw, bounce the "?" (js/companion.js) ---------- */
+.vb-help { touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
+.vega-buddy.placed { right: auto; bottom: auto; max-width: min(400px, calc(100vw - 16px)); }
+.vega-buddy.vb-left { flex-direction: row-reverse; }
+.vega-buddy.vb-top { align-items: flex-start; }
+.vega-buddy.vb-left .vb-bubble { border-radius: 16px 16px 16px 4px; }
+.vega-buddy.vb-top .vb-bubble { border-radius: 16px 4px 16px 16px; }
+.vega-buddy.vb-top.vb-left .vb-bubble { border-radius: 4px 16px 16px 16px; }
+.vega-buddy.dragging { -webkit-user-select: none; user-select: none; }
+.vega-buddy.dragging .vb-help,
+.vega-buddy.dragging[data-mood="critical"] .vb-help {
+  cursor: grabbing; animation: none;
+  transform: rotate(var(--vb-tilt, 0deg)) scale(1.15);
+  transition: transform .09s ease-out;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, .55), 0 0 30px color-mix(in srgb, var(--vb-accent) 65%, transparent);
+}
+.vega-buddy.bonk .vb-help { animation: vb-bonk .32s ease-out; }
+@keyframes vb-bonk {
+  0% { transform: scale(1.18, .8); }
+  45% { transform: scale(.9, 1.12); }
+  75% { transform: scale(1.04, .97); }
+  100% { transform: none; }
 }
 
 @media (max-width: 520px) {
   .vega-buddy { right: 12px; left: 12px; bottom: 12px; max-width: none; }
-  .vb-avatar { width: 64px; height: 64px; }
-  .vb-name { grid-template-columns: 1fr auto; }
-  .vb-name select { grid-column: 1 / -1; max-width: none; }
+  .vega-buddy.minimized { left: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .vb-avatar, .vega-buddy.pop .vb-avatar, .vega-buddy.pop .vb-bubble,
-  .vega-buddy[data-mood="critical"] .vb-avatar, .vega-buddy[data-mood="critical"] .vb-badge i { animation: none; }
+  .vb-help, .vega-buddy.pop .vb-bubble,
+  .vega-buddy[data-mood="critical"] .vb-help, .vega-buddy[data-mood="critical"] .vb-badge i,
+  .vega-buddy.bonk .vb-help { animation: none; transition: none; }
+  .vega-buddy.dragging .vb-help { transform: scale(1.06); transition: none; }
 }
