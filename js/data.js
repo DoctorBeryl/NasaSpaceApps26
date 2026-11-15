@@ -122,9 +122,9 @@ const TOOLS = [
   },
   {
     id: "hrv", name: "Stress / HRV", short: "Stress", icon: "wave",
-    unit: "ms", base: 58, jitter: 3, min: 5, max: 200, warnLo: 25, warnHi: 999, decimals: 0,
+    unit: "ms", base: 58, jitter: 3, min: 5, max: 160, warnLo: 25, warnHi: 110, decimals: 0,
     sensor: "Derived from PPG", sample: "5-min window", latency: "~ 60 s",
-    range: "> 40 ms healthy",
+    range: "40–100 ms typical · lower means more stress",
     blurb: "Heart-rate variability reflects autonomic balance. Lower HRV signals stress or poor recovery — key for psychological health on isolated missions.",
     steps: [
       ["Interval series", "Beat-to-beat intervals are taken from the cardiac PPG stream."],
@@ -152,7 +152,7 @@ const LIMITS = {
   cog:     { min: 0,   max: 100, critLo: -Infinity, critHi: 85 },
   thermal: { min: 33,  max: 42,  critLo: 35,  critHi: 39 },
   rad:     { min: 0,   max: 10,  critLo: -Infinity, critHi: 5 },
-  hrv:     { min: 5,   max: 150, critLo: 15,  critHi: Infinity },
+  hrv:     { min: 5,   max: 160, critLo: 15,  critHi: 140 },   // very high RMSSD at rest: irregular rhythm or a bad signal, not "no stress"
 };
 
 const GUIDANCE = {
@@ -207,6 +207,9 @@ const GUIDANCE = {
     low: { title: "Stress high, HRV low", why: "Low heart-rate variability means your nervous system is under strain or hasn't recovered.",
       steps: ["Say “breathing exercise” and follow the paced breathing.", "Reduce your workload for the next hour if the schedule allows.", "Prioritise sleep tonight and consider a private psych-support call."],
       danger: "Below 15 ms: tell the crew medical officer and repeat the reading after rest." },
+    high: { title: "HRV unusually high", why: "Variability this far above your baseline usually isn't calm. It often comes from skipped or irregular beats, or from a loose sensor.",
+      steps: ["Sit still for two minutes and let ASTRA take the reading again.", "Check your pulse at the wrist: is it regular?", "Tell a crewmate if you feel fluttering, dizziness or shortness of breath."],
+      danger: "Above 140 ms: the crew medical officer records an ECG to check the heart rhythm and sends it to the flight surgeon." },
   },
 };
 
