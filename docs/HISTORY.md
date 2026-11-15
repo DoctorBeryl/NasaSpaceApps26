@@ -512,3 +512,7 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 **Gotcha:** `render()` runs before the crew records exist at startup, so `renderLauncher()` waits for `crewReady`. It only redraws when its content changes.
 **Verified:** Playwright at 1600, 1280 and 390 px: the launcher is visible and the form is hidden on the Ship display, a click opens the Medical bay, a symptom added there lights the mini map on return, CMO mode keeps the roster, no sideways scroll and no page errors.
 **Merge:** `report.html` conflicted with the team's "hide duplicate vitals" change in `renderTriageRole()`. Both sides hid the crew role bar on the Ship display, so one copy is kept. The team's `renderSnapshot()` now decides when the snapshot shows, and the review panel stays hidden on the Ship display.
+
+## 2026-11-15: Alex (+ Claude): health-check launcher uses a plain silhouette
+**Changed:** The Ship display's "Crew health check" button on `report.html` no longer draws the body map's zone grid at small size (Alex found it eerie). It now shows a simple front and back human outline (the body map's base shapes, stroked and then filled so the seams between them disappear) with one glowing dot at the centre of each area you reported.
+**Verified:** Playwright at 1600, 1280 and 390 px: a reported area shows as a dot, and there are no page errors.
