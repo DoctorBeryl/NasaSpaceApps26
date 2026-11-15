@@ -12,7 +12,7 @@ const path = require("path");
 
 const ROOT = __dirname;
 const OUT = path.join(ROOT, "dist");
-const PAGES = ["index.html", "interface.html", "tools.html", "vega.html", "report.html", "login.html"];
+const PAGES = ["index.html", "interface.html", "tools.html", "vega.html", "report.html", "imca.html", "ultrasound.html", "login.html"];
 const DIRS = ["css", "js", "media"];
 const SKIP = new Set(["README.md"]);
 

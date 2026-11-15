@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — Guided Ultrasound</title>
+  <meta name="description" content="ASTRA guides a crew member through an ultrasound scan, one instruction at a time, and sends the clear image to the flight surgeon." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/arcade.css" />
+  <link rel="stylesheet" href="css/medbay.css" />
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">Guided ultrasound</span>
+      <h1>Get a clear scan without a sonographer on board.</h1>
+      <p class="lead">Ultrasound is the main imaging tool in space. Pick what to scan, then follow ASTRA: slide, turn, and tilt the probe until the image comes into focus. ASTRA saves the clear frame and queues it for the flight surgeon.</p>
+    </div>
+  </header>
+
+  <main class="container med-main">
+    <div class="seg us-organs" id="us-organs" role="tablist" aria-label="What to scan">
+      <button role="tab" data-organ="kidney" aria-selected="true">Kidney</button>
+      <button role="tab" data-organ="heart" aria-selected="false">Heart</button>
+      <button role="tab" data-organ="lungs" aria-selected="false">Lungs</button>
+      <button role="tab" data-organ="bladder" aria-selected="false">Bladder</button>
+    </div>
+    <p class="us-target-line"><strong id="us-where"></strong> <span class="dim" id="us-why"></span></p>
+
+    <section class="us-layout">
+      <div class="med-panel us-body-panel">
+        <div class="med-panel-head">
+          <h2>Probe on the body</h2>
+          <label class="med-check"><input type="checkbox" id="us-target" checked /> Show target</label>
+        </div>
+        <canvas id="us-body" tabindex="0" aria-label="Body outline with the ultrasound probe. Drag to move it, scroll or press Q and E to turn it, W and S to tilt it, arrow keys to nudge it."></canvas>
+        <p class="med-hint">Drag to move the probe. Scroll or press Q / E to turn it, W / S to tilt it. Arrow keys nudge it (hold Shift for bigger steps). The dashed outline is the target from this astronaut's preflight scan.</p>
+        <div class="us-sliders">
+          <label>Turn <output id="us-rot-v">0°</output><input type="range" id="us-rot" min="-180" max="180" step="1" value="0" /></label>
+          <label>Tilt <output id="us-tilt-v">straight down</output><input type="range" id="us-tilt" min="-30" max="30" step="1" value="0" /></label>
+        </div>
+      </div>
+
+      <div class="med-panel us-scan-panel">
+        <div class="med-panel-head">
+          <h2>Scan</h2>
+          <span class="us-q">Image quality <b id="us-q">0%</b></span>
+        </div>
+        <canvas id="us-scan" aria-label="Simulated ultrasound image"></canvas>
+        <div class="us-meter" aria-hidden="true"><span id="us-meter"></span></div>
+        <p class="us-guide" id="us-guide" data-zone="far">Place the probe on the body.</p>
+        <p class="visually-hidden" aria-live="polite" id="us-live"></p>
+        <div class="med-actions">
+          <button class="btn btn-primary" id="us-save">Save image</button>
+          <button class="btn btn-ghost" id="us-voice" aria-pressed="false">Voice guidance: off</button>
+          <button class="btn btn-ghost" id="us-reset">Start over</button>
+          <label class="med-check"><input type="checkbox" id="us-auto" checked /> Save automatically when clear</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="med-panel">
+      <div class="med-panel-head">
+        <h2>Saved images</h2>
+        <label class="med-select">Mission <select id="us-mission"></select></label>
+      </div>
+      <p class="dim med-link-note" id="us-link-note"></p>
+      <div class="us-captures" id="us-captures"></div>
+      <div class="med-actions"><button class="btn btn-primary" id="us-send" disabled>Send to the flight surgeon</button></div>
+    </section>
+
+    <section class="grid grid-3 med-info">
+      <div class="card">
+        <h3>How a guided scan works</h3>
+        <ol class="med-steps">
+          <li>Before flight, a sonographer scans each astronaut and records the ideal probe position for each organ.</li>
+          <li>In flight, a camera tracks the probe against markers on the body and compares it with that record.</li>
+          <li>ASTRA turns the biggest difference into one instruction: slide, turn, or tilt.</li>
+          <li>An image model checks the organ is in view, saves the frame, and sends it to Earth for a radiologist to read.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Real systems this follows</h3>
+        <p class="dim"><a href="https://tienovix.com/wp-content/uploads/2020/09/Vulcan-Presentation.pdf" target="_blank" rel="noopener">VULCAN</a> by Tienovix guides a novice's probe with augmented-reality overlays and lets a remote expert review the scan.</p>
+        <p class="dim"><a href="https://www.esa.int/Enabling_Support/Space_Engineering_Technology/Just_add_AI_for_expert_astronaut_ultrasound" target="_blank" rel="noopener">EchoFinder-2</a> (ESA and CNES) was tested on the ISS: shapes on a tablet overlap and turn green when the probe is in place, then AI identifies the organ and saves the image.</p>
+      </div>
+      <div class="card">
+        <h3>What's simulated here</h3>
+        <ul class="check-list" style="margin-top:0">
+          <li><span>The probe follows your mouse or keys, not a tracking camera.</span></li>
+          <li><span>The scan image is generated, not a real ultrasound.</span></li>
+          <li><span>Guidance is geometry against a stored target, not a trained image model.</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/vega.js"></script>
+  <script src="js/medlink.js"></script>
+  <script src="js/ultrasound.js"></script>
+</body>
+</html>

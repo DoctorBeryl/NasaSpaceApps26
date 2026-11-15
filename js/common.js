@@ -16,6 +16,8 @@ const NAV_LINKS = [
   ["tools.html", "Diagnostics"],
   ["vega.html", "ASTRA AI"],
   ["report.html", "Report"],
+  ["imca.html", "IMCA"],
+  ["ultrasound.html", "Ultrasound"],
 ];
 
 function renderChrome() {

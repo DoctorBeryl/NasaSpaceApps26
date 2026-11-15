@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AstraSight — IMCA Medical Assistant</title>
+  <meta name="description" content="IMCA, the Intelligent Medical Crew Assistant: a step-by-step medical consult for the crew medical officer, with ASTRA's suggestions and a note for the flight surgeon." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/arcade.css" />
+  <link rel="stylesheet" href="css/medbay.css" />
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+  <div class="nebula"></div>
+  <nav id="site-nav"></nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow">IMCA · Intelligent Medical Crew Assistant</span>
+      <h1>Work through a medical problem, one step at a time.</h1>
+      <p class="lead">When Earth is minutes away, the crew medical officer runs the consult. IMCA asks the right questions, pulls the vitals, has ASTRA suggest possible causes and what to do, and writes the note for the flight surgeon. It suggests; it doesn't diagnose.</p>
+    </div>
+  </header>
+
+  <main class="container med-main">
+    <p class="imca-escalate imca-banner" id="imca-flag-banner" role="alert" hidden></p>
+
+    <div class="imca-layout">
+      <nav aria-label="Consult steps"><ol class="imca-rail" id="imca-rail"></ol></nav>
+
+      <div class="med-panel imca-panel">
+        <!-- 1. Complaint -->
+        <section class="imca-step" data-i="0">
+          <h2>What's wrong?</h2>
+          <label class="med-field">Crew member <input type="text" id="imca-patient" placeholder="Name" autocomplete="off" /></label>
+          <p class="med-label" id="imca-c-label">Main complaint</p>
+          <div class="med-chips" id="imca-complaints" role="group" aria-labelledby="imca-c-label"></div>
+          <label class="med-field">In their own words <span class="dim">(optional)</span>
+            <textarea id="imca-words" rows="3" placeholder="For example: a dull ache in my lower back since I woke up, worse when I bend."></textarea></label>
+        </section>
+
+        <!-- 2. Questions -->
+        <section class="imca-step" data-i="1" hidden>
+          <h2>The key questions</h2>
+          <div class="med-row">
+            <label class="med-field">When did it start?
+              <select id="imca-onset">
+                <option value="">Choose one</option>
+                <option>Just now</option><option>In the last few hours</option><option>Earlier today</option>
+                <option>Over several days</option><option>During or after an EVA</option><option>Since launch or landing</option>
+              </select></label>
+            <label class="med-field">Is it changing?
+              <select id="imca-trend"><option>About the same</option><option>Getting worse</option><option>Getting better</option><option>Comes and goes</option></select></label>
+          </div>
+          <label class="med-field">Where exactly? Does it spread anywhere? <input type="text" id="imca-where" placeholder="For example: right side, below the ribs, spreads to the groin" /></label>
+          <p class="med-label" id="imca-q-label">What does it feel like? <span class="dim">Pick any.</span></p>
+          <div class="med-chips" id="imca-quality" role="group" aria-labelledby="imca-q-label"></div>
+          <label class="med-field">What makes it better or worse? <input type="text" id="imca-bw" placeholder="For example: worse when moving, better lying still" /></label>
+          <label class="med-field">How bad, from 0 to 10? <output id="imca-sev-v">3 / 10</output>
+            <input type="range" id="imca-sev" min="0" max="10" step="1" value="3" /></label>
+          <fieldset class="imca-flags-box">
+            <legend>Any of these? Each one goes straight to the flight surgeon.</legend>
+            <div id="imca-flags" class="imca-flags"></div>
+          </fieldset>
+        </section>
+
+        <!-- 3. Vitals -->
+        <section class="imca-step" data-i="2" hidden>
+          <h2>Vitals</h2>
+          <p class="dim">Read from the glasses' sensors (simulated). Change any value you measured by hand.</p>
+          <div class="imca-vitals" id="imca-vitals"></div>
+          <div class="med-actions"><button type="button" class="btn btn-ghost" id="imca-remeasure">Take a new reading</button></div>
+        </section>
+
+        <!-- 4. Assessment -->
+        <section class="imca-step" data-i="3" hidden>
+          <h2>ASTRA's assessment</h2>
+          <div id="imca-assessment" aria-live="polite"></div>
+          <div class="med-actions">
+            <button type="button" class="btn btn-ghost" id="imca-retry">Ask again</button>
+            <button type="button" class="btn btn-ghost" id="imca-read" hidden>Read it aloud</button>
+          </div>
+        </section>
+
+        <!-- 5. Note -->
+        <section class="imca-step" data-i="4" hidden>
+          <h2>Note for the flight surgeon</h2>
+          <div class="med-row">
+            <label class="med-select">Mission <select id="imca-mission"></select></label>
+          </div>
+          <p class="dim med-link-note" id="imca-link-note"></p>
+          <label class="med-field">Consult note <span class="dim">(edit before sending)</span>
+            <textarea id="imca-note" rows="16" class="mono"></textarea></label>
+          <div class="med-actions">
+            <button type="button" class="btn btn-primary" id="imca-send">Send to the flight surgeon</button>
+            <button type="button" class="btn btn-ghost" id="imca-copy">Copy note</button>
+            <button type="button" class="btn btn-ghost" id="imca-new">Start a new consult</button>
+          </div>
+          <p class="imca-send-status" id="imca-send-status" aria-live="polite"></p>
+
+          <form class="imca-ask" id="imca-ask-form">
+            <label class="med-field">Ask ASTRA about this consult while you wait
+              <span class="imca-ask-row"><input type="text" id="imca-ask" placeholder="For example: what should I watch for overnight?" autocomplete="off" />
+              <button class="btn btn-ghost" type="submit">Ask</button></span></label>
+          </form>
+          <div class="imca-answer" id="imca-answer" aria-live="polite" hidden></div>
+        </section>
+
+        <div class="imca-nav">
+          <button type="button" class="btn btn-ghost" id="imca-back" hidden>Back</button>
+          <span class="dim" id="imca-need">Pick the main complaint to continue.</span>
+          <button type="button" class="btn btn-primary" id="imca-next">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="grid grid-3 med-info">
+      <div class="card">
+        <h3>Why the crew needs this</h3>
+        <p class="dim">On a Mars transit, a message to Earth takes up to 22 minutes each way. The crew medical officer has to work through a problem alone, and IMCA gives that work a structure.</p>
+      </div>
+      <div class="card">
+        <h3>What it builds on</h3>
+        <p class="dim">NASA and Google are testing the <a href="https://www.techcrunch.com/2025/08/08/nasa-and-google-are-building-an-ai-medical-assistant-to-keep-mars-bound-astronauts-healthy/" target="_blank" rel="noopener">Crew Medical Officer Digital Assistant</a> for the same job. IMCA runs MedGemma, an open medical model, on the ship's own computer, so it works with no link to Earth.</p>
+      </div>
+      <div class="card">
+        <h3>Where the AI stops</h3>
+        <ul class="check-list" style="margin-top:0">
+          <li><span>Red flags and escalation are fixed rules, not AI.</span></li>
+          <li><span>ASTRA lists causes to consider, never a diagnosis.</span></li>
+          <li><span>Medicines and doses are the flight surgeon's call.</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/vega.js"></script>
+  <script src="js/medlink.js"></script>
+  <script src="js/imca.js"></script>
+</body>
+</html>

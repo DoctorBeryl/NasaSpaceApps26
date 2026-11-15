@@ -1,0 +1,145 @@
+/* ==========================================================
+   AstraSight: medical bay pages (imca.html, ultrasound.html).
+   Loaded after styles.css and arcade.css; uses their tokens only.
+   ========================================================== */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.med-main { display: grid; gap: 22px; padding-bottom: 64px; }
+.med-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; min-width: 0; }
+.med-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.med-panel-head h2, .imca-step h2 { font-size: 18px; margin: 0; }
+.med-hint, .med-fine { font-size: 13px; color: var(--text-faint); margin: 10px 0 0; line-height: 1.5; }
+.med-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.med-actions .btn[disabled], .imca-nav .btn[disabled] { opacity: 0.45; cursor: not-allowed; transform: none; }
+.med-check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-dim); cursor: pointer; }
+.med-check input { accent-color: var(--cyan); width: 16px; height: 16px; }
+.med-select { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-dim); }
+.med-link-note { font-size: 14px; margin: 0 0 12px; }
+.med-info { margin-top: 8px; }
+.med-info h3 { margin-bottom: 10px; }
+.med-info p + p { margin-top: 10px; }
+.med-info a { color: var(--cyan); }
+
+/* form controls */
+.med-field { display: grid; gap: 6px; margin-top: 16px; font-size: 14px; color: var(--text); font-weight: 500; }
+.med-field input[type="text"], .med-field input[type="number"], .med-field textarea, .med-field select, .med-select select, .imca-vital input {
+  background: var(--surface-solid); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 9px 11px; font: inherit; font-weight: 400; width: 100%;
+}
+.med-field textarea { resize: vertical; line-height: 1.5; }
+.med-field textarea.mono { font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+.med-select select { width: auto; }
+.med-field input:focus-visible, .med-field textarea:focus-visible, .med-field select:focus-visible, .med-select select:focus-visible, .imca-vital input:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 1px; border-color: transparent;
+}
+.med-field input[type="range"], .us-sliders input[type="range"] { accent-color: var(--cyan); width: 100%; }
+.med-field output { color: var(--cyan); font-family: "JetBrains Mono", monospace; }
+.med-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.med-label { margin: 16px 0 8px; font-size: 14px; font-weight: 500; }
+.med-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.med-chip {
+  border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px; font-size: 14px; color: var(--text-dim);
+  background: transparent; cursor: pointer;
+}
+.med-chip:hover { border-color: var(--border-hi); color: var(--text); }
+.med-chip[aria-pressed="true"] { color: var(--bg); background: var(--cyan); border-color: var(--cyan); font-weight: 600; }
+.med-chip:focus-visible, .imca-rail button:focus-visible, .us-body-panel canvas:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* ---------------- ultrasound ---------------- */
+.us-organs { margin-bottom: 0; flex-wrap: wrap; }
+.us-target-line { margin: -8px 0 0; font-size: 15px; }
+.us-target-line strong { color: var(--amber); font-weight: 600; margin-right: 6px; }
+.us-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; }
+#us-body { display: block; width: 100%; height: 440px; touch-action: none; cursor: crosshair; border-radius: var(--radius-sm); }
+#us-scan { display: block; width: 100%; height: 340px; background: #000; border-radius: var(--radius-sm); }
+.us-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.us-sliders label { display: grid; gap: 4px; font-size: 14px; color: var(--text-dim); }
+.us-sliders output { color: var(--text); font-family: "JetBrains Mono", monospace; font-size: 13px; }
+.us-q { font-size: 14px; color: var(--text-dim); }
+.us-q b { color: var(--text); font-family: "JetBrains Mono", monospace; }
+.us-meter { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); margin-top: 12px; overflow: hidden; }
+.us-meter span { display: block; height: 100%; width: 0; background: var(--cyan); transition: width 0.15s linear; }
+.us-meter span[data-zone="warn"] { background: var(--warn); }
+.us-meter span[data-zone="ok"] { background: var(--ok); }
+.us-guide { font-size: clamp(19px, 2.2vw, 24px); font-weight: 600; line-height: 1.3; margin: 14px 0 0; min-height: 2.6em; color: var(--text); }
+.us-guide[data-zone="ok"] { color: var(--ok); }
+.us-captures { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.us-empty { grid-column: 1 / -1; margin: 0; }
+.us-shot { margin: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-solid); }
+.us-shot img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
+.us-shot figcaption { display: grid; gap: 2px; padding: 8px 10px; font-size: 13px; }
+.us-shot figcaption span { color: var(--text-faint); }
+.us-shot .us-status { color: var(--text-dim); }
+.us-shot[data-status="sending"] .us-status { color: var(--warn); }
+.us-shot[data-status="delivered"] { border-color: var(--ok); }
+.us-shot[data-status="delivered"] .us-status { color: var(--ok); }
+.med-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--text-dim); font-size: 14.5px; line-height: 1.5; }
+
+/* ---------------- IMCA ---------------- */
+.imca-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 22px; align-items: start; }
+.imca-rail { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; position: sticky; top: 90px; }
+.imca-rail button {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px;
+  border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-dim); font-size: 14.5px; cursor: pointer;
+}
+.imca-rail button:disabled { color: var(--text-faint); opacity: 0.6; cursor: default; }
+.imca-rail button[aria-current="step"] { border-color: var(--border-hi); color: var(--text); background: var(--surface); }
+.imca-num {
+  flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid currentColor; font-family: "JetBrains Mono", monospace; font-size: 12px;
+}
+.imca-rail button[aria-current="step"] .imca-num { background: var(--cyan); border-color: var(--cyan); color: var(--bg); }
+.imca-panel { padding: 22px 24px; }
+.imca-step h2 { margin-bottom: 4px; }
+.imca-nav { display: flex; align-items: center; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+.imca-nav #imca-next { margin-left: auto; }
+.imca-nav #imca-need { font-size: 14px; }
+.imca-flags-box { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px 14px; margin: 18px 0 0; }
+.imca-flags-box legend { padding: 0 6px; font-size: 14px; color: var(--crit); font-weight: 600; }
+.imca-flags { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 16px; }
+.imca-escalate {
+  margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--crit);
+  background: rgba(255, 42, 75, 0.1); color: var(--text); font-weight: 600;
+}
+.imca-banner { margin: 0; }
+.imca-vitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 14px; }
+.imca-vital { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border); border-left: 3px solid var(--ok); border-radius: var(--radius-sm); font-size: 14px; }
+.imca-vital[data-zone="warn"] { border-left-color: var(--warn); }
+.imca-vital[data-zone="crit"] { border-left-color: var(--crit); }
+.imca-vital-in { display: flex; align-items: center; gap: 8px; }
+.imca-vital-in em { font-style: normal; color: var(--text-dim); }
+.imca-vital small { color: var(--text-faint); font-size: 12.5px; }
+.imca-summary { font-size: 16px; margin: 12px 0 4px; }
+#imca-assessment h3 { font-size: 15px; margin: 18px 0 10px; }
+.imca-causes { margin: 0; padding-left: 22px; display: grid; gap: 14px; }
+.imca-causes > li::marker { color: var(--text-faint); }
+.imca-cause-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.imca-causes p { margin: 4px 0 0; font-size: 14px; }
+.imca-like { font-size: 12.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-dim); }
+.imca-like[data-like="more likely"] { border-color: var(--warn); color: var(--warn); }
+.imca-todo-h { color: var(--ok); font-weight: 600; }
+.imca-todo { margin: 4px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
+.imca-offline p + p { margin-top: 8px; }
+.imca-send-status { min-height: 1.4em; margin: 10px 0 0; color: var(--warn); font-size: 14px; }
+.imca-ask { margin-top: 18px; padding-top: 4px; border-top: 1px solid var(--border); }
+.imca-ask-row { display: flex; gap: 10px; }
+.imca-answer { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-solid); font-size: 14.5px; line-height: 1.55; }
+
+@media (max-width: 900px) {
+  .us-layout { grid-template-columns: 1fr; }
+  #us-body { height: 380px; }
+  #us-scan { height: 280px; }
+  .imca-layout { grid-template-columns: minmax(0, 1fr); }
+  .imca-layout > nav { min-width: 0; }
+  .imca-rail { position: static; display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+  .imca-rail li { flex: none; }
+  .imca-rail button span:not(.imca-num) { white-space: nowrap; }
+}
+@media (max-width: 520px) {
+  .us-sliders { grid-template-columns: 1fr; }
+  .imca-panel, .med-panel { padding: 16px; }
+  .imca-ask-row { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .us-meter span { transition: none; }
+}
