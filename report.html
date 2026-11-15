@@ -334,7 +334,6 @@
     .hl-body .sil-edge { fill:#39b8c8; stroke:#39b8c8; stroke-width:7; stroke-linejoin:round; filter:drop-shadow(0 0 4px rgba(0,240,255,.45)); }
     .hl-body .sil-fill { fill:#0a1726; stroke:none; }
     .hl-body .hl-dot { fill:var(--hl); filter:drop-shadow(0 0 5px var(--hl)); }
-    .hl-body .hl-side { fill:#6f8ea3; font:700 14px 'JetBrains Mono',monospace; text-anchor:middle; }
     .hl-text { min-width:0; display:flex; flex-direction:column; gap:3px; }
     .hl-eyebrow { font:700 9px 'JetBrains Mono',monospace; letter-spacing:.14em; color:var(--hl); }
     .hl-title { font-family:'Press Start 2P',monospace; font-size:12px; line-height:1.5; color:#fff; text-shadow:0 0 10px color-mix(in srgb,var(--hl) 60%,transparent); }
@@ -2156,7 +2155,7 @@ const ReportLink = (() => {
     // A plain silhouette outline (the body map's base shapes, stroked then filled so inner seams disappear),
     // with one glowing dot per reported area. No zone grid: it read as eerie at this size.
     const SIL=`<circle cx="130" cy="34" r="24"/><rect x="118" y="55" width="24" height="24" rx="7"/>
-        <path d="M96 76 Q130 67 164 76 L176 111 171 180 Q168 194 153 201 L107 201 Q92 194 89 180 L84 111Z"/>
+        <path d="M101 76 Q130 69 159 76 Q166 90 163 112 Q159 150 157 182 L151 201 L109 201 L103 182 Q101 150 97 112 Q94 90 101 76Z"/>
         <path d="M96 82 Q82 85 77 103 L58 193 Q55 207 51 222 L64 228 84 167 104 105Z"/>
         <path d="M164 82 Q178 85 183 103 L202 193 Q205 207 209 222 L196 228 176 167 156 105Z"/>
         <path d="M105 190 Q130 198 155 190 L161 247 169 333 150 341 140 265 130 219 120 265 110 341 91 333 99 247Z"/>
@@ -2165,8 +2164,7 @@ const ReportLink = (() => {
     const centre=(zz)=>{ const g=zz.g; return zz.geo==='e'?[g[0],g[1]]:zz.geo==='r'?[g[0]+g[2]/2,g[1]+g[3]/2]:[(g[0]+g[2])/2,(g[1]+g[3])/2]; };
     const mini=(view)=>{
       const dots=expandZones(view).filter(zz=>lit.has(zz.id)).map(zz=>{ const [x,y]=centre(zz); return `<circle class="hl-dot" cx="${x}" cy="${y}" r="11"/>`; }).join('');
-      return `<svg viewBox="0 0 260 365"><g class="sil-edge">${SIL}</g><g class="sil-fill">${SIL}</g>${dots}
-        <text class="hl-side" x="130" y="362">${view==='front'?'FRONT':'BACK'}</text></svg>`;
+      return `<svg viewBox="0 0 260 358" aria-hidden="true"><g class="sil-edge">${SIL}</g><g class="sil-fill">${SIL}</g>${dots}</svg>`;
     };
     $('hlBody').innerHTML=mini('front')+mini('back');
     btn.setAttribute('aria-label',`Crew health check: ${status}. Open the full form in the Medical bay.`);
