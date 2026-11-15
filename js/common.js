@@ -17,7 +17,7 @@ const NAV_LINKS = [
   ["report.html", "Report"],
   ["ultrasound.html", "Ultrasound"],
   // External: AstroKinetic-ID, the team's companion smart-handrail studio (opens in a new tab)
-  ["https://shrill-hill-970c.m9aria9.workers.dev/", "AstroKinetic ↗", "external"],
+  ["https://astrokinetic-v9.healtmonitor.bid/", "AstroKinetic ↗", "external"],
 ];
 // vega.html (ASTRA AI) is reached through the nav "?" (AstraHelp below). imca.html is no longer in the nav; the page still exists.
 
