@@ -49,6 +49,62 @@
     return isNew ? "interface.html?welcome=1" : "interface.html";
   }
 
+  /* ---------------- role picker ----------------
+     The native <select> popup is drawn by the OS (a plain black or white list we can't style), so each
+     .role-select becomes a grid of role buttons (a radio group). The select stays in the DOM, hidden,
+     as the value the rest of this file reads; focus() on it moves to the picker. */
+  function rolePicker(select) {
+    const group = document.createElement("div");
+    group.className = "role-chips";
+    group.setAttribute("role", "radiogroup");
+    const label = select.getAttribute("aria-labelledby");
+    if (label) group.setAttribute("aria-labelledby", label);
+    const chips = [...select.options].filter((o) => o.value).map((o) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "role-chip";
+      b.setAttribute("role", "radio");
+      b.dataset.value = o.value;
+      b.innerHTML = `<span class="role-dot" aria-hidden="true"></span><span></span>`;
+      b.lastChild.textContent = o.textContent;
+      return b;
+    });
+    const sync = () => chips.forEach((b, i) => {
+      const on = b.dataset.value === select.value;
+      b.setAttribute("aria-checked", String(on));
+      b.tabIndex = on || (!select.value && i === 0) ? 0 : -1;   // roving tabindex: one tab stop
+    });
+    const pick = (b) => {
+      select.value = b.dataset.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      sync();
+      b.focus();
+    };
+    chips.forEach((b, i) => {
+      b.addEventListener("click", () => pick(b));
+      b.addEventListener("keydown", (e) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        pick(chips[(i + step + chips.length) % chips.length]);
+      });
+      group.appendChild(b);
+    });
+    select.classList.add("enhanced");
+    select.required = false;   // checked in JS; a hidden required control blocks submit with an invisible bubble
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+    select.after(group);
+    select.focus = () => (chips.find((b) => b.tabIndex === 0) || chips[0]).focus();
+    sync();
+  }
+  document.querySelectorAll("select.role-select").forEach(rolePicker);
+  // Picking a role clears the "choose your role" warning next to it.
+  $("crew-role").addEventListener("change", () => { detailEl.textContent = ""; });
+  $("pw-role").addEventListener("change", () => { if ($("pw-msg").dataset.tone === "fail") { $("pw-msg").textContent = ""; $("pw-msg").dataset.tone = ""; } });
+  const ROLE_MSG = $("role-msg").textContent;
+  $("role-pick").addEventListener("change", () => { $("role-msg").textContent = ROLE_MSG; $("role-msg").dataset.tone = ""; });
+
   /* ---------------- crew role ----------------
      New crew pick it while enrolling. Crew enrolled before the dropdown existed (and email
      accounts without one) pick it once here, after signing in, before going on. */
@@ -388,7 +444,7 @@
     ev.preventDefault();
     const name = nameInput.value.trim(), role = roleInput.value;
     if (!name) return nameInput.focus();
-    if (!role) return roleInput.focus();
+    if (!role) { detailEl.textContent = "Pick your role on the crew, then scan."; return roleInput.focus(); }
     enroll(name, role);
   };
 

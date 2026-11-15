@@ -67,20 +67,18 @@
         <form id="enroll-form" class="enroll-form" autocomplete="off" hidden>
           <label for="crew-name" class="mono">Name or call sign <span class="dim">(what ASTRA calls you)</span></label>
           <input id="crew-name" maxlength="40" placeholder="e.g. Nova" required />
-          <label for="crew-role" class="mono">Role on the crew</label>
-          <div class="enroll-row">
-            <select id="crew-role" class="role-select" required>
-              <option value="" disabled selected>Choose your role</option>
-              <option value="commander">Commander</option>
-              <option value="pilot">Pilot</option>
-              <option value="flight-engineer">Flight engineer</option>
-              <option value="mission-specialist">Mission specialist</option>
-              <option value="payload-specialist">Payload specialist</option>
-              <option value="medical-officer">Crew medical officer</option>
-              <option value="other">Other</option>
-            </select>
-            <button class="btn btn-primary" type="submit">Scan my face</button>
-          </div>
+          <span class="mono role-label" id="crew-role-label">Role on the crew</span>
+          <select id="crew-role" class="role-select" required aria-labelledby="crew-role-label">
+            <option value="" disabled selected>Choose your role</option>
+            <option value="commander">Commander</option>
+            <option value="pilot">Pilot</option>
+            <option value="flight-engineer">Flight engineer</option>
+            <option value="mission-specialist">Mission specialist</option>
+            <option value="payload-specialist">Payload specialist</option>
+            <option value="medical-officer">Crew medical officer</option>
+            <option value="other">Other</option>
+          </select>
+          <button class="btn btn-primary enroll-go" type="submit">Scan my face</button>
         </form>
 
         <div class="scan-actions">
@@ -103,18 +101,18 @@
           <label class="field" data-only="create" hidden><span>Name or call sign</span>
             <input id="pw-name" maxlength="40" autocomplete="nickname" placeholder="e.g. Nova" />
           </label>
-          <label class="field" data-only="create" hidden><span>Role on the crew</span>
-            <select id="pw-role" class="role-select">
+          <div class="field" data-only="create" hidden><span id="pw-role-label">Role on the crew</span>
+            <select id="pw-role" class="role-select" aria-labelledby="pw-role-label">
               <option value="" disabled selected>Choose your role</option>
-                <option value="commander">Commander</option>
-                <option value="pilot">Pilot</option>
-                <option value="flight-engineer">Flight engineer</option>
-                <option value="mission-specialist">Mission specialist</option>
-                <option value="payload-specialist">Payload specialist</option>
-                <option value="medical-officer">Crew medical officer</option>
-                <option value="other">Other</option>
+              <option value="commander">Commander</option>
+              <option value="pilot">Pilot</option>
+              <option value="flight-engineer">Flight engineer</option>
+              <option value="mission-specialist">Mission specialist</option>
+              <option value="payload-specialist">Payload specialist</option>
+              <option value="medical-officer">Crew medical officer</option>
+              <option value="other">Other</option>
             </select>
-          </label>
+          </div>
           <label class="field"><span>Email</span>
             <input id="pw-email" type="email" autocomplete="username" required />
           </label>
@@ -135,8 +133,8 @@
       <div class="auth-view" id="view-role" hidden>
         <h2 class="auth-card-title" id="role-title">One more thing</h2>
         <form id="role-form" class="pw-form" novalidate>
-          <label class="field"><span>Your role on the crew</span>
-            <select id="role-pick" class="role-select" required>
+          <div class="field"><span id="role-pick-label">Your role on the crew</span>
+            <select id="role-pick" class="role-select" required aria-labelledby="role-pick-label">
               <option value="" disabled selected>Choose your role</option>
               <option value="commander">Commander</option>
               <option value="pilot">Pilot</option>
@@ -146,7 +144,7 @@
               <option value="medical-officer">Crew medical officer</option>
               <option value="other">Other</option>
             </select>
-          </label>
+          </div>
           <p class="form-msg" id="role-msg" role="alert">ASTRA uses it on the ship PA, and a crew medical officer gets the medical console. You only pick it once.</p>
           <button class="btn btn-primary" type="submit">Continue</button>
         </form>

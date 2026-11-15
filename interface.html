@@ -53,9 +53,12 @@
       <div class="sp-head">
         <div class="sp-title">
           <span class="dot pulse"></span>
-          <div>ASTRA Vitals<small>SIMULATED FEED · NOT A MEDICAL DEVICE</small></div>
+          <div>ASTRA Vitals<small id="feed-label">SIMULATED FEED · NOT A MEDICAL DEVICE</small></div>
         </div>
         <div class="sp-actions">
+          <button class="icon-btn" id="watch-btn" title="Connect a watch for live readings" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-4h4l1 4M9 18l1 4h4l1-4M12 9v3l2 1"/></svg>
+          </button>
           <button class="icon-btn" id="dock-btn" title="Dock to other side">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7l-4 5 4 5M17 7l4 5-4 5M3 12h18"/></svg>
           </button>
@@ -79,6 +82,8 @@
           <p id="summary-text">8 of 8 diagnostics within your baseline.</p>
         </div>
       </div>
+
+      <div class="watch-extras" id="watch-extras" hidden aria-label="Extra readings from your watch"></div>
 
       <div class="sp-tabs">
         <button class="sp-tab active" data-tab="vitals">VITALS</button>
@@ -114,6 +119,7 @@
   <script src="js/auth.js"></script>
   <script src="js/vega.js"></script>
   <script src="js/alerts.js"></script>
+  <script src="js/watch.js"></script>
   <script src="js/hud.js"></script>
   <script src="js/onboarding.js"></script>
 </body>
