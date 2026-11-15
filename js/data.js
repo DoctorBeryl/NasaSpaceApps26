@@ -20,7 +20,7 @@ const TOOLS = [
     unit: "bpm", base: 72, jitter: 3, min: 40, max: 160, warnLo: 50, warnHi: 110, decimals: 0,
     sensor: "Temple PPG array", sample: "250 Hz", latency: "< 2 s",
     range: "60 – 100 bpm",
-    blurb: "Photoplethysmography sensors in the temple arms read blood-volume pulses from the superficial temporal artery for continuous heart rate and rhythm-irregularity flags.",
+    blurb: "Photoplethysmography sensors in the comm cap's temple pads read blood-volume pulses from the superficial temporal artery for continuous heart rate and rhythm-irregularity flags.",
     steps: [
       ["Optical capture", "Green and IR LEDs illuminate the temple; photodiodes measure reflected light 250×/sec."],
       ["Motion rejection", "IMU data cancels head-movement artifacts — critical during EVA or exercise."],
@@ -37,7 +37,7 @@ const TOOLS = [
     range: "95 – 100 %",
     blurb: "Red/infrared absorption ratios estimate arterial oxygen saturation — an early warning for cabin atmosphere faults or suit pressure loss.",
     steps: [
-      ["Dual wavelength", "660 nm red and 940 nm IR light pass through tissue at the nose bridge."],
+      ["Dual wavelength", "660 nm red and 940 nm IR light reflect from tissue at the forehead."],
       ["Ratio of ratios", "Pulsatile absorption at each wavelength is compared to estimate SpO₂."],
       ["Cabin correlation", "Readings are cross-checked against habitat O₂ partial pressure telemetry."],
       ["Hypoxia alert", "Sustained drops below 94% trigger a priority HUD alert and voice warning."],
@@ -48,11 +48,11 @@ const TOOLS = [
   {
     id: "resp", name: "Respiration", short: "Breathing", icon: "lungs",
     unit: "rpm", base: 15, jitter: 1, min: 4, max: 40, warnLo: 9, warnHi: 24, decimals: 0,
-    sensor: "Nose-pad pressure + mic", sample: "100 Hz", latency: "~ 10 s",
+    sensor: "Airflow sensor + mic", sample: "100 Hz", latency: "~ 10 s",
     range: "12 – 20 breaths/min",
-    blurb: "Micro-pressure sensors in the nose pads and the bone-conduction mic detect airflow and breath sounds to derive respiratory rate and pattern.",
+    blurb: "A flow sensor at the helmet's air inlet and the comm cap mic detect airflow and breath sounds to derive respiratory rate and pattern.",
     steps: [
-      ["Airflow sensing", "Nose-pad pressure transducers detect the subtle cycle of inhale and exhale."],
+      ["Airflow sensing", "A flow sensor in the helmet's oxygen loop detects the cycle of inhale and exhale."],
       ["Acoustic fusion", "Breath sounds from the bone-conduction mic confirm each cycle."],
       ["Pattern analysis", "Rate, depth and regularity are computed over a rolling window."],
       ["CO₂ context", "Elevated rates are correlated with cabin CO₂ scrubber telemetry."],
@@ -110,7 +110,7 @@ const TOOLS = [
     unit: "mSv/d", base: 0.62, jitter: 0.03, min: 0, max: 20, warnLo: -1, warnHi: 1.5, decimals: 2,
     sensor: "Silicon PIN dosimeter", sample: "Continuous", latency: "Real-time",
     range: "0.3 – 0.8 mSv/day (LEO)",
-    blurb: "A miniaturised silicon dosimeter in the frame logs personal radiation exposure, and warns during solar particle events to move to a shielded area.",
+    blurb: "A miniaturised silicon dosimeter on top of the helmet logs personal radiation exposure, and warns during solar particle events to move to a shielded area.",
     steps: [
       ["Particle detection", "Charged particles deposit energy in a silicon PIN diode."],
       ["Dose accumulation", "Hits are converted to absorbed dose and integrated over time."],
