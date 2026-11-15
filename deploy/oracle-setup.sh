@@ -51,6 +51,9 @@ Environment=OLLAMA_HOST=127.0.0.1:11434
 Environment=OLLAMA_KEEP_ALIVE=-1
 Environment=OLLAMA_MAX_LOADED_MODELS=3
 Environment=OLLAMA_NUM_PARALLEL=1
+# Same context size as server/ollama.js (OLLAMA_NUM_CTX, default 8192). If the warm-up loads a
+# model with a different size, the first real request reloads it (about a minute on CPU).
+Environment=OLLAMA_CONTEXT_LENGTH=8192
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now ollama
@@ -139,7 +142,7 @@ sudo systemctl restart astrasight
 
 say "Warming up the models (each can take a minute or two on CPU: let it finish)"
 for m in $(APP_DIR="$APP_DIR" MODELS="$MODELS" astrasight-models); do
-  curl -fs http://127.0.0.1:11434/api/generate -d "{\"model\":\"$m\",\"prompt\":\"hi\",\"stream\":false,\"keep_alive\":-1}" >/dev/null \
+  curl -fs http://127.0.0.1:11434/api/generate -d "{\"model\":\"$m\",\"prompt\":\"hi\",\"stream\":false,\"keep_alive\":-1,\"options\":{\"num_ctx\":8192}}" >/dev/null \
     && echo "$m ready" || echo "$m warm-up failed (check: ollama list)"
 done
 
