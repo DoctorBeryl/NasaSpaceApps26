@@ -158,10 +158,13 @@ const VEGA = (() => {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   }
 
-  async function speak(text, { tone = "calm" } = {}) {
+  /* local: true skips ElevenLabs and uses the browser voice. For rapid, real-time prompts
+     (ultrasound probe guidance): instant, and it doesn't spend shared ElevenLabs credits. */
+  async function speak(text, { tone = "calm", local = false } = {}) {
     if (muted || !text) return;
     tone = toneFor(tone);
     stopAll();
+    if (local) { speakBrowser(text, tone); return; }
     const id = seq;
     const url = await ttsUrl;
     if (url) {
