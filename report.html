@@ -112,9 +112,17 @@
     .float { animation:float 1.3s ease-in-out infinite; } @keyframes float { 50%{transform:translateY(-5px)} }
     .blink { animation:blink 1.1s steps(2,end) infinite; } @keyframes blink { 50%{opacity:.25} }
     .status-line { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .toolbar-scenario { border:1px solid rgba(70,112,140,.42); background:rgba(8,20,33,.82); color:#b8cfdd; border-radius:9px; padding:8px 11px; font:10px 'JetBrains Mono',monospace; transition:.16s ease; white-space:nowrap; }
-    .toolbar-scenario:hover { border-color:rgba(0,240,255,.6); color:#eaffff; }
-    .toolbar-scenario.active { border-color:var(--cyan); background:rgba(0,240,255,.095); color:var(--cyan); box-shadow:inset 0 0 12px rgba(0,240,255,.05); }
+    .scenario-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .toolbar-scenario { --sc:var(--cyan); display:flex; align-items:center; gap:10px; min-width:0; text-align:left; border:1px solid rgba(70,112,140,.42); background:rgba(8,20,33,.82); color:#b8cfdd; border-radius:10px; padding:7px 10px 7px 7px; font:10px 'JetBrains Mono',monospace; transition:.16s ease; }
+    .toolbar-scenario .sc-icon { flex:0 0 38px; height:38px; display:grid; place-items:center; border-radius:8px; font-size:22px; line-height:1; color:var(--sc); background:color-mix(in srgb,var(--sc) 12%,transparent); border:1px solid color-mix(in srgb,var(--sc) 35%,transparent); transition:.16s ease; }
+    .toolbar-scenario .sc-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
+    .toolbar-scenario .sc-name { font-size:10.5px; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .toolbar-scenario .sc-sub { font-size:8.5px; color:#6f8798; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .toolbar-scenario:hover { border-color:color-mix(in srgb,var(--sc) 60%,transparent); color:#eaffff; }
+    .toolbar-scenario.active { border-color:var(--sc); background:color-mix(in srgb,var(--sc) 9%,rgba(8,20,33,.82)); color:var(--sc); box-shadow:inset 0 0 14px color-mix(in srgb,var(--sc) 8%,transparent); }
+    .toolbar-scenario.active .sc-icon { background:color-mix(in srgb,var(--sc) 22%,transparent); border-color:var(--sc); box-shadow:0 0 12px color-mix(in srgb,var(--sc) 30%,transparent); }
+    .toolbar-scenario[data-scenario="solar"] .sc-icon { font-size:30px; }
+    @media (max-width:1100px) { .scenario-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
     .manual-drawer { display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:7px; }
     .manual-knob { background:rgba(5,14,25,.88); border:1px solid rgba(63,103,130,.24); border-radius:7px; padding:6px 8px; min-width:0; }
     .manual-knob label { display:block; color:#7796aa; font:600 8px 'JetBrains Mono',monospace; letter-spacing:.07em; white-space:nowrap; }
@@ -133,7 +141,7 @@
     .architecture-details summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; }
     .architecture-details summary::-webkit-details-marker { display:none; }
     .architecture-details[open] summary { margin-bottom:12px; }
-    @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario{padding:7px 8px;font-size:9px}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
+    @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario .sc-icon{flex-basis:32px;height:32px;font-size:18px}.toolbar-scenario .sc-sub{display:none}.toolbar-scenario .sc-name{white-space:normal;line-height:1.3}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
   
     /* ASTRA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
     body {
@@ -393,23 +401,26 @@
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
           <button id="sensorToggle" class="btn active rounded-lg px-3 py-2 text-[10px] mono">LIVE SENSORS: ON</button>
-          <button class="toolbar-scenario active" data-scenario="nominal">✓ Nominal Profile</button>
-          <button class="toolbar-scenario" data-scenario="solar">☼ Solar Radiation Spike</button>
-          <button class="toolbar-scenario" data-scenario="exertion">ϟ Heavy Exertion</button>
-          <button class="toolbar-scenario" data-scenario="leak">⚠ Pressure / Suit Leak</button>
+          <span id="sensorStatus" class="chip rounded-md px-2 py-1.5 text-[9px] mono"><span class="text-emerald-300">● LIVE</span> / 1 Hz</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <span id="sensorStatus" class="chip rounded-md px-2 py-1.5 text-[9px] mono"><span class="text-emerald-300">● LIVE</span> / 1 Hz</span>
           <button id="manualToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-expanded="false" title="Show adjustment sliders beneath each matching parameter">MANUAL OVERRIDE ▾</button>
           <button id="resetSensors" class="btn rounded-lg px-3 py-2 text-[10px] mono">RESET</button>
         </div>
       </div>
-      
-      <div class="mt-2 flex flex-wrap items-center gap-2">
-        <div class="flex-1 min-w-[230px] rounded-lg border border-line/65 bg-[#060e19] px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 overflow-hidden"><span class="text-[9px] mono text-emerald-300">[BUS // 1Hz]</span><span id="jsonPacket" class="mono text-[9px] sm:text-[10px] text-cyan/90 whitespace-nowrap overflow-x-auto bus-scroll flex-1">{"psi":4.30,"o2":96,"co2":98,"hr":78,"rad_msv_h":0.08,"r_val":8}</span><span class="text-[8px] mono text-slate-500">SEQ <span id="packetSeq">000001</span></span></div>
-        <button id="suitGateChip" type="button" class="suit-gate rounded-md px-2.5 py-2 text-[9px] mono" title="Open Suit check">SUIT · CHECKING</button>
-        <button id="exitButton" class="btn warn rounded-md px-3 py-2 text-[9px] mono">↗ CABIN EXIT</button>
-        <button id="reentryButton" class="btn rounded-md px-3 py-2 text-[9px] mono opacity-40" disabled>↙ AIRLOCK RE-ENTRY</button>
+
+      <div class="mt-2 flex flex-wrap items-stretch gap-2">
+        <div class="scenario-grid flex-1 min-w-[260px]" role="group" aria-label="Simulation scenarios">
+          <button class="toolbar-scenario active" data-scenario="nominal" style="--sc:#34d399"><span class="sc-icon" aria-hidden="true">✓</span><span class="sc-text"><span class="sc-name">Nominal profile</span><span class="sc-sub">All readings in range</span></span></button>
+          <button class="toolbar-scenario" data-scenario="solar" style="--sc:#ffb800"><span class="sc-icon" aria-hidden="true">☼</span><span class="sc-text"><span class="sc-name">Solar radiation spike</span><span class="sc-sub">Proton flux rises</span></span></button>
+          <button class="toolbar-scenario" data-scenario="exertion" style="--sc:#ff9f43"><span class="sc-icon" aria-hidden="true">ϟ</span><span class="sc-text"><span class="sc-name">Heavy exertion</span><span class="sc-sub">HR, heat and CO₂ climb</span></span></button>
+          <button class="toolbar-scenario" data-scenario="leak" style="--sc:#ff2a4b"><span class="sc-icon" aria-hidden="true">⚠</span><span class="sc-text"><span class="sc-name">Pressure / suit leak</span><span class="sc-sub">Suit pressure drops</span></span></button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="suitGateChip" type="button" class="suit-gate rounded-md px-2.5 py-2 text-[9px] mono" title="Open Suit check">SUIT · CHECKING</button>
+          <button id="exitButton" class="btn warn rounded-md px-3 py-2 text-[9px] mono">↗ CABIN EXIT</button>
+          <button id="reentryButton" class="btn rounded-md px-3 py-2 text-[9px] mono opacity-40" disabled>↙ AIRLOCK RE-ENTRY</button>
+        </div>
       </div>
     </section>
 
@@ -1159,8 +1170,6 @@ const ReportLink = (() => {
     }
     setText('radState',state.rad>=1?'SPIKE DETECTED':state.rad>=.3?'FLUX ELEVATED':'FLUX NOMINAL');
     $('radState').style.color=state.rad>=1?'#ff2a4b':state.rad>=.3?'#ffb800':'#34d399';
-    setText('packetSeq',String(state.seq).padStart(6,'0'));
-    $('jsonPacket').textContent=JSON.stringify({...(state.operatingMode==='habitat'?{}:{psi:round(state.psi,2)}),o2:Math.round(state.o2),co2_scrubber:Math.round(state.co2),hr:Math.round(state.hr),temp_c:round(state.temp,1),work_w:Math.round(state.work),spo2:round(state.spo2,1),hrv_ms:Math.round(state.hrv),gsr_us:round(state.gsr,2),cabin_co2_ppm:Math.round(state.co2ppm),rad_msv_h:round(state.rad,2),proton_flux_k:round(state.protonFlux,2),neutron_flux:round(state.neutronFlux,3),r_val:state.r});
     renderSnapshot();
     setText('spo2Value',state.spo2.toFixed(1)); setText('hrvValue',Math.round(state.hrv)); setText('gsrValue',state.gsr.toFixed(2)); setText('co2ppmValue',Math.round(state.co2ppm));
     setText('sleepHoursValue',state.sleepHours.toFixed(1)); $('sleepBar').style.width=clamp(state.sleepHours/12*100,0,100)+'%';
