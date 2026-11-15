@@ -1745,7 +1745,7 @@ const ReportLink = (() => {
       else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
     };
     const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report (the first run can take a minute while the model loads)…</p>');
+    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report with MedGemma, its medical model. On the CPU server this usually takes 1–3 minutes (up to 5). Keep this page open…</p>');
     try{
       const headers={'Content-Type':'application/json'};
       let profile;

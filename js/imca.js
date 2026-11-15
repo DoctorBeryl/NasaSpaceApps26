@@ -198,7 +198,7 @@
     const out = $("imca-assessment"), j = state.result, mustEscalate = level() === "critical";
     $("imca-read").hidden = !j;
     if (state.loading) {
-      out.innerHTML = `<p class="dim pulse">ASTRA is reviewing the consult. The first run can take a minute while the medical model loads.</p>`;
+      out.innerHTML = `<p class="dim pulse">ASTRA is reviewing the consult with MedGemma, its medical model. It runs on a plain CPU server, so a review usually takes 1–3 minutes (up to 5). Keep this page open.</p>`;
       return;
     }
     if (!j) {

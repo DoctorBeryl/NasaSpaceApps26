@@ -173,3 +173,13 @@ Rules enforced in code, because a 4B model doesn't hold them reliably:
 - The questionnaire, tutorial, chat sidebar, and critical-stats UIs. Store the profile with `AstraAuth.saveProfile` (see [AUTH.md](AUTH.md)).
 - **Wire `report.html`'s triage chat to `/api/ai/chat`**, sending its EVA telemetry as `context`. It currently uses keyword rules that name a diagnosis ("PROBABLE TYPE II DCS"), which conflicts with ASTRA's "flag, never diagnose" rule.
 - **Persona:** `server/persona.md` follows the Gemini prototype's companion (the 16-bit pixel EVA buddy, now ASTRA), with the calmer wording the team chose in `js/companion.js`.
+
+## Which model answers what (Nov 15 team decision)
+
+| Route | Model | Why |
+|---|---|---|
+| `/api/ai/onboard/*` (questionnaire) | **Gemini Flash** (`server/gemini.js`) when `GEMINI_API_KEY` is set, else Qwen | Waits on the model after every answer, so it needs to be quick. On any Gemini error it falls back to Qwen. |
+| `/api/ai/chat`, `/api/ai/brief`, `/api/chat` | Qwen 2.5 3B (Ollama) | General and more complex tasks |
+| `/api/ai/triage` (report body map, IMCA) | **MedGemma 1.5 4B** (Ollama), never Gemini | The medical review must use the Gemma-based medical model |
+
+`GET /api/ai/status` reports `onboardModel`. Triage on the CPU server takes 1–3 minutes. `OLLAMA_TIMEOUT_MS` now defaults to 300000 (5 min), and the route sends keep-alive whitespace after 10 s, so Cloudflare's 100 s limit doesn't cut it off (`keepAlive()` in `server/ai.js`). After that point an error arrives as HTTP 200 with `{ error, status, message }`, so clients check `j.error` as well as `r.ok`. `OLLAMA_KEEP_ALIVE` (default `30m`, the hosted server uses `-1`) sets how long Ollama keeps models loaded.

@@ -7,7 +7,7 @@
 const OLLAMA_URL = (process.env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
 const MODEL = process.env.OLLAMA_MODEL || "qwen2.5:3b";
 const MED_MODEL = process.env.OLLAMA_MED_MODEL || "medgemma1.5:4b";   // medical model for triage
-const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 120000;
+const TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS) || 300000;   // 5 min: MedGemma triage on a CPU server takes 1–3 min
 const NUM_CTX = Number(process.env.OLLAMA_NUM_CTX) || 8192;
 // How long Ollama keeps a model loaded after a request: "30m" on laptops; "-1" (forever) on the
 // hosted server, so a judge never waits for MedGemma to reload. Numbers are seconds (-1 = forever).

@@ -18,6 +18,7 @@
 const fs = require("fs");
 const path = require("path");
 const ollama = require("./ollama");
+const gemini = require("./gemini");   // questionnaire only, when GEMINI_API_KEY is set (server/gemini.js)
 let auth = null;   // optional: face sign-in module (server/auth.js, docs/AUTH.md)
 try { auth = require("./auth"); } catch (e) { if (e.code !== "MODULE_NOT_FOUND") throw e; }
 const { evaluate, worstZone } = require("./registry");
@@ -165,7 +166,7 @@ function cleanMessages(messages) {
 /* ---------------- handlers ---------------- */
 async function status(req, res) {
   const [main, med] = await Promise.all([ollama.status(), ollama.status(ollama.MED_MODEL)]);
-  json(res, 200, { ...main, medModel: med.model, medModelReady: med.modelReady, endpoints: ["onboard", "chat", "brief", "triage"] });
+  json(res, 200, { ...main, medModel: med.model, medModelReady: med.modelReady, onboardModel: gemini.enabled ? gemini.MODEL : main.model, endpoints: ["onboard", "chat", "brief", "triage"] });
 }
 
 async function chat(req, res) {
@@ -414,14 +415,30 @@ async function brief(req, res) {
   });
 }
 
+/* The questionnaire waits on the model after every answer, so it uses Gemini Flash when a key is
+   set (a few seconds instead of up to a minute on a CPU server), falling back to Ollama (Qwen). */
+function onboardChat(res) {
+  const signal = abortOnClose(res);
+  return async (o) => {
+    if (gemini.enabled) {
+      try { return await gemini.chat({ ...o, signal }); }
+      catch (e) {
+        if (e.code === "aborted") throw e;
+        console.warn(`[ai] Gemini failed (${e.message}); the questionnaire uses ${ollama.MODEL} instead.`);
+      }
+    }
+    return ollama.chat({ ...o, signal });
+  };
+}
+
 async function onboardAnswer(req, res) {
   const body = await readJson(req);
-  json(res, 200, await onboarding.answer({ chat: (o) => ollama.chat({ ...o, signal: abortOnClose(res) }) }, body));
+  json(res, 200, await onboarding.answer({ chat: onboardChat(res) }, body));
 }
 
 async function onboardFinish(req, res) {
   const body = await readJson(req);
-  json(res, 200, await onboarding.finish({ chat: (o) => ollama.chat({ ...o, signal: abortOnClose(res) }) }, body));
+  json(res, 200, await onboarding.finish({ chat: onboardChat(res) }, body));
 }
 
 const ROUTES = {
