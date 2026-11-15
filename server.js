@@ -9,6 +9,7 @@
      The system prompt is fixed here, so the page can't replace it.
    - /api/ai/*  ASTRA on Qwen 2.5 via local Ollama (server/ai.js,
      contract in docs/AI-BACKEND.md)
+   - /api/watch  live readings from a Garmin watch (server/watch.js, docs/GARMIN.md)
    Run: node server.js
    ========================================================== */
 const http = require("http");
@@ -27,6 +28,7 @@ try {
 
 const ai = require("./server/ai");   // after the .env loader, so OLLAMA_* vars apply
 const auth = require("./server/auth"); // face sign-in + Firebase custom tokens (docs/AUTH.md)
+const watch = require("./server/watch"); // live Garmin readings (garmin/AstraLink, docs/GARMIN.md)
 
 // Keys from .env (comma-separated) come first, then the team's shared, committed keys
 // (server/elevenlabs-key.js). When one runs out of credits, elevenKeyed() moves to the next.
@@ -268,7 +270,13 @@ function serveStatic(req, res) {
       PRIVATE_DIRS.has(rel[0]) || (rel.length === 1 && PRIVATE_FILES.has(rel[0]))) return send(res, 404, "Not found");
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) return send(res, 404, "Not found");
-    res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream" });
+    // Validators + no-cache: browsers check for a newer copy on every load (304 when unchanged), so a
+    // push shows up without a hard refresh. Without them, a stale login.html or report.html could stick.
+    const etag = `W/"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
+    if (req.headers["if-none-match"] === etag) { res.writeHead(304, { ETag: etag, "Cache-Control": "no-cache" }); return res.end(); }
+    res.writeHead(200, { "Content-Type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream",
+      "Cache-Control": "no-cache", ETag: etag, "Last-Modified": st.mtime.toUTCString() });
+    if (req.method === "HEAD") return res.end();
     fs.createReadStream(file).pipe(res);
   });
 }
@@ -295,6 +303,7 @@ http.createServer((req, res) => {
   }
   if (ai.handle(req, res)) return;
   if (auth.handle(req, res)) return;
+  if (watch.handle(req, res)) return;
   if (url === "/api/tts" && req.method === "POST") return tts(req, res);
   if (url === "/api/tts" && req.method === "GET") return send(res, KEY ? 200 : 503, JSON.stringify({ enabled: !!KEY }), "application/json");
   if (url === "/api/stt" && req.method === "POST") return stt(req, res);

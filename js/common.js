@@ -286,3 +286,128 @@ function drawSpark(canvas, data, color = "#5ef2ff") {
 }
 
 document.addEventListener("DOMContentLoaded", () => { renderChrome(); starfield(); reveal(); });
+
+/* ==========================================================
+   TriageWatch: ASTRA's MedGemma review keeps running after you
+   leave the report screen. report.html starts a server job
+   (POST /api/ai/triage/jobs) and stores it here; every other page
+   polls it and shows a notification when it's ready (in the page,
+   plus a system notification if the tab is in the background).
+   No notification on report.html itself: the result shows there.
+   ========================================================== */
+const TriageWatch = (() => {
+  const KEY = "astrasight.triageJobs";
+  const MAX_AGE = 2 * 3600 * 1000;   // same as the server's job lifetime
+  const onReport = /report\.html$/.test(location.pathname);
+  const api = (p) => (window.AstraAuth && AstraAuth.api ? AstraAuth.api(p) : p);
+
+  function list() {
+    try {
+      const l = JSON.parse(localStorage.getItem(KEY)) || [];
+      return l.filter((j) => j && j.id && Date.now() - j.at < MAX_AGE);
+    } catch { return []; }
+  }
+  function save(l) { try { localStorage.setItem(KEY, JSON.stringify(l.slice(-10))); } catch { /* private mode */ } }
+  /** entry: { id, pid, who, at, view, rule? } — replaces any earlier job for the same crew record */
+  function add(entry) { save([...list().filter((j) => j.pid !== entry.pid), { status: "running", notified: false, ...entry }]); }
+  function update(id, patch) { save(list().map((j) => (j.id === id ? { ...j, ...patch } : j))); }
+  function remove(id) { save(list().filter((j) => j.id !== id)); }
+
+  async function headers() {
+    const h = {};
+    if (window.AstraAuth && AstraAuth.getIdToken) { const t = await AstraAuth.getIdToken().catch(() => null); if (t) h.Authorization = "Bearer " + t; }
+    return h;
+  }
+  /** One status check. Stores the outcome; returns the server's { status, result, message }. */
+  async function check(id) {
+    if (window.AstraAuth) await AstraAuth.ready.catch(() => null);
+    const r = await fetch(api(`/api/ai/triage/jobs/${encodeURIComponent(id)}`), { headers: await headers(), cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 404) j.status = "error";
+    if (j.status === "done") update(id, { status: "done", result: j.result });
+    else if (j.status === "error") update(id, { status: "error", message: j.message || "The review didn't finish." });
+    return j;
+  }
+  /** Poll until the job is done (resolves with the result) or failed (rejects). */
+  function wait(id, signal, every = 4000) {
+    return new Promise((resolve, reject) => {
+      let t = 0;
+      const stop = () => { clearTimeout(t); reject(Object.assign(new Error("aborted"), { name: "AbortError" })); };
+      if (signal) signal.addEventListener("abort", stop, { once: true });
+      const tick = async () => {
+        if (signal && signal.aborted) return;
+        try {
+          const j = await check(id);
+          if (j.status === "done") return resolve(j.result);
+          if (j.status === "error") return reject(new Error(j.message || "The review didn't finish"));
+        } catch { /* network blip: try again */ }
+        t = setTimeout(tick, every);
+      };
+      tick();
+    });
+  }
+  /** Ask for system notifications. Call from a click (report.html's review button). */
+  function askPermission() {
+    try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch { /* ignore */ }
+  }
+
+  function notify(job) {
+    update(job.id, { notified: true });
+    const ok = job.status === "done";
+    const href = `report.html${job.view ? `?${job.view}` : ""}`;
+    const title = ok ? "ASTRA's medical review is ready" : "ASTRA's medical review didn't finish";
+    const body = ok
+      ? `${job.who ? `Report for ${job.who}` : "Your report"}: ${(job.result && job.result.summary) || "open the report screen to read it."}${job.result && job.result.escalate ? " Flight surgeon review advised." : ""}`
+      : `${job.message || "Try the review again"} (${job.who || "your report"}).`;
+    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+      try { const n = new Notification(title, { body, tag: `triage-${job.id}` }); n.onclick = () => { window.focus(); location.href = href; }; } catch { /* ignore */ }
+    }
+    if (!document.getElementById("triage-toast-css")) {
+      const css = document.createElement("style");
+      css.id = "triage-toast-css";
+      css.textContent = `.triage-toast{position:fixed;left:16px;bottom:16px;z-index:9999;max-width:min(380px,calc(100vw - 32px));padding:14px 16px;border-radius:12px;
+        background:#07111d;border:1px solid rgba(0,240,255,.45);box-shadow:0 10px 40px rgba(0,0,0,.55),0 0 24px rgba(0,240,255,.15);color:#d8e8f4;
+        font:14px/1.45 Inter,system-ui,sans-serif;animation:ttIn .25s ease-out}
+        .triage-toast.warn{border-color:rgba(255,42,75,.6)}
+        .triage-toast b{display:block;font:600 11px/1.4 "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:#00f0ff;margin-bottom:4px}
+        .triage-toast.warn b{color:#ff6b81}
+        .triage-toast p{margin:0 0 10px;color:#a9c2d4;font-size:13px}
+        .triage-toast .tt-row{display:flex;gap:8px;justify-content:flex-end}
+        .triage-toast a,.triage-toast button{font:600 12px/1 "JetBrains Mono",monospace;padding:8px 12px;border-radius:8px;cursor:pointer;text-decoration:none}
+        .triage-toast a{background:#00f0ff;color:#04060d}
+        .triage-toast button{background:transparent;color:#a9c2d4;border:1px solid rgba(169,194,212,.35)}
+        @keyframes ttIn{from{transform:translateY(12px);opacity:0}}
+        @media (prefers-reduced-motion:reduce){.triage-toast{animation:none}}`;
+      document.head.appendChild(css);
+    }
+    const el = document.createElement("div");
+    el.className = `triage-toast${ok && !(job.result && job.result.escalate) ? "" : " warn"}`;
+    el.setAttribute("role", "status");
+    el.innerHTML = `<b></b><p></p><div class="tt-row"><button type="button">Dismiss</button><a>Open report</a></div>`;
+    el.querySelector("b").textContent = title;
+    el.querySelector("p").textContent = body;
+    el.querySelector("a").href = href;
+    el.querySelector("button").onclick = () => el.remove();
+    document.body.appendChild(el);
+  }
+
+  /* Other pages: poll pending jobs and notify once per job (across tabs). */
+  if (!onReport) {
+    let looping = false;
+    const loop = async () => {
+      looping = true;
+      for (const job of list()) {
+        if (job.notified) continue;
+        let j = job;
+        if (job.status === "running") { try { await check(job.id); } catch { continue; } j = list().find((x) => x.id === job.id); }
+        if (j && j.status !== "running" && !j.notified) notify(j);
+      }
+      if (list().some((j) => !j.notified)) setTimeout(loop, 5000); else looping = false;
+    };
+    const kick = () => { if (!looping && list().some((j) => !j.notified)) { looping = true; setTimeout(loop, 1500); } };
+    document.addEventListener("DOMContentLoaded", kick);
+    window.addEventListener("storage", (e) => { if (e.key === KEY) kick(); });
+  }
+
+  return { list, add, update, remove, check, wait, askPermission, onReport };
+})();

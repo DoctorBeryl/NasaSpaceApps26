@@ -1780,15 +1780,12 @@ const ReportLink = (() => {
   // the answer lands in the record it was asked for, even if the CMO has opened someone else meanwhile.
   const vegaReqs={};
   async function askVega(summary, flag, level){
-    const box=$('vegaNote'), pid=state.patient, rec=currentRec(), v=recVitals(rec);
+    const pid=state.patient, rec=currentRec(), v=recVitals(rec);
     if(vegaReqs[pid]) vegaReqs[pid].abort();
     const req=vegaReqs[pid]=new AbortController();
-    const put=(html)=>{
-      if(state.patient===pid){ box.hidden=false; box.innerHTML=html; }
-      else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
-    };
-    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report with MedGemma, its medical model. On the CPU server this usually takes 1–3 minutes (up to 5). Keep this page open…</p>');
+    const put=(html)=>putVega(pid,html);
+    if(typeof TriageWatch!=='undefined') TriageWatch.askPermission();   // still inside the click: browsers only ask then
+    put(VEGA_HEAD.replace('%M','')+VEGA_WAIT);
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
@@ -1809,26 +1806,77 @@ const ReportLink = (() => {
         'Time outside habitat':state.exited?formatClock(state.outsideSeconds):(state.lastOutside?'last EVA '+formatClock(state.lastOutside):'not outside'),
         'Active EVA countdowns':emergencies.size?byUrgency(emergencies.values()).map(e=>`${e.h.label} ${formatDuration(e.remaining)} left to ${e.h.act}`).join('; '):'none'
       };
-      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:req.signal,body:JSON.stringify({
+      const payload=JSON.stringify({
         report:summary, flag, level,
         vitals:{cardio:Math.round(v.hr),spo2:round(v.spo2,1),thermal:round(v.temp,1),hrv:Math.round(v.hrv)},
         context,profile
-      })});
-      const j=await r.json().catch(()=>({}));
-      if(!r.ok||j.error) throw new Error(j.message||('HTTP '+(j.status||r.status)));
+      });
+      const apiUrl=(p)=>typeof AstraAuth!=='undefined'&&AstraAuth.api?AstraAuth.api(p):p;
+      let j;
+      if(typeof TriageWatch!=='undefined'){
+        // Background job: the review keeps running if you leave this page, and other pages notify you when it's ready.
+        const r=await fetch(apiUrl('/api/ai/triage/jobs'),{method:'POST',headers,signal:req.signal,body:payload});
+        const sj=await r.json().catch(()=>({}));
+        if(!r.ok||!sj.id) throw new Error(sj.message||('HTTP '+r.status));
+        const o=$('triageOutput'), b=$('triageBadge');
+        TriageWatch.add({id:sj.id,pid,who:recName(rec),at:Date.now(),
+          view:rec.live?'view=display':'view=medical&role=cmo',
+          rule:{badgeClass:b.className,badgeText:b.textContent,outClass:o.className,outHTML:o.innerHTML}});
+        req.jobId=sj.id;
+        j=await TriageWatch.wait(sj.id,req.signal);
+        TriageWatch.update(sj.id,{notified:true});   // you saw it here
+      } else {
+        const r=await fetch(apiUrl('/api/ai/triage'),{method:'POST',headers,signal:req.signal,body:payload});
+        j=await r.json().catch(()=>({}));
+        if(!r.ok||j.error) throw new Error(j.message||('HTTP '+(j.status||r.status)));
+      }
+      put(vegaHtml(j));
+    }catch(e){
+      if(e.name==='AbortError') return;
+      if(req.jobId) TriageWatch.update(req.jobId,{notified:true});
+      put(vegaUnavailable(e.message));
+    }
+  }
+  const VEGA_HEAD='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
+  const VEGA_WAIT='<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report with MedGemma, its medical model. On the CPU server this usually takes 1–3 minutes (up to 5). You can leave this page: I\'ll notify you when the review is ready.</p>';
+  const vegaUnavailable=(msg)=>VEGA_HEAD.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(msg)+'). The rule-based review above still applies.</p>';
+  function putVega(pid,html){
+    if(state.patient===pid){ $('vegaNote').hidden=false; $('vegaNote').innerHTML=html; }
+    else { const r=crewRecords[pid]; if(!r) return; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
+  }
+  /* Back on the report screen: put reviews that ran (or are still running) while you were away into their records. */
+  function restoreTriageJobs(){
+    if(typeof TriageWatch==='undefined') return;
+    for(const job of TriageWatch.list()){
+      const r=crewRecords[job.pid]; if(!r||!job.rule) continue;
+      const when='<p class="text-[8px] mono text-slate-500 mt-1">REVIEW STARTED '+esc(new Date(job.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</p>';
+      const vega=job.status==='done'?vegaHtml(job.result||{})+when
+        :job.status==='error'?vegaUnavailable(job.message||'the review did not finish')
+        :VEGA_HEAD.replace('%M','')+VEGA_WAIT+when;
+      r.out={...(r.out||defaultOut(r)),...job.rule,vega,vegaHidden:false};
+      if(state.patient===job.pid){
+        $('triageBadge').className=job.rule.badgeClass; $('triageBadge').textContent=job.rule.badgeText;
+        $('triageOutput').className=job.rule.outClass; $('triageOutput').innerHTML=job.rule.outHTML;
+        $('vegaNote').innerHTML=vega; $('vegaNote').hidden=false;
+      }
+      if(job.status!=='running'){ TriageWatch.update(job.id,{notified:true}); continue; }
+      const req=vegaReqs[job.pid]=new AbortController(); req.jobId=job.id;
+      TriageWatch.wait(job.id,req.signal)
+        .then((res)=>{ TriageWatch.update(job.id,{notified:true}); putVega(job.pid,vegaHtml(res)+when); })
+        .catch((e)=>{ if(e.name==='AbortError') return; TriageWatch.update(job.id,{notified:true}); putVega(job.pid,vegaUnavailable(e.message)); });
+    }
+  }
+  function vegaHtml(j){
+      const head=VEGA_HEAD;
       const tone={'more likely':'text-amber-200','possible':'text-cyan','less likely':'text-slate-400'};
       const causes=(j.possibleCauses||[]).map(c=>`<li class="text-[10px] text-slate-300 leading-relaxed"><span class="font-bold text-slate-100">${esc(c.name)}</span> <span class="mono text-[8px] ${tone[c.likelihood]||'text-cyan'}">${esc((c.likelihood||'').toUpperCase())}</span><br><span class="text-slate-400">${esc(c.why)}</span>${(c.whatToDo||[]).length?`<div class="mono text-[8px] text-emerald-300 mt-1">WHAT TO DO</div><ul class="mt-0.5 space-y-0.5">${c.whatToDo.map(x=>`<li class="flex gap-1.5 text-[10px] text-slate-300"><span class="text-emerald-300">›</span><span>${esc(x)}</span></li>`).join('')}</ul>`:''}</li>`).join('');
       const checks=(j.checkNext||[]).map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${esc(a)}</span></li>`).join('');
-      put(head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
+      return (head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
         +(j.summary?'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.summary)+'</p>':'')
         +(causes?'<div class="eyebrow mt-3 mb-1">POSSIBLE CAUSES TO CONSIDER</div><ul class="space-y-2">'+causes+'</ul>':'')
         +(checks?'<div class="eyebrow mt-3 mb-1">CHECK OR RECORD NEXT</div><ol class="space-y-1">'+checks+'</ol>':'')
         +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'')
         +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS OR PRESCRIPTION · SIMULATED DATA</p>');
-    }catch(e){
-      if(e.name==='AbortError') return;
-      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
-    }
   }
 
   // ---------- Ship triage roles ----------
@@ -2363,6 +2411,7 @@ const ReportLink = (() => {
   let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
   const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
   setRole(startRole,true);
+  restoreTriageJobs();
   // A signed-in Crew Medical Officer (role picked at sign-in) opens in the CMO view, unless the URL says otherwise.
   if(!roleParam && typeof AstraAuth!=='undefined') AstraAuth.ready.then(async(u)=>{
     if(!u) return;
