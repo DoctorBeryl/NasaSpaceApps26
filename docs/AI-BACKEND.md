@@ -151,12 +151,18 @@ Request: `{ "report": "Left knee: pain 5/10. Onset: during EVA. Crew notes: ..."
 
 Response:
 ```json
-{ "summary": "...", "possibleCauses": [{ "name": "Decompression sickness (type I)", "likelihood": "more likely|possible|less likely", "why": "..." }],
+{ "summary": "...", "possibleCauses": [{ "name": "Decompression sickness (type I)", "likelihood": "more likely|possible|less likely", "why": "...",
+                      "whatToDo": ["Stop the EVA, or postpone the next one.", "..."] }],
   "checkNext": ["..."], "escalate": true, "model": "medgemma1.5:4b", "fallback": false,
-  "disclaimer": "AI suggestion, not a diagnosis. Confirm with the flight surgeon." }
+  "disclaimer": "AI suggestion, not a diagnosis or a prescription. Confirm with the flight surgeon." }
 ```
 
-The model lists possible causes to consider; it doesn't diagnose. `escalate` is true when the page's rule-based level is `critical`, the report has a red-flag symptom, a vital is in the danger zone, or the model asks for it. The model can add escalation but never clear it. When `escalate` is true, `checkNext` always mentions the flight surgeon.
+The model lists possible causes to consider; it doesn't diagnose. Each cause has `whatToDo`: up to 3 first-aid, self-care, or countermeasure steps. It may suggest asking the crew medical officer about a kind of medicine, but any step with a dose ("400 mg", "2 tablets", "every 6 hours") is dropped server-side.
+
+Rules enforced in code, because a 4B model doesn't hold them reliably:
+- If the report says the onset was during or after an EVA and mentions pain, numbness, tingling, skin changes, weakness, dizziness, confusion, or vision changes, DCS goes first as "more likely", with fixed steps (stop the EVA, 100% oxygen per protocol, call the flight surgeon), and `escalate` is true.
+- With no EVA in the report, a DCS entry from the model is removed.
+- Causes are sorted more likely, then possible, then less likely, and near-duplicates ("Space motion sickness" and "Motion sickness") are merged. `escalate` is true when the page's rule-based level is `critical`, the report has a red-flag symptom, a vital is in the danger zone, or the model asks for it. The model can add escalation but never clear it. When `escalate` is true, `checkNext` always mentions the flight surgeon.
 
 ## Profile fields
 
