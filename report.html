@@ -301,6 +301,13 @@
     @media (prefers-reduced-motion:reduce) { body::before { opacity:.055; } }
 
     /* Ship triage roles: a crew member sees their own record, the Crew Medical Officer (CMO) sees everyone. */
+    /* "Signed in as" switch: tinted by the active role so it reads at a glance, same height as the header buttons. */
+    .role-switch { --role:var(--cyan); background:color-mix(in srgb,var(--role) 7%,#07111d); border:1px solid color-mix(in srgb,var(--role) 55%,transparent); box-shadow:0 0 14px color-mix(in srgb,var(--role) 18%,transparent); transition:border-color .2s ease,box-shadow .2s ease,background .2s ease; }
+    .role-switch:has([data-role="cmo"][aria-pressed="true"]) { --role:var(--pink); }
+    .role-label { display:inline-flex; align-items:center; gap:5px; color:color-mix(in srgb,var(--role) 70%,#dbeaf3); font:700 9px 'JetBrains Mono',monospace; letter-spacing:.1em; white-space:nowrap; }
+    .role-label svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
+    .role-btn { font-weight:700; letter-spacing:.06em; }
+    .role-btn[aria-pressed="true"] { box-shadow:0 0 12px color-mix(in srgb,var(--role,#00f0ff) 55%,transparent); }
     .role-btn[aria-pressed="true"] { color:#001217; background:var(--cyan); border-color:var(--cyan); font-weight:800; }
     .role-btn.cmo[aria-pressed="true"] { color:#fff; background:var(--pink); border-color:var(--pink); }
     .roster-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,172px),1fr)); gap:8px; }
@@ -406,10 +413,10 @@
           <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="ship" title="The medical console, full width">MEDICAL BAY</button>
           <button class="btn text-[10px] sm:text-xs rounded-md px-3 py-2" data-view="suits" title="Sensor health of every EVA suit, and the go/no-go for cabin exit">SUIT CHECK</button>
         </div>
-        <div class="flex items-center gap-1 rounded-lg p-1 bg-[#07111d] border border-line/80" role="group" aria-label="Signed in as (demo switch)" title="Demo switch: a real ship server would set your role when you sign in">
-          <span class="soft-label px-1.5">SIGNED IN AS</span>
-          <button type="button" class="btn role-btn rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="crew" aria-pressed="true">CREW</button>
-          <button type="button" class="btn role-btn cmo rounded-md px-2.5 py-1.5 text-[10px] mono" data-role="cmo" aria-pressed="false">CMO</button>
+        <div class="role-switch flex items-center gap-1 rounded-lg p-1" role="group" aria-label="Signed in as (demo switch)" title="Demo switch: a real ship server would set your role when you sign in">
+          <span class="role-label px-1.5"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>SIGNED IN AS</span>
+          <button type="button" class="btn role-btn rounded-md px-3 py-1.5 text-[11px] mono" data-role="crew" aria-pressed="true">CREW</button>
+          <button type="button" class="btn role-btn cmo rounded-md px-3 py-1.5 text-[11px] mono" data-role="cmo" aria-pressed="false">CMO</button>
         </div>
         <button id="astraModeToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono" aria-label="Switch ASTRA between automatic and custom appearance modes">ASTRA: <span class="text-cyan">AUTO</span></button>
         <button id="voiceToggle" class="btn rounded-lg px-3 py-2 text-[10px] mono">VOICE: <span class="text-cyan">ON</span></button>

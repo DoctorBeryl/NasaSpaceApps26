@@ -117,30 +117,41 @@
   }
   function pleth(p) { return Math.max(0, Math.sin(p * Math.PI * 2)) ** 1.6 * 0.9 + Math.sin(p * Math.PI * 4 + 1) * 0.08; }
 
-  let beatPhase = 0;
+  // Every wave is driven by the eased reading (`value`), not by its zone, so the graph changes smoothly with
+  // every slider step instead of jumping only when the reading crosses a band edge. Phases are integrated
+  // (phase += dt * rate) so a rate change never makes the trace jump.
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  let beatPhase = 0, beatRate = 1.2, breathPhase = 0, blinkPhase = 0;
   function sample(tool, dt) {
-    const a = zone() !== "ok";
+    const v = value, rel = v / tool.base;   // 1 = at baseline
     switch (tool.wave) {
       case "ecg": {
-        const bpm = tool.id === "cardio" ? Math.max(20, value) : 72;
-        beatPhase = (beatPhase + dt * (bpm / 60)) % 1;
+        const prev = beatPhase;
+        beatPhase = (beatPhase + dt * beatRate) % 1;
+        if (beatPhase < prev) {   // new beat: pick the next beat's rate
+          if (tool.id === "cardio") beatRate = Math.max(20, v) / 60;
+          else beatRate = 1.2 * (1 + (Math.random() - 0.5) * clamp(rel * 0.3, 0.02, 0.9));   // HRV: more variation between beats
+        }
         return ecg(beatPhase);
       }
-      case "pleth": {
-        const amp = a ? 0.45 : 1;
+      case "pleth": {   // SpO₂: pulse amplitude shrinks as saturation falls
+        const amp = clamp((v - 80) / (tool.base - 80), 0.15, 1.05);
         return pleth((t * 1.2) % 1) * amp;
       }
-      case "sine": {
-        const rate = a ? 0.55 : 0.26;
-        return Math.sin(t * Math.PI * 2 * rate) * (a ? 0.4 : 0.8);
+      case "sine": {   // respiration: breaths per minute, shallower as it speeds up
+        breathPhase = (breathPhase + dt * Math.max(2, v) / 60) % 1;
+        return Math.sin(breathPhase * Math.PI * 2) * clamp(0.8 * Math.sqrt(tool.base / Math.max(2, v)), 0.25, 1.1);
       }
-      case "noise": {
-        const blink = (t % (a ? 1.1 : 3.4)) < 0.15 ? -0.9 : 0;
-        return blink + (Math.random() - 0.5) * 0.15 + Math.sin(t * 7) * 0.08;
+      case "noise": {   // fatigue: blinks come faster and the gaze gets noisier as the score rises
+        const interval = clamp(3.4 - (v - tool.base) / 66 * 2.6, 0.6, 4.5);
+        blinkPhase = (blinkPhase + dt / interval) % 1;
+        const blink = blinkPhase < 0.15 / interval ? -0.9 : 0;
+        return blink + (Math.random() - 0.5) * 0.15 * clamp(rel, 0.5, 3) + Math.sin(t * 7) * 0.08;
       }
-      case "slow": return Math.sin(t * 0.4) * 0.25 + (a ? 0.5 : 0) + (Math.random() - 0.5) * 0.04;
-      case "spikes": {
-        if (Math.random() < (a ? 0.35 : 0.04)) hits.push({ x: 1, h: Math.random() * 0.9 + 0.1 });
+      case "slow":   // core temperature: the trace sits higher or lower with the reading
+        return Math.sin(t * 0.4) * 0.25 + clamp((v - tool.base) * 0.4, -1.1, 1.3) + (Math.random() - 0.5) * 0.04;
+      case "spikes": {   // radiation: hit rate scales with the dose rate
+        if (Math.random() < clamp(0.04 * rel, 0.005, 0.6)) hits.push({ x: 1, h: Math.random() * 0.9 + 0.1 });
         return (Math.random() - 0.5) * 0.06;
       }
       default: return 0;
@@ -193,7 +204,7 @@
     const flash = cycle < 0.15;
     // constriction curve after flash
     const k = cycle < 0.3 ? 0 : Math.exp(-(cycle - 0.3) * 1.4);
-    const sluggish = zone() !== "ok" ? 0.35 : 1;
+    const sluggish = Math.min(1, Math.max(0.3, 1 - Math.abs(tgt() / current.base - 1) * 1.5));   // reflex weakens smoothly away from baseline
     const scale = tgt() / current.base;
     const pupil = Math.min(R * 0.95, R * scale * (0.42 - 0.22 * (1 - Math.exp(-Math.max(0, cycle - 0.3) * 6)) * k * sluggish * 1.6));
     // sclera
