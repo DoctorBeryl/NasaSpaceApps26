@@ -77,7 +77,7 @@ At the end it prints `/api/ai/status`, which should show `"modelReady": true` an
 | Live server log | `journalctl -u astrasight -f` |
 | Model log | `journalctl -u ollama -f` |
 | Restart | `sudo systemctl restart astrasight` |
-| Update now | `/usr/local/bin/astrasight-update` |
+| Update now | `sudo systemctl start astrasight-update` |
 | Models present | `ollama list` |
 | Change settings | `nano /opt/astrasight/.env`, then restart |
 

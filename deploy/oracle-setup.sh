@@ -109,6 +109,8 @@ say "Auto-update from GitHub every minute"
 sudo tee /usr/local/bin/astrasight-update >/dev/null <<EOF
 #!/usr/bin/env bash
 set -e
+# Run as the app user even when started with sudo, so .git never ends up owned by root.
+[ "$(id -u)" = 0 ] && exec sudo -u "$APP_USER" "$0"
 cd "$APP_DIR"
 git fetch -q origin main
 if [ "\$(git rev-parse HEAD)" != "\$(git rev-parse origin/main)" ]; then
