@@ -40,5 +40,7 @@ dist/
 # --- Garmin Connect IQ (garmin/AstraLink): build output and the developer signing key ---
 garmin/**/bin/
 *.der
+developer_key
+developer_key.*
 *.prg
 *.iq
