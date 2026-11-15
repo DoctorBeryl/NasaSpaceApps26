@@ -300,6 +300,10 @@
     if (user) {
       // Start from what sign-in already stored: name as the call sign, and the role picked on login.html.
       const doc = await AstraAuth.getProfile().catch(() => null);
+      if (!(doc && (doc.role || (doc.profile && doc.profile.role))) && !user.role) {
+        // Signed in before roles existed: pick it once on the sign-in page, then come back here.
+        return location.replace(`login.html?next=${encodeURIComponent("interface.html" + location.search)}`);
+      }
       profile = { ...((doc && doc.profile) || {}), ...profile };
       if (!profile.callsign) profile.callsign = user.name;
       if (!profile.role && (doc && doc.role || user.role)) profile.role = (doc && doc.role) || user.role;

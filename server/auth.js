@@ -15,6 +15,9 @@
    POST /api/auth/face/verify    { descriptors: number[128][] }          -> session | 401
    POST /api/auth/face/enroll    { name, role, descriptors: number[128][] } -> session | 409
 
+   POST /api/auth/face/role      { uid, role }  set the role of crew enrolled before roles existed
+                                 (Firebase mode: needs a Bearer ID token for that uid)
+
    session = { uid, name, role, isNew, mode, token, distance }
    role is one of ROLES in server/onboarding.js (null for crew enrolled before roles existed).
 
@@ -281,6 +284,23 @@ function enroll(body) {
   return session(user, true, null);
 }
 
+/* Crew enrolled before the role dropdown existed pick it once after sign-in (login.html).
+   Local mode has no tokens; the uid is random and only that crew member's browser holds it. */
+async function setRole(req, body) {
+  const role = cleanRole(body.role);
+  if (!role) throw bad("Choose your role on the crew.");
+  const uid = String(body.uid || "");
+  if (MODE === "firebase") {
+    const who = await userFromRequest(req);
+    if (!who || who.uid !== uid) throw bad("Sign in first.", 401, "unauthorized");
+  }
+  const u = load().users.find((x) => x.uid === uid);
+  if (!u) throw bad("No face record for this account.", 404, "not_found");   // e.g. an email account: the profile holds the role
+  u.role = role;
+  save();
+  return { uid, role };
+}
+
 /* ---------------- routing ---------------- */
 function json(res, code, obj) {
   res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
@@ -300,6 +320,7 @@ const ROUTES = {
   "GET /api/auth/config": async () => config(),
   "POST /api/auth/face/verify": async (req) => { rateLimit(req); return verify(await readJson(req)); },
   "POST /api/auth/face/enroll": async (req) => { rateLimit(req); return enroll(await readJson(req)); },
+  "POST /api/auth/face/role": async (req) => { rateLimit(req); return setRole(req, await readJson(req)); },
 };
 
 /** Returns true if the request was an /api/auth route (handled here). */

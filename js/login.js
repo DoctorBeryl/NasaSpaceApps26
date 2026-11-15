@@ -37,7 +37,7 @@
 
   /* ---------------- views ---------------- */
   function showView(name) {
-    for (const v of ["choose", "face", "password", "signed"]) $(`view-${v}`).hidden = v !== name;
+    for (const v of ["choose", "face", "password", "signed", "role"]) $(`view-${v}`).hidden = v !== name;
     if (name !== "face") { run++; stopCamera(); }   // leaving the scan: cancel it and release the camera
   }
 
@@ -47,6 +47,45 @@
     const n = params.get("next");
     if (n && /^[\w-]+\.html(\?[^#<>"']*)?$/.test(n) && !/^login\.html/.test(n)) return n;
     return isNew ? "interface.html?welcome=1" : "interface.html";
+  }
+
+  /* ---------------- crew role ----------------
+     New crew pick it while enrolling. Crew enrolled before the dropdown existed (and email
+     accounts without one) pick it once here, after signing in, before going on. */
+  async function knownRole(sessionRole) {
+    if (sessionRole) return sessionRole;
+    const doc = await AstraAuth.getProfile().catch(() => null);
+    return (doc && (doc.role || (doc.profile && doc.profile.role))) || null;
+  }
+  async function saveRole(role) {
+    const doc = (await AstraAuth.getProfile().catch(() => null)) || {};
+    await AstraAuth.saveProfile({ role, profile: { ...(doc.profile || {}), role } });
+    const u = AstraAuth.user;
+    if (!u) return;
+    try {   // also on the face record, so another browser knows it (404 for email accounts: fine)
+      const t = await AstraAuth.getIdToken().catch(() => null);
+      await fetch(AstraAuth.api("/api/auth/face/role"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t && { Authorization: `Bearer ${t}` }) },
+        body: JSON.stringify({ uid: u.uid, role }),
+      });
+    } catch { /* saved in the profile anyway */ }
+  }
+  /** Go to `url`, asking for the role first if this crew member has none. */
+  async function continueTo(url, sessionRole) {
+    if (await knownRole(sessionRole)) return location.assign(url);
+    const u = AstraAuth.user;
+    $("role-title").textContent = u ? `One more thing, ${u.name}` : "One more thing";
+    showView("role");
+    const pick = $("role-pick");
+    setTimeout(() => pick.focus(), 50);
+    $("role-form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      if (!pick.value) { $("role-msg").textContent = "Choose your role on the crew."; $("role-msg").dataset.tone = "fail"; return pick.focus(); }
+      $("role-form").querySelector("button").disabled = true;
+      await saveRole(pick.value);
+      location.assign(url);
+    };
   }
 
   /* ---------------- face: UI helpers ---------------- */
@@ -327,7 +366,7 @@
     say(session.isNew ? `Welcome aboard, ${session.name}.` : `Welcome back, ${session.name}.`,
       session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your lens…", "ok");
     controls();
-    setTimeout(() => location.assign(nextUrl(session.isNew)), session.isNew ? 1800 : 1200);
+    setTimeout(() => continueTo(nextUrl(session.isNew), session.role), session.isNew ? 1800 : 1200);
   }
 
   function fail(e) {
@@ -408,7 +447,7 @@
         : await AstraAuth.signInWithPassword(email, pass);
       const isNew = pwMode === "create";
       pwSay(isNew ? `Welcome aboard, ${u.name}.` : `Welcome back, ${u.name}.`, "ok");
-      setTimeout(() => location.assign(nextUrl(isNew)), isNew ? 1500 : 900);
+      setTimeout(() => continueTo(nextUrl(isNew), isNew ? pwRole.value : null), isNew ? 1500 : 900);
     } catch (e) {
       pwSay(PW_ERRORS[e.code] || e.message, "fail");
       pwSubmit.disabled = false;
@@ -437,15 +476,18 @@
   $("face-to-choose").onclick = toChoose;
   $("pw-to-choose").onclick = toChoose;
 
-  AstraAuth.ready.then((u) => {
+  AstraAuth.ready.then(async (u) => {
     const passwordOk = AstraAuth.config?.mode === "firebase";
     $("pick-password").disabled = !passwordOk;
     $("password-off").hidden = passwordOk;
     $("to-password").hidden = !passwordOk;
 
     if (u) {
+      // Signed in from an earlier visit but no role yet (or sent here by the questionnaire): ask for it now.
+      if (!(await knownRole(u.role))) return continueTo(nextUrl(false));
       $("signed-text").textContent = `You're signed in as ${u.name}.`;
       $("btn-continue").href = nextUrl(false);
+      $("btn-continue").onclick = (ev) => { ev.preventDefault(); continueTo(nextUrl(false)); };
       $("btn-switch").onclick = async () => { await AstraAuth.signOut(); showView("choose"); };
       return showView("signed");
     }

@@ -401,3 +401,15 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 - `interface.html` had no "Not a medical device" disclaimer (no footer); it's now in the vitals panel subtitle.
 **Verified:** `node --check` on all changed JS. Playwright: every page loads with no page errors as a guest; enroll without a role → 400; with a role the questionnaire starts at "mission", 1 of 9; profile stores role + callsign; report shows "Crew medical officer", CMO pressed, "Announcing as: Medical Officer <name>". No horizontal scroll at 390 px on any page. curl: `/.git/config`, `/SERVER/...`, `/server/data/faces.json` → 404. Test crew removed from `faces.json`.
 **Open:** crew enrolled before today have no role; the questionnaire still asks them. Existing Firestore profiles are untouched.
+
+## 2026-11-15: Alex (+ Claude): role step for existing crew; MedGemma review runs in the background with a notification
+**Why:** Alex was already enrolled (no role on file), so the face scan recognized him, the enrollment form with the role dropdown never showed, and the questionnaire asked for the role. Alex also had to keep the report page open for 1-5 minutes while MedGemma worked.
+**Changed:**
+- `login.html` + `js/login.js`: a "One more thing" role step (`#view-role`) after any sign-in, and on the already-signed-in view, when the crew member has no role. It saves to the profile and to the face record (new `POST /api/auth/face/role { uid, role }`, Firebase mode needs that uid's ID token).
+- The questionnaire **never** asks name or role: `publicQuestions()` in `server/onboarding.js` drops them. A signed-in crew member without a role is sent to `login.html?next=interface.html?welcome=1` first.
+- `server/ai.js`: triage logic moved into `triageResult()`; new `POST /api/ai/triage/jobs` (202 `{ id }`) and `GET /api/ai/triage/jobs/<id>`. In-memory, 2 h, max 200. `/api/ai/triage` (IMCA) is unchanged.
+- `report.html`: `askVega()` starts a job and polls it; the waiting text says you can leave. `restoreTriageJobs()` puts finished or still-running reviews (with the rule-based review saved at the time) back into the crew record when you return.
+- `js/common.js`: `TriageWatch`. On every page except the report, it polls pending jobs and shows a notification card ("Open report") once per job across tabs, plus a system notification if the tab is hidden and permission was given (asked when you start a review).
+- `server.js`: static files send `Cache-Control: no-cache` + `ETag`/`Last-Modified` (304 when unchanged), so a push shows without a hard refresh. Alex was seeing an old report page (it already has the nav and starfield since an earlier entry) and an old login page.
+**Verified:** Playwright with real Ollama: old account → interface?welcome=1 → role step → 9 questions starting at "mission"; report review started, left for index.html, notification after 11 s, no repeat on the next page, review restored on report.html, no page errors. `curl -I` shows no-cache + ETag.
+**Open:** jobs are lost when `astrasight` restarts (the auto-update restarts it on every push); the page then says the review didn't finish.

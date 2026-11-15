@@ -104,9 +104,11 @@ const QUESTIONS = [
 
 const byQid = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
 
-/* What the frontend needs to render the questionnaire (no schemas). */
+/* What the frontend needs to render the questionnaire (no schemas). Name and role are asked on the
+   sign-in page (login.html), never here; /answer still accepts them for older clients. */
+const SIGN_IN_FIELDS = new Set(["callsign", "role"]);
 function publicQuestions() {
-  return QUESTIONS.map(({ schema, field, ...q }) => q);
+  return QUESTIONS.filter((q) => !SIGN_IN_FIELDS.has(q.id)).map(({ schema, field, ...q }) => q);
 }
 
 /* ---------------- profile shape ---------------- */
