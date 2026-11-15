@@ -132,6 +132,7 @@
 
 @media (max-width: 520px) {
   .vega-buddy { right: 12px; left: 12px; bottom: 12px; max-width: none; }
+  .vega-buddy.minimized:not(.placed) { justify-content: flex-end; }   /* collapsed: avatar stays bottom-right */
   .vb-avatar { width: 64px; height: 64px; }
   .vb-name { grid-template-columns: 1fr auto; }
   .vb-name select { grid-column: 1 / -1; max-width: none; }
