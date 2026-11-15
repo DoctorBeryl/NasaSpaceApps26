@@ -185,6 +185,18 @@
     .architecture-details[open] summary { margin-bottom:12px; }
     #crewPaPanel[open] summary { margin-bottom:0; }
     .architecture-details:not([open]) .when-open, .architecture-details[open] .when-closed { display:none; }
+    /* Expandable panels: a cyan chevron chip, cyan show/hide text and a hover highlight, so they read as clickable. */
+    .architecture-details > summary { justify-content:flex-start; border-radius:10px; transition:background .15s ease; }
+    .architecture-details > summary > :first-child { flex:1 1 auto; min-width:0; }
+    .architecture-details > summary:hover { background:rgba(0,240,255,.045); }
+    .architecture-details > summary:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+    .architecture-details > summary::after { content:"▾"; flex:none; width:24px; height:24px; display:grid; place-items:center; border-radius:7px;
+      border:1px solid rgba(0,240,255,.5); background:rgba(0,240,255,.07); color:var(--cyan); font:700 13px/1 'JetBrains Mono',monospace;
+      box-shadow:0 0 10px rgba(0,240,255,.15); transition:transform .2s ease, background .15s ease, box-shadow .15s ease; }
+    .architecture-details > summary:hover::after { background:rgba(0,240,255,.16); box-shadow:0 0 14px rgba(0,240,255,.35); }
+    .architecture-details[open] > summary::after { transform:rotate(180deg); }
+    .architecture-details .when-closed, .architecture-details .when-open { color:var(--cyan); font-weight:700; }
+    @media (prefers-reduced-motion:reduce) { .architecture-details > summary::after { transition:none; } }
     @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario .sc-icon{flex-basis:32px;height:32px;font-size:18px}.toolbar-scenario .sc-sub{display:none}.toolbar-scenario .sc-name{white-space:normal;line-height:1.3}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
   
     /* ASTRA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
@@ -781,7 +793,7 @@
     <details class="panel architecture-details rounded-xl p-3 sm:p-3 mb-3 mt-6 overflow-hidden">
       <summary>
         <div class="eyebrow">SHIP-TO-SUIT LOCAL MESH / EDGE ARCHITECTURE</div>
-        <div class="flex items-center gap-2 text-[9px] mono text-emerald-300"><span class="dot bg-emerald-400 text-emerald-400"></span> LOCAL LINK NOMINAL <span class="text-slate-500">· DETAILS +</span></div>
+        <div class="flex items-center gap-2 text-[9px] mono text-emerald-300"><span class="dot bg-emerald-400 text-emerald-400"></span> LOCAL LINK NOMINAL <span class="when-closed">· DETAILS +</span><span class="when-open">· HIDE −</span></div>
       </summary>
       <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
         <div class="rounded-lg border border-cyan/25 bg-cyan/[.045] p-3 flex items-center gap-3">
