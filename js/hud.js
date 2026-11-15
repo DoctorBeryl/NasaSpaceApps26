@@ -181,7 +181,7 @@
   document.querySelectorAll(".sp-tab").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 
   /* ---------------- live watch (js/watch.js, docs/GARMIN.md) ---------------- */
-  const watchBtn = $("#watch-btn"), feedLabel = $("#feed-label");
+  const watchBtn = $("#watch-btn"), feedLabel = $("#feed-label"), extrasEl = $("#watch-extras");
   let watchDlg = null;
   function watchDialog() {
     if (watchDlg) return watchDlg;
@@ -226,6 +226,10 @@
     feedLabel.textContent = s.live ? `LIVE · ${s.device.toUpperCase()} · ${s.liveIds.length} OF ${TOOLS.length} READINGS` : "SIMULATED FEED · NOT A MEDICAL DEVICE";
     feedLabel.title = s.live ? `Live: ${names}. The rest are simulated. Not a medical device.` : "";
     watchBtn.classList.toggle("on", s.live);
+    const ex = AstraWatch.extras().filter((e) => e.key !== "battery");
+    extrasEl.hidden = !ex.length;
+    extrasEl.innerHTML = ex.length ? `<div class="we-head">FROM YOUR WATCH</div>` + ex.map((e) =>
+      `<div class="we-item" title="${e.note}"><span>${e.label}</span><b>${e.text}</b></div>`).join("") : "";
     watchBtn.title = s.live ? `Live from ${s.device}` : s.waiting ? `Paired (${s.code}), waiting for the watch` : "Connect a watch for live readings";
     if (watchDlg) {
       watchDlg.querySelector(".wd-status").textContent = s.live ? `Live from ${s.device}: ${names}.`
@@ -367,6 +371,8 @@
     });
     lines.push(`Readiness score: ${$("#score").textContent}`);
     if (state.alert) lines.push(`Active alert: ${toolById(state.alert).name}`);
+    if (typeof AstraWatch !== "undefined") AstraWatch.extras().forEach((e) =>
+      lines.push(`${e.label} (live from watch): ${e.text}${e.note ? ` - ${e.note}` : ""}`));
     const who = typeof Crew !== "undefined" ? Crew.callSign() : "";
     if (who) lines.push(`Crew member: ${who}`);
     return lines.join("\n");

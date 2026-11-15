@@ -1,12 +1,22 @@
-// Reads the watch's sensors and posts them to <serverUrl>/api/watch every few seconds,
-// through the phone's Garmin Connect app (Bluetooth). Server side: server/watch.js.
+// Reads every relevant sensor on the watch and posts it to <serverUrl>/api/watch every few
+// seconds, through the phone's Garmin Connect app (Bluetooth). Server side: server/watch.js.
 //
-//   hr          optical heart rate, live (Sensor.Info.heartRate)
-//   hrv         RMSSD in ms over the last ~40 beat-to-beat intervals (Sensor data listener)
-//   spo2        Pulse Ox: live when the sensor gives it, else the newest stored reading under 30 min old
-//   resp        respiration rate, breaths/min (ActivityMonitor)
-//   stress      Garmin stress score 0-100
-//   bodyBattery, steps, battery   extra context
+// Live (seconds):
+//   hr            optical heart rate (Sensor.Info.heartRate)
+//   hrv, sdnn     RMSSD and SDNN in ms over the last ~60 beat-to-beat intervals
+//   spo2          Pulse Ox: live when the sensor gives it, else the newest stored reading under 30 min old
+//   motion        movement intensity, mean deviation from 1 g in milli-g (accelerometer, 10 Hz)
+//   pressure      barometer, kPa (cabin-pressure stand-in on the ground)
+//   temp          watch temperature sensor, °C (wrist and air, NOT core temperature)
+// Minutes:
+//   resp          respiration rate, breaths/min
+//   stress        Garmin stress score 0-100
+//   bodyBattery   Garmin Body Battery 0-100 (energy reserve)
+// Today:
+//   steps, calories (kcal), activeMin (intensity minutes this week), floors, recoveryHours
+// Profile (read once):
+//   restingHr, maxHr, vo2max
+// Device: battery %
 import Toybox.ActivityMonitor;
 import Toybox.Application;
 import Toybox.Communications;
@@ -17,19 +27,36 @@ import Toybox.SensorHistory;
 import Toybox.System;
 import Toybox.Time;
 import Toybox.Timer;
+import Toybox.UserProfile;
 import Toybox.WatchUi;
 
 class AstraLink {
     const INTERVAL_MS = 3000;
 
     var code as String = "";
+    // live
     var hr as Number? = null;
     var hrv as Float? = null;
+    var sdnn as Float? = null;
     var spo2 as Number? = null;
+    var motion as Number? = null;
+    var pressure as Float? = null;
+    var temp as Float? = null;
+    // minutes
     var resp as Number? = null;
     var stress as Number? = null;
     var bodyBattery as Number? = null;
+    // today
     var steps as Number? = null;
+    var calories as Number? = null;
+    var activeMin as Number? = null;
+    var floors as Number? = null;
+    var recoveryHours as Number? = null;
+    // profile
+    var restingHr as Number? = null;
+    var maxHr as Number? = null;
+    var vo2max as Number? = null;
+
     var status as String = "Starting";
     var ok as Boolean = false;
     var sent as Number = 0;
@@ -80,12 +107,14 @@ class AstraLink {
             try {
                 Sensor.registerSensorDataListener(method(:onSensorData), {
                     :period => 1,
+                    :accelerometer => { :enabled => true, :sampleRate => 10 },
                     :heartBeatIntervals => { :enabled => true }
                 });
             } catch (e) {
-                // No beat intervals on this device: HRV just stays empty.
+                // Not supported here: HRV and motion just stay empty.
             }
         }
+        readProfile();
         var t = new Timer.Timer();
         t.start(method(:tick), INTERVAL_MS, true);
         _timer = t;
@@ -103,7 +132,7 @@ class AstraLink {
         Sensor.enableSensorEvents(null);
     }
 
-    // Callbacks are left untyped so they match every SDK's callback signature.
+    // ---------- live sensors (callbacks untyped so they match every SDK's signature) ----------
     function onSensor(info) as Void {
         if (info == null) {
             return;
@@ -115,37 +144,78 @@ class AstraLink {
             spo2 = info.oxygenSaturation;
             _spo2Live = true;
         }
+        if (info.pressure != null) {
+            pressure = info.pressure / 1000.0; // Pa -> kPa
+        }
+        if (info.temperature != null) {
+            temp = info.temperature.toFloat();
+        }
         WatchUi.requestUpdate();
     }
 
     function onSensorData(data) as Void {
-        if (data == null || data.heartRateData == null) {
+        if (data == null) {
             return;
         }
-        var ivs = data.heartRateData.heartBeatIntervals;
-        if (ivs == null) {
-            return;
+        if (data.accelerometerData != null) {
+            readMotion(data.accelerometerData);
         }
-        for (var i = 0; i < ivs.size(); i++) {
-            var ms = ivs[i];
-            if (ms != null && ms > 300 && ms < 2000) {
-                _rr.add(ms);
+        if (data.heartRateData != null && data.heartRateData.heartBeatIntervals != null) {
+            var ivs = data.heartRateData.heartBeatIntervals;
+            for (var i = 0; i < ivs.size(); i++) {
+                var ms = ivs[i];
+                if (ms != null && ms > 300 && ms < 2000) {
+                    _rr.add(ms);
+                }
             }
+            if (_rr.size() > 60) {
+                _rr = _rr.slice(_rr.size() - 60, null);
+            }
+            computeHrv();
         }
-        if (_rr.size() > 40) {
-            _rr = _rr.slice(_rr.size() - 40, null);
-        }
-        hrv = rmssd();
     }
 
-    // Root mean square of successive differences, skipping jumps over 20 % (artifacts).
-    private function rmssd() as Float? {
+    // Mean |magnitude - 1 g| over the last second, smoothed. ~0-30 still, 100+ walking, 400+ running.
+    private function readMotion(acc) as Void {
+        var xs = acc.x;
+        var ys = acc.y;
+        var zs = acc.z;
+        if (xs == null || ys == null || zs == null || xs.size() == 0) {
+            return;
+        }
+        var sum = 0.0;
+        var n = xs.size();
+        for (var i = 0; i < n; i++) {
+            var x = xs[i].toFloat();
+            var y = ys[i].toFloat();
+            var z = zs[i].toFloat();
+            var dev = Math.sqrt(x * x + y * y + z * z) - 1000.0;
+            sum += dev < 0 ? -dev : dev;
+        }
+        var now = sum / n;
+        var prev = motion;
+        motion = (prev == null ? now : prev * 0.7 + now * 0.3).toNumber();
+    }
+
+    // RMSSD and SDNN, skipping successive jumps over 20 % (artifacts, ectopic-looking beats).
+    private function computeHrv() as Void {
         if (_rr.size() < 8) {
-            return null;
+            return;
         }
         var sum = 0.0;
         var n = 0;
-        for (var i = 1; i < _rr.size(); i++) {
+        var mean = 0.0;
+        for (var i = 0; i < _rr.size(); i++) {
+            mean += _rr[i];
+        }
+        mean = mean / _rr.size();
+        var varSum = 0.0;
+        for (var i = 0; i < _rr.size(); i++) {
+            var dm = _rr[i] - mean;
+            varSum += dm * dm;
+            if (i == 0) {
+                continue;
+            }
             var prev = _rr[i - 1];
             var d = (_rr[i] - prev).toFloat();
             if (d.abs() > prev * 0.2) {
@@ -154,36 +224,81 @@ class AstraLink {
             sum += d * d;
             n += 1;
         }
-        if (n < 5) {
-            return null;
+        if (n >= 5) {
+            hrv = Math.sqrt(sum / n).toFloat();
         }
-        return Math.sqrt(sum / n).toFloat();
+        sdnn = Math.sqrt(varSum / _rr.size()).toFloat();
     }
 
-    // Readings that change slowly: respiration, stress, body battery, steps, stored SpO2.
+    // ---------- slower readings ----------
     private function readSlow() as Void {
-        var am = ActivityMonitor.getInfo();
+        var am = loose(ActivityMonitor.getInfo());
         if (am has :respirationRate && am.respirationRate != null) {
             resp = am.respirationRate;
         }
         if (am.steps != null) {
             steps = am.steps;
         }
+        if (am.calories != null) {
+            calories = am.calories;
+        }
+        if (am has :floorsClimbed && am.floorsClimbed != null) {
+            floors = am.floorsClimbed;
+        }
+        if (am has :activeMinutesWeek && am.activeMinutesWeek != null) {
+            activeMin = am.activeMinutesWeek.total;
+        }
+        if (am has :timeToRecovery && am.timeToRecovery != null) {
+            recoveryHours = am.timeToRecovery;
+        }
         if (am has :stressScore && am.stressScore != null) {
             stress = am.stressScore;
         } else if (SensorHistory has :getStressHistory) {
-            stress = newest(SensorHistory.getStressHistory({ :period => 1 }), 0);
+            stress = toNum(newest(SensorHistory.getStressHistory({ :period => 1 }), 0));
         }
         if (SensorHistory has :getBodyBatteryHistory) {
-            bodyBattery = newest(SensorHistory.getBodyBatteryHistory({ :period => 1 }), 0);
+            bodyBattery = toNum(newest(SensorHistory.getBodyBatteryHistory({ :period => 1 }), 0));
         }
         if (!_spo2Live && SensorHistory has :getOxygenSaturationHistory) {
-            spo2 = newest(SensorHistory.getOxygenSaturationHistory({ :period => 1 }), 1800);
+            spo2 = toNum(newest(SensorHistory.getOxygenSaturationHistory({ :period => 1 }), 1800));
+        }
+        if (pressure == null && SensorHistory has :getPressureHistory) {
+            var p = newest(SensorHistory.getPressureHistory({ :period => 1 }), 1800);
+            if (p != null) {
+                pressure = p / 1000.0;
+            }
+        }
+        if (temp == null && SensorHistory has :getTemperatureHistory) {
+            var t = newest(SensorHistory.getTemperatureHistory({ :period => 1 }), 1800);
+            if (t != null) {
+                temp = t.toFloat();
+            }
         }
     }
 
-    // Newest sample as a Number, or null. maxAgeSec > 0 also drops samples older than that.
-    private function newest(iter, maxAgeSec as Number) as Number? {
+    // Resting HR, max HR and VO2 max don't change during a demo: read them once.
+    private function readProfile() as Void {
+        try {
+            var p = loose(UserProfile.getProfile());
+            if (p has :restingHeartRate && p.restingHeartRate != null && p.restingHeartRate > 0) {
+                restingHr = p.restingHeartRate;
+            } else if (p has :averageRestingHeartRate && p.averageRestingHeartRate != null) {
+                restingHr = p.averageRestingHeartRate;
+            }
+            if (p has :vo2maxRunning && p.vo2maxRunning != null && p.vo2maxRunning > 0) {
+                vo2max = p.vo2maxRunning;
+            }
+            var zones = UserProfile.getHeartRateZones(UserProfile.HR_ZONE_SPORT_GENERIC);
+            if (zones != null && zones.size() > 0) {
+                maxHr = zones[zones.size() - 1]; // the last zone boundary is max HR
+            }
+        } catch (e) {
+            // Profile not available: leave these empty.
+        }
+    }
+
+    // Newest sample's value, or null. maxAgeSec > 0 also drops samples older than that.
+    private function newest(iter, maxAgeSec as Number) {
         if (iter == null) {
             return null;
         }
@@ -194,9 +309,20 @@ class AstraLink {
         if (maxAgeSec > 0 && s.when != null && Time.now().subtract(s.when).value() > maxAgeSec) {
             return null;
         }
-        return s.data.toNumber();
+        return s.data;
     }
 
+    // Returns its argument untyped, so members that only exist on newer SDKs (guarded by `has`)
+    // don't fail the compile-time type check.
+    private function loose(x) {
+        return x;
+    }
+
+    private function toNum(v) as Number? {
+        return v == null ? null : v.toNumber();
+    }
+
+    // ---------- upload ----------
     function tick() as Void {
         readSlow();
         WatchUi.requestUpdate();
@@ -215,13 +341,24 @@ class AstraLink {
         var body = {} as Dictionary;
         body["code"] = code;
         body["device"] = "Forerunner 255";
-        if (hr != null) { body["hr"] = hr; }
-        if (hrv != null) { body["hrv"] = hrv; }
-        if (spo2 != null) { body["spo2"] = spo2; }
-        if (resp != null) { body["resp"] = resp; }
-        if (stress != null) { body["stress"] = stress; }
-        if (bodyBattery != null) { body["bodyBattery"] = bodyBattery; }
-        if (steps != null) { body["steps"] = steps; }
+        put(body, "hr", hr);
+        put(body, "hrv", hrv);
+        put(body, "sdnn", sdnn);
+        put(body, "spo2", spo2);
+        put(body, "motion", motion);
+        put(body, "pressure", pressure);
+        put(body, "temp", temp);
+        put(body, "resp", resp);
+        put(body, "stress", stress);
+        put(body, "bodyBattery", bodyBattery);
+        put(body, "steps", steps);
+        put(body, "calories", calories);
+        put(body, "activeMin", activeMin);
+        put(body, "floors", floors);
+        put(body, "recoveryHours", recoveryHours);
+        put(body, "restingHr", restingHr);
+        put(body, "maxHr", maxHr);
+        put(body, "vo2max", vo2max);
         body["battery"] = System.getSystemStats().battery.toNumber();
 
         _busy = true;
@@ -230,6 +367,12 @@ class AstraLink {
             :headers => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         }, method(:onResponse));
+    }
+
+    private function put(body as Dictionary, key as String, v) as Void {
+        if (v != null) {
+            body[key] = v;
+        }
     }
 
     function onResponse(responseCode, data) as Void {
@@ -252,7 +395,7 @@ class AstraLink {
         WatchUi.requestUpdate();
     }
 
-    // Send now (SELECT button), without waiting for the timer.
+    // Send now (START button), without waiting for the timer.
     function sendNow() as Void {
         tick();
     }

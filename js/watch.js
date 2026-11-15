@@ -131,8 +131,41 @@ const AstraWatch = (() => {
       live: g || b, code, garmin: g, bluetooth: b, bluetoothName: ble.name,
       device: b ? ble.name : g ? (garmin.data.device || "Garmin watch") : "",
       ageMs: g ? Date.now() - garmin.at : null, liveIds: live,
-      waiting: !!code && !g, extra: g ? { bodyBattery: garmin.data.bodyBattery, steps: garmin.data.steps } : {},
+      waiting: !!code && !g, extra: g ? { ...garmin.data } : {},
     };
+  }
+
+  /* Readings with no HUD tool of their own, ready to show or hand to ASTRA.
+     [field, label, unit, decimals, note]. Only fields the watch actually sent are returned. */
+  const EXTRA = [
+    ["bodyBattery", "Body Battery", "/100", 0, "Garmin's energy reserve estimate"],
+    ["motion", "Movement", "mg", 0, "accelerometer, last few seconds"],
+    ["activeMin", "Intensity min", "this wk", 0, "exercise countermeasure tracking"],
+    ["recoveryHours", "Recovery time", "h", 0, "until fully recovered from the last workout"],
+    ["restingHr", "Resting HR", "bpm", 0, "personal baseline"],
+    ["maxHr", "Max HR", "bpm", 0, ""],
+    ["vo2max", "VO₂ max", "", 0, "aerobic fitness"],
+    ["sdnn", "HRV (SDNN)", "ms", 0, ""],
+    ["steps", "Steps today", "", 0, ""],
+    ["calories", "Calories today", "kcal", 0, ""],
+    ["floors", "Floors climbed", "", 0, ""],
+    ["pressure", "Pressure", "kPa", 1, "watch barometer"],
+    ["temp", "Wrist temp", "°C", 1, "wrist and air, not core temperature"],
+    ["battery", "Watch battery", "%", 0, ""],
+  ];
+  const MOTION = (mg) => mg < 40 ? "still" : mg < 150 ? "light" : mg < 400 ? "moderate" : "vigorous";
+
+  function extras() {
+    if (!isFresh(garmin.at)) return [];
+    const d = garmin.data, out = [];
+    for (const [key, label, unit, dec, note] of EXTRA) {
+      if (d[key] == null) continue;
+      let text = `${Number(d[key]).toFixed(dec)}${unit ? " " + unit : ""}`;
+      if (key === "motion") text = MOTION(d.motion);
+      out.push({ key, label, value: d[key], unit, note, text });
+    }
+    if (d.hr != null && d.maxHr) out.splice(1, 0, { key: "hrPct", label: "Effort", value: Math.round(d.hr / d.maxHr * 100), unit: "% of max HR", note: "", text: `${Math.round(d.hr / d.maxHr * 100)} % max HR` });
+    return out;
   }
 
   function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
@@ -142,5 +175,5 @@ const AstraWatch = (() => {
   setInterval(() => { const s = status().live; if (s !== lastLive) { lastLive = s; emit(); } }, 3000);
   if (code) { startPolling(); pollOnce(); }
 
-  return { get, status, onChange, pair, unpair, connectBluetooth, disconnectBluetooth, label: (id) => LABEL[id] || "watch", hasBluetooth: () => !!navigator.bluetooth };
+  return { get, status, extras, onChange, pair, unpair, connectBluetooth, disconnectBluetooth, label: (id) => LABEL[id] || "watch", hasBluetooth: () => !!navigator.bluetooth };
 })();

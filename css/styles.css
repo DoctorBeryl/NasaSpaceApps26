@@ -953,3 +953,9 @@ body.ob-open { overflow: hidden; }
 .watch-dlg button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-hi); background: rgba(94,242,255,0.08); color: var(--text); font-size: 13px; cursor: pointer; }
 .watch-dlg button:hover { border-color: var(--cyan); }
 .watch-dlg .wd-close { margin-top: 6px; float: right; }
+
+.watch-extras { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; padding: 10px 20px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.watch-extras .we-head { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--ok); }
+.watch-extras .we-item { display: flex; justify-content: space-between; gap: 8px; min-width: 0; color: var(--text-dim); }
+.watch-extras .we-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-extras .we-item b { font-family: var(--mono); font-weight: 500; color: var(--text); white-space: nowrap; }

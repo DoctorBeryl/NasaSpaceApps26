@@ -1,5 +1,17 @@
 # Live readings from a Garmin watch
 
+## What runs where
+
+| Where | What |
+|---|---|
+| **Your PC** | Connect IQ SDK and `monkeyc` (build the watch app), and copy the `.prg` to the watch over USB. That's all. |
+| **Watch** | AstraLink, which shows a pair code and sends readings |
+| **Phone** | Garmin Connect app open, Bluetooth on. It carries the watch's requests to the internet. |
+| **VM (live server)** | Nothing to do: it already serves `/api/watch` (it pulls `main` every 10 min) |
+| **Browser** | Open **the same server the watch posts to** (by default `https://app.healtmonitor.bid/interface.html`), click the watch button, and type the pair code |
+
+You only need `cloudflared` if you want the watch to post to `node server.js` on your own PC instead of the VM. Run it on the PC next to that server, and open the page from the PC (`http://localhost:8000/interface.html`). The page and the watch must use the same server, because readings live in that server's memory.
+
 The HUD (`interface.html`) can show real readings from a Garmin Forerunner 255 instead of simulated ones. Readings without a live source stay simulated, and if the watch goes quiet for 15 seconds, the HUD goes back to the simulation. Demo overrides (sliders, "simulate emergency") still win over live values, so the scripted demo works with a watch on.
 
 There are two ways in. Both start from the watch button in the HUD panel header.
@@ -21,6 +33,24 @@ There are two ways in. Both start from the watch button in the HUD panel header.
 | Respiration rate | Respiration (`resp`) | |
 | Garmin stress score (0–100) | Cognitive load (`cog`) | a stand-in: both are 0–100, higher means more strained |
 
+Everything else shows in the HUD's **From your watch** strip (under the readiness score) and goes into ASTRA's chat context:
+
+| Field | What it is | Why it matters here |
+|---|---|---|
+| `bodyBattery` | Garmin Body Battery 0–100 | fatigue and readiness for a task |
+| `hr` ÷ `maxHr` | Effort, % of max HR | exertion during EVA or exercise |
+| `motion` | accelerometer movement (still / light / moderate / vigorous) | context for a high heart rate |
+| `activeMin` | intensity minutes this week | exercise countermeasure (bone and muscle loss) |
+| `recoveryHours` | Garmin recovery time | scheduling hard tasks |
+| `restingHr`, `maxHr`, `vo2max` | profile values | personal baseline and fitness |
+| `sdnn` | HRV (SDNN) next to the RMSSD in the HRV tool | stress and recovery |
+| `steps`, `calories`, `floors` | daily activity | |
+| `pressure` | barometer, kPa | stands in for cabin pressure |
+| `temp` | watch temperature sensor | wrist and air only, so not used as body temperature |
+| `battery` | watch battery % | |
+
+What a Connect IQ app **can't** read on the FR255: sleep score, overnight HRV status, training readiness, and the ECG. Garmin keeps those in Garmin Connect, not on the watch API. They could come from the Garmin Health API, which needs a business partnership.
+
 The watch's temperature sensor measures the wrist and the air around it, not core temperature, so Core thermal stays simulated. Pupillometry and radiation have no watch source.
 
 ASTRA's chat context labels live readings ("live from the crew member's watch Pulse Ox"), so the model knows which readings are real.
@@ -35,7 +65,7 @@ ASTRA's chat context labels live readings ("live from the crew member's watch Pu
 ### One-time setup
 1. Install the [Connect IQ SDK Manager](https://developer.garmin.com/connect-iq/sdk/). Sign in, download the latest SDK and the **Forerunner 255** device.
 2. In VS Code, install the **Monkey C** extension, then run **Monkey C: Generate a Developer Key**. Keep the key outside the repo. `*.der` is gitignored anyway: never commit it.
-3. Set the server address in `garmin/AstraLink/resources/settings/properties.xml` (`serverUrl`). The default is the team's live server, which already has `/api/watch`. Use **https**: Garmin Connect on iOS refuses plain http. To use a laptop instead, run `node server.js` and `cloudflared tunnel --url http://localhost:8000`, then paste the `https://….trycloudflare.com` URL (no trailing slash).
+3. Optional: set the server address in `garmin/AstraLink/resources/settings/properties.xml` (`serverUrl`). The default is the team's live server, which already has `/api/watch`. Use **https**: Garmin Connect on iOS refuses plain http. To use a laptop instead, run `node server.js` and `cloudflared tunnel --url http://localhost:8000`, then paste the `https://….trycloudflare.com` URL (no trailing slash).
 
 ### Build
 From `garmin/AstraLink`:

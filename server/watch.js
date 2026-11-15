@@ -1,6 +1,8 @@
 /* ==========================================================
    AstraSight — live readings from a Garmin watch (Connect IQ app in garmin/AstraLink)
-   POST /api/watch          { code, hr, hrv, spo2, resp, stress, bodyBattery, steps, device }
+   POST /api/watch          { code, hr, hrv, sdnn, spo2, motion, pressure, temp, resp, stress,
+                              bodyBattery, steps, calories, activeMin, floors, recoveryHours,
+                              restingHr, maxHr, vo2max, battery, device }  (see FIELDS)
                             The watch posts every few seconds through the phone's Garmin Connect app.
    GET  /api/watch/<code>   -> { connected, ageMs, data }  for the web page (js/watch.js)
    The 6-character pair code is shown on the watch; the page asks for it once. Readings live
@@ -15,8 +17,17 @@ const store = new Map(); // code -> { at, data }
 
 /* Field -> [min, max]. Anything outside physical range is dropped, not clamped. */
 const FIELDS = {
-  hr: [25, 250], hrv: [1, 300], spo2: [50, 100], resp: [2, 70], stress: [0, 100],
-  bodyBattery: [0, 100], steps: [0, 200000], battery: [0, 100],
+  // live
+  hr: [25, 250], hrv: [1, 300], sdnn: [1, 400], spo2: [50, 100],
+  motion: [0, 16000], pressure: [10, 120], temp: [-30, 60],
+  // minutes
+  resp: [2, 70], stress: [0, 100], bodyBattery: [0, 100],
+  // today
+  steps: [0, 200000], calories: [0, 20000], activeMin: [0, 10080], floors: [0, 1000], recoveryHours: [0, 200],
+  // profile
+  restingHr: [25, 150], maxHr: [100, 250], vo2max: [10, 100],
+  // device
+  battery: [0, 100],
 };
 
 function json(res, status, body) {

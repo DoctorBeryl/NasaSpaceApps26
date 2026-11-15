@@ -38,11 +38,11 @@ class AstraLinkView extends WatchUi.View {
         dc.drawText(cx, h * 8 / 100, Graphics.FONT_XTINY, "ASTRALINK", center);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 17 / 100, Graphics.FONT_NUMBER_MEDIUM, str(l.hr, ""), center);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_NUMBER_MEDIUM, str(l.hr, ""), center);
         dc.setColor(DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, "bpm", center);
+        dc.drawText(cx, h * 33 / 100, Graphics.FONT_XTINY, "bpm", center);
 
-        var y = h * 48 / 100;
+        var y = h * 41 / 100;
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w * 24 / 100, y, Graphics.FONT_TINY, str(l.spo2, "%"), center);
         dc.drawText(cx, y, Graphics.FONT_TINY, str(l.hrv, ""), center);
@@ -52,6 +52,9 @@ class AstraLinkView extends WatchUi.View {
         dc.drawText(w * 24 / 100, ly, Graphics.FONT_XTINY, "SpO2", center);
         dc.drawText(cx, ly, Graphics.FONT_XTINY, "HRV ms", center);
         dc.drawText(w * 76 / 100, ly, Graphics.FONT_XTINY, "br/min", center);
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 61 / 100, Graphics.FONT_XTINY, "Stress " + str(l.stress, "") + "  |  Battery " + str(l.bodyBattery, ""), center);
 
         dc.setColor(DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 70 / 100, Graphics.FONT_XTINY, "PAIR CODE", center);
