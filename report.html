@@ -708,7 +708,7 @@
               <label class="sr-only" for="crew-rank">Rank</label>
               <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
               <label class="sr-only" for="crew-name">Astronaut name</label>
-              <input id="crew-name" type="text" maxlength="40" placeholder="Astronaut name" class="rounded-lg border border-line bg-[#07111d] p-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan/70">
+              <input id="crew-name" type="text" maxlength="40" readonly placeholder="Guest (sign in to use your name)" title="Comes from your sign-in and onboarding questionnaire" class="rounded-lg border border-line bg-[#07111d] p-2 text-xs text-slate-200 placeholder:text-slate-600 cursor-default focus:outline-none">
             </form>
             <div class="flex flex-wrap items-center gap-2">
               <button id="pa-toggle" type="button" class="btn rounded-md px-3 py-2 text-[9px] mono flex items-center gap-2"><span id="pa-dot" class="dot bg-emerald-400 text-emerald-400"></span><span id="pa-label">SHIP PA: ON</span></button>
@@ -2381,12 +2381,11 @@ const ReportLink = (() => {
     Crew.RANKS.forEach((r) => rankSel.insertAdjacentHTML('beforeend', `<option>${r}</option>`));
     const fill = () => {
       const p = Crew.get();
-      if (document.activeElement !== nameIn) nameIn.value = p.name;
+      nameIn.value = p.name;   // read-only: from sign-in / questionnaire, never typed
       rankSel.value = p.rank;
-      who.textContent = Crew.callSign() ? `Announcing as: ${Crew.callSign()}` : 'No name set. Announcements will say "EVA crew member".';
+      who.textContent = Crew.callSign() ? `Announcing as: ${Crew.callSign()}` : 'Guest: announcements will say "EVA crew member". Sign in to use your name.';
     };
     fill(); Crew.onChange(fill);
-    nameIn.addEventListener('input', () => Crew.set({ name: nameIn.value.trim() }));
     rankSel.addEventListener('change', () => Crew.set({ rank: rankSel.value }));
     $('crew-form').addEventListener('submit', (e) => { e.preventDefault(); nameIn.blur(); });
 

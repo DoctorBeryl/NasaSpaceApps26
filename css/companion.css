@@ -45,6 +45,7 @@
 .vb-msg { font-size: 14px; line-height: 1.5; color: var(--text); }
 .vb-msg p { margin: 0 0 8px; }
 .vb-msg b { color: var(--vb-accent); font-weight: 600; }
+.vb-msg a { color: var(--cyan); }
 .vb-loc {
   display: block; margin-bottom: 4px;
   font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
@@ -98,11 +99,37 @@
 @keyframes vb-blink { 50% { opacity: 0.2; } }
 @keyframes vb-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
+/* ---------- drag, throw, bounce the "?" (js/companion.js) ---------- */
+.vb-help { touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
+.vega-buddy.placed { right: auto; bottom: auto; max-width: min(400px, calc(100vw - 16px)); }
+.vega-buddy.vb-left { flex-direction: row-reverse; }
+.vega-buddy.vb-top { align-items: flex-start; }
+.vega-buddy.vb-left .vb-bubble { border-radius: 16px 16px 16px 4px; }
+.vega-buddy.vb-top .vb-bubble { border-radius: 16px 4px 16px 16px; }
+.vega-buddy.vb-top.vb-left .vb-bubble { border-radius: 4px 16px 16px 16px; }
+.vega-buddy.dragging { -webkit-user-select: none; user-select: none; }
+.vega-buddy.dragging .vb-help,
+.vega-buddy.dragging[data-mood="critical"] .vb-help {
+  cursor: grabbing; animation: none;
+  transform: rotate(var(--vb-tilt, 0deg)) scale(1.15);
+  transition: transform .09s ease-out;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, .55), 0 0 30px color-mix(in srgb, var(--vb-accent) 65%, transparent);
+}
+.vega-buddy.bonk .vb-help { animation: vb-bonk .32s ease-out; }
+@keyframes vb-bonk {
+  0% { transform: scale(1.18, .8); }
+  45% { transform: scale(.9, 1.12); }
+  75% { transform: scale(1.04, .97); }
+  100% { transform: none; }
+}
+
 @media (max-width: 520px) {
   .vega-buddy { right: 12px; left: 12px; bottom: 12px; max-width: none; }
   .vega-buddy.minimized { left: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vb-help, .vega-buddy.pop .vb-bubble,
-  .vega-buddy[data-mood="critical"] .vb-help, .vega-buddy[data-mood="critical"] .vb-badge i { animation: none; transition: none; }
+  .vega-buddy[data-mood="critical"] .vb-help, .vega-buddy[data-mood="critical"] .vb-badge i,
+  .vega-buddy.bonk .vb-help { animation: none; transition: none; }
+  .vega-buddy.dragging .vb-help { transform: scale(1.06); transition: none; }
 }
