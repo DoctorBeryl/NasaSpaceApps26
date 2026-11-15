@@ -530,9 +530,8 @@
                 <div class="track mt-3"><div id="rBar" class="fill bg-emerald-400" style="width:8%"></div></div>
                 <div class="grid grid-cols-2 gap-3 mt-4">
                   <div><div class="eyebrow">N₂ BUBBLE SAFETY MARGIN</div><div class="text-lg mono text-cyan mt-1"><span id="n2Value">92</span><span class="text-xs text-slate-500">%</span></div><div class="track mt-1"><div id="n2Bar" class="fill bg-cyan" style="width:92%"></div></div></div>
-                  <div><div class="eyebrow">SIM. STABILIZATION EST.</div><div class="text-lg mono text-amber mt-1" id="repressTime">00:08</div><div class="text-[9px] text-slate-500 mt-1">Not a treatment schedule</div></div>
+                  <div><div class="eyebrow">SIM. STABILIZATION EST.</div><div class="text-lg mono text-amber mt-1" id="repressTime">00:08</div></div>
                 </div>
-                <p class="text-[9px] text-slate-500 mt-3 leading-relaxed">R-value is an illustrative interface heuristic only. It is not a validated Conkin score or decompression-sickness prediction.</p>
               </div>
               <div class="rounded-xl border border-line/80 bg-[#07111d] p-3">
                 <div class="flex items-center justify-between"><div class="eyebrow">RADIATION / SHELTER WINDOW</div><span id="radState" class="text-[9px] mono text-emerald-300">FLUX NOMINAL</span></div>
@@ -572,7 +571,6 @@
                   <div class="telemetry-mini"><div class="soft-label">GSR · SKIN RESPONSE</div><div class="mini-value text-pink"><span id="gsrValue">2.6</span><small class="text-xs text-slate-500"> µS</small></div><div class="text-[8px] mono text-slate-600 mt-1">ELECTRODERMAL ACTIVITY</div></div>
                   <div class="telemetry-mini"><div class="soft-label">CABIN CO₂</div><div class="mini-value text-amber"><span id="co2ppmValue">650</span><small class="text-xs text-slate-500"> ppm</small></div><div class="text-[8px] mono text-slate-600 mt-1">ENVIRONMENTAL SENSOR</div></div>
                 </div>
-                <p class="text-[9px] text-slate-600 mt-2">These are independent mock channels. They do not assess fitness, diagnose a condition, or replace approved onboard monitoring.</p>
               </div>
               <div id="module-sleep" class="module-pane" role="tabpanel">
                 <div class="grid grid-cols-1 md:grid-cols-[1.1fr_.9fr] gap-3">
@@ -586,7 +584,7 @@
                     <input id="sleepTarget" type="range" min="5" max="12" step="0.5" value="8" class="w-full mt-1">
                     <div id="sleepScheduleSummary" class="text-[9px] mono text-slate-500 mt-2">22:30 → 06:30 · 8.0 h scheduled</div>
                   </div>
-                  <div class="telemetry-mini flex flex-col justify-center"><div class="soft-label">RECORDED SLEEP SAMPLE</div><div class="mini-value text-cyan mt-1"><span id="sleepHoursValue">7.6</span><small class="text-xs text-slate-500"> h</small></div><div class="text-[9px] mono text-slate-500 mt-2">LAST SIMULATED REST PERIOD</div><div class="track mt-2"><div id="sleepBar" class="fill bg-cyan" style="width:95%"></div></div><div class="text-[8px] text-slate-600 mt-2">Schedule is user-configured demo data, not a sleep recommendation.</div></div>
+                  <div class="telemetry-mini flex flex-col justify-center"><div class="soft-label">RECORDED SLEEP SAMPLE</div><div class="mini-value text-cyan mt-1"><span id="sleepHoursValue">7.6</span><small class="text-xs text-slate-500"> h</small></div><div class="text-[9px] mono text-slate-500 mt-2">LAST SIMULATED REST PERIOD</div><div class="track mt-2"><div id="sleepBar" class="fill bg-cyan" style="width:95%"></div></div></div>
                 </div>
               </div>
               <div id="module-assays" class="module-pane" role="tabpanel">
@@ -594,7 +592,6 @@
                   <div class="telemetry-mini"><div class="soft-label">LIQUID BIOPSY / cfDNA SAMPLE</div><div class="flex items-end gap-2 mt-1"><div class="mini-value text-cyan"><span id="cfDnaValue">0.84</span></div><span class="text-[9px] mono text-slate-500 mb-1">RELATIVE ASSAY UNITS</span></div><div class="text-[8px] mono text-emerald-300 mt-2">SAMPLE RECEIVED · QC PASS (SIM)</div></div>
                   <div class="telemetry-mini"><div class="soft-label">PHENOTYPE / REFERENCE PROFILE</div><label for="phenotypePreset" class="text-[9px] text-slate-400 block mt-2">DISPLAY PROFILE</label><select id="phenotypePreset" class="w-full mt-1 rounded border border-line bg-[#050e18] px-2 py-2 text-[10px] mono text-slate-200"><option value="reference">Reference profile</option><option value="profile-a">Sample profile A</option><option value="profile-b">Sample profile B</option><option value="profile-c">Sample profile C</option></select><div id="phenotypeState" class="text-[8px] mono text-slate-500 mt-2">REFERENCE CONFIGURATION · NO CLASSIFICATION</div></div>
                 </div>
-                <p class="text-[9px] text-slate-600 mt-2">The cfDNA value and profile selector are placeholders for interface testing only. No genetic, cancer, disease, or personal-trait interpretation is performed.</p>
               </div>
               <div id="module-radiation" class="module-pane" role="tabpanel">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -603,7 +600,6 @@
                   <div class="telemetry-mini"><div class="soft-label">HIGH-ENERGY EVENT</div><div id="radiationEventValue" class="text-sm mono text-emerald-300 mt-2">QUIET</div><div class="text-[8px] mono text-slate-600 mt-1">EVENT CLASSIFIER</div></div>
                   <div class="telemetry-mini"><div class="soft-label">SENSOR HEALTH</div><div class="text-sm mono text-cyan mt-2">3 / 3 ONLINE</div><div class="text-[8px] mono text-slate-600 mt-1">DOSE + PARTICLE CHANNELS</div></div>
                 </div>
-                <p class="text-[9px] text-slate-600 mt-2">Radiation outputs are illustrative sensor placeholders. No exposure threshold or safe-work duration is established by this dashboard.</p>
               </div>
               <div id="module-habitat" class="module-pane" role="tabpanel">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -697,7 +693,7 @@
           <div class="p-4">
             <div id="triageOutput" class="rounded-lg border border-line/70 bg-[#07111d] p-3 min-h-[128px]">
               <div class="flex gap-2 items-center text-cyan"><span class="text-lg">✦</span><span class="text-xs font-bold tracking-wider">READY FOR CREW REPORT</span></div>
-              <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">Choose a body zone, select any reported symptoms, then run the offline simulation. This interface can surface patterns for training; it cannot diagnose decompression sickness.</p>
+              <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">Choose a body zone, select any reported symptoms, then run the offline simulation.</p>
             </div>
             <div id="vegaNote" class="mt-3 rounded-lg border border-cyan/25 bg-cyan/[.04] p-3" aria-live="polite" hidden></div>
             <div id="surgeonBox" class="mt-3 rounded-lg border border-pink/30 bg-pink/[.04] p-3 hidden-view">
@@ -1231,7 +1227,7 @@ const ReportLink = (() => {
     setText('endpointMode',habitat?'MODE: IVA · LOCAL LINK ENCRYPTED':'SUIT: EVA-07 · LINK ENCRYPTED');
     setText('modeArchitectureHint',habitat?'● HABITAT / IVA MONITORING ACTIVE':'● EVA / EXTERIOR MONITORING ACTIVE');
     setText('timerTitle',habitat?'HABITAT WATCH / IVA':'MAX SAFE OUTSIDE TIME');
-    setText('timerFootnote',habitat?'ILLUSTRATIVE SHIELDED DOSE MODEL · WATCH CLOCK 1.0×':'DEMO SORTIE BUDGET · REAL-TIME 1.0× · NOT A FLIGHT LIMIT');
+    setText('timerFootnote',habitat?'SHIELDED DOSE MODEL · WATCH CLOCK 1.0×':'SORTIE BUDGET · REAL-TIME 1.0×');
   }
 
   function render(){
@@ -1799,7 +1795,7 @@ const ReportLink = (() => {
     const out=$('triageOutput'); out.className='rounded-lg border p-3 min-h-[128px] '+(level==='critical'?'border-alert/40 bg-alert/[.055]':level==='caution'?'border-amber/35 bg-amber/[.04]':'border-line/70 bg-[#07111d]');
     const locationLine=locations.length?`<p class="text-[10px] mono text-cyan mt-2">LOCATIONS: ${locations.map(s=>s.replace(/[&<>"']/g,'')).join(' · ')}</p>`:'';
     const onsetLine=`<p class="text-[9px] mono text-slate-500 mt-1">ONSET: ${$('onsetSelect').value}</p>`;
-    out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SIMULATION ROUTING / NOT A TREATMENT PROTOCOL</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
+    out.innerHTML=`<div class="flex items-center gap-2 ${level==='critical'?'text-rose-300':level==='caution'?'text-amber-200':'text-cyan'}"><span class="text-lg">${level==='critical'?'⚠':level==='caution'?'◈':'✦'}</span><span class="text-xs font-bold tracking-wider">${title}</span></div><p class="text-[11px] text-slate-300 mt-2 leading-relaxed">${body}</p>${locationLine}${onsetLine}${actions.length?'<div class="eyebrow mt-3 mb-2">SUGGESTED ROUTING</div><ol class="space-y-2">'+actions.map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${a}</span></li>`).join('')+'</ol>':''}`;
     state.triageRan=true;
     rec.reportedAt=Date.now(); rec.reviewed=level;
     if(level==='none'){ $('vegaNote').hidden=true; }

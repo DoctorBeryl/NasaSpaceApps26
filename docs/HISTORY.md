@@ -516,3 +516,7 @@ Public repo: no secrets, emails, personal paths, or private conversations here. 
 ## 2026-11-15: Alex (+ Claude): health-check launcher uses a plain silhouette
 **Changed:** The Ship display's "Crew health check" button on `report.html` no longer draws the body map's zone grid at small size (Alex found it eerie). It now shows a simple front and back human outline (the body map's base shapes, stroked and then filled so the seams between them disappear) with one glowing dot at the centre of each area you reported.
 **Verified:** Playwright at 1600, 1280 and 390 px: a reported area shows as a dot, and there are no page errors.
+
+## 2026-11-15: Alex (+ Claude): report screen keeps one simulation warning
+**Changed:** `report.html` keeps the "SIMULATION ONLY" banner and the header's "Concept prototype · Simulated data · Not a medical device" line. The small per-panel disclaimers repeated them and are gone: the R-value/Conkin note, "Not a treatment schedule", the vitals "mock channels" note, the sleep "not a sleep recommendation" note, the cfDNA placeholder note, the radiation placeholder note, and "it cannot diagnose decompression sickness" in the review's empty state. Labels lost their disclaimer words: "SUGGESTED ROUTING" (was "SIMULATION ROUTING / NOT A TREATMENT PROTOCOL"), "SHIELDED DOSE MODEL" and "SORTIE BUDGET".
+**Kept on purpose:** "AI SUGGESTION · NOT A DIAGNOSIS OR PRESCRIPTION" under ASTRA's medical AI note, because CLAUDE.md requires that ASTRA never presents itself as diagnosing.
