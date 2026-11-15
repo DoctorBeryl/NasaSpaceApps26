@@ -67,8 +67,8 @@ At the end it prints `/api/ai/status`, which should show `"modelReady": true` an
 
 - **Firebase sign-in:** in the Firebase console, go to **Authentication → Settings → Authorized domains** and add `app.<your-domain>`.
 - **Firebase service account (optional):** without it, face sign-in runs in local mode on the server. To use it, copy the JSON over from your PC with `scp -i <key> <file>.json ubuntu@<IP>:/opt/astrasight/`. Then add `FIREBASE_SERVICE_ACCOUNT=./<file>.json` to `/opt/astrasight/.env` and run `sudo systemctl restart astrasight`.
-- **Updates:** the server pulls `main` every 10 minutes and restarts when something changed. To freeze the site (for example after submission), run `sudo systemctl disable --now astrasight-update.timer`.
-- **Adding a model:** add a line `OLLAMA_<NAME>_MODEL=<ollama tag>` to `.env.example` and push. Within 10 minutes the server pulls the model and restarts. `astrasight-models` lists what it will pull. Up to 3 models stay loaded at once (`OLLAMA_MAX_LOADED_MODELS=3`). Check memory before adding big ones: the Google Cloud e2-standard-4 has 16 GB, and Qwen 3B plus MedGemma 4B use about 6 GB.
+- **Updates:** the server pulls `main` every minute and restarts when something changed. To freeze the site (for example after submission), run `sudo systemctl disable --now astrasight-update.timer`.
+- **Adding a model:** add a line `OLLAMA_<NAME>_MODEL=<ollama tag>` to `.env.example` and push. Within a minute the server pulls the model and restarts. `astrasight-models` lists what it will pull. Up to 3 models stay loaded at once (`OLLAMA_MAX_LOADED_MODELS=3`). Check memory before adding big ones: the Google Cloud e2-standard-4 has 16 GB, and Qwen 3B plus MedGemma 4B use about 6 GB.
 
 ## Day-to-day
 
@@ -77,7 +77,7 @@ At the end it prints `/api/ai/status`, which should show `"modelReady": true` an
 | Live server log | `journalctl -u astrasight -f` |
 | Model log | `journalctl -u ollama -f` |
 | Restart | `sudo systemctl restart astrasight` |
-| Update now | `/usr/local/bin/astrasight-update` |
+| Update now | `sudo systemctl start astrasight-update` |
 | Models present | `ollama list` |
 | Change settings | `nano /opt/astrasight/.env`, then restart |
 

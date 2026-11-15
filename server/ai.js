@@ -12,10 +12,14 @@
    POST /api/ai/brief               { vitals, profile?, context? }   (critical-stats screen)
    POST /api/ai/triage              { report, flag?, level?, vitals?, context?, profile? }
                                     (body-map triage on MedGemma; falls back to Qwen)
+   POST /api/ai/triage/jobs         same body -> 202 { id }: runs in the background, so the
+                                    page can be closed while MedGemma works (report.html)
+   GET  /api/ai/triage/jobs/<id>    { id, status: running|done|error, result?, message? }
 
    See docs/AI-BACKEND.md for the full contract.
    ========================================================== */
 const fs = require("fs");
+const crypto = require("crypto");
 const path = require("path");
 const ollama = require("./ollama");
 const gemini = require("./gemini");   // questionnaire only, when GEMINI_API_KEY is set (server/gemini.js)
@@ -283,6 +287,45 @@ const DOSE = /\b\d+(\.\d+)?\s*(mg|mcg|µg|g|cc|units?|iu|tablets?|tabs?|pills?|c
 
 async function triage(req, res) {
   const body = await readJson(req);
+  const signal = abortOnClose(res);
+  const stopKeepAlive = keepAlive(res);
+  try {
+    const out = await triageResult(body, signal);
+    stopKeepAlive();
+    json(res, 200, out);
+  } catch (e) {
+    stopKeepAlive();
+    throw e;
+  }
+}
+
+/* Background triage jobs: MedGemma on a CPU server takes 1-5 minutes, and the crew shouldn't have to
+   keep the report page open. Jobs live in memory (lost on restart) for 2 hours; the id is random and
+   is the only way to read the result. */
+const JOBS = new Map();
+const JOB_TTL = 2 * 3600 * 1000, MAX_JOBS = 200;
+async function triageJobStart(req, res) {
+  const body = await readJson(req);
+  if (!str(body.report, 2000)) throw Object.assign(new Error("report is required"), { status: 400 });
+  const now = Date.now();
+  for (const [id, j] of JOBS) if (now - j.created > JOB_TTL) JOBS.delete(id);
+  if (JOBS.size >= MAX_JOBS) throw Object.assign(new Error("Too many reviews queued. Try again in a few minutes."), { status: 503, code: "busy" });
+  const id = crypto.randomBytes(12).toString("base64url");
+  const job = { status: "running", created: now };
+  JOBS.set(id, job);
+  triageResult(body)
+    .then((result) => { job.status = "done"; job.result = result; })
+    .catch((e) => { job.status = "error"; job.message = e.message; job.code = e.code || "server_error"; console.error("[ai] triage job failed:", e.message); })
+    .finally(() => { job.finished = Date.now(); });
+  json(res, 202, { id, status: "running" });
+}
+function triageJobGet(req, res, id) {
+  const job = JOBS.get(id);
+  if (!job) return json(res, 404, { error: "not_found", message: "No such review. The server may have restarted; run the review again." });
+  json(res, 200, { id, status: job.status, result: job.result, message: job.message, code: job.code });
+}
+
+async function triageResult(body, signal) {
   const report = str(body.report, 2000);
   if (!report) throw Object.assign(new Error("report is required"), { status: 400 });
   const profile = onboarding.cleanProfile(body.profile);
@@ -292,20 +335,15 @@ async function triage(req, res) {
     { role: "system", content: triagePrompt(profile, rows, cleanContext(body.context)) },
     { role: "user", content: `${report}${body.flag ? `\nThe rule-based screen flagged: ${str(body.flag, 200)}.` : ""}` },
   ];
-  const signal = abortOnClose(res);
-  const stopKeepAlive = keepAlive(res);
-
   let out, model = ollama.MED_MODEL, fallback = false;
   try {
     out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
   } catch (e) {
-    if (e.code !== "model_missing" || ollama.MED_MODEL === ollama.MODEL) { stopKeepAlive(); throw e; }
+    if (e.code !== "model_missing" || ollama.MED_MODEL === ollama.MODEL) throw e;
     console.warn(`[ai] ${e.message}. Triage is using ${ollama.MODEL} instead.`);
     model = ollama.MODEL; fallback = true;
-    try { out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal }); }
-    catch (e2) { stopKeepAlive(); throw e2; }
+    out = await ollama.chat({ model, messages, format: TRIAGE_SCHEMA, temperature: 0.2, signal });
   }
-  stopKeepAlive();
 
   const possibleCauses = (Array.isArray(out.possibleCauses) ? out.possibleCauses : [])
     .filter((c) => c && str(c.name, 80))
@@ -347,7 +385,7 @@ async function triage(req, res) {
   const escalate = ruleEscalate || out.escalate === true || (postEva && DCS_SIGNS.test(report));
   if (escalate && !checkNext.some((a) => MENTIONS_SURGEON.test(a))) checkNext.unshift(ESCALATION_LINE);
 
-  json(res, 200, { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis or a prescription. Confirm with the flight surgeon." });
+  return { summary: str(out.summary, 300), possibleCauses, checkNext, escalate, model, fallback, disclaimer: "AI suggestion, not a diagnosis or a prescription. Confirm with the flight surgeon." };
 }
 
 /* Critical-stats screen: a short ASTRA briefing. Status and escalation are decided in code, the words by Qwen. */
@@ -374,7 +412,7 @@ async function brief(req, res) {
   try {
     const r = await ollama.chat({
       messages: [
-        { role: "system", content: `${systemPrompt(profile, rows, cleanContext(body.context))}\n\nYou are writing the critical-stats screen in the lens. Be terse.\n- headline: one sentence, max 14 words, on overall status.\n- notes: one short note (max 12 words) per reading id, saying what it means for this person.\n- actions: up to 4 short imperative steps, most urgent first. Empty if everything is normal.` },
+        { role: "system", content: `${systemPrompt(profile, rows, cleanContext(body.context))}\n\nYou are writing the critical-stats screen in the visor. Be terse.\n- headline: one sentence, max 14 words, on overall status.\n- notes: one short note (max 12 words) per reading id, saying what it means for this person.\n- actions: up to 4 short imperative steps, most urgent first. Empty if everything is normal.` },
         { role: "user", content: "Brief me." },
       ],
       format: {
@@ -449,7 +487,9 @@ const ROUTES = {
   "POST /api/ai/chat": chat,
   "POST /api/ai/brief": brief,
   "POST /api/ai/triage": triage,
+  "POST /api/ai/triage/jobs": triageJobStart,
 };
+const JOB_URL = /^\/api\/ai\/triage\/jobs\/([\w-]{8,40})$/;
 
 /*
  * Sign-in check (server/auth.js, docs/AUTH.md). In Firebase mode every route except
@@ -465,7 +505,8 @@ function handle(req, res) {
   const url = req.url.split("?")[0];
   if (!url.startsWith("/api/ai/")) return false;
   const key = `${req.method} ${url}`;
-  const fn = ROUTES[key];
+  const jobId = req.method === "GET" && (url.match(JOB_URL) || [])[1];
+  const fn = jobId ? (rq, rs) => triageJobGet(rq, rs, jobId) : ROUTES[key];
   if (!fn) {
     json(res, 404, { error: "not_found", message: `No route ${req.method} ${url}` });
     return true;

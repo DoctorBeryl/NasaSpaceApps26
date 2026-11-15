@@ -14,6 +14,9 @@
   const W_CM = 40, H_CM = 64;
   const CLEAR = 0.8;             // quality needed for a usable frame
   const HOLD_MS = 1200;          // hold that long to auto-save
+  // js/vega.js declares `const VEGA`: a global binding, but not a window property, so
+  // `window.VEGA` is always undefined. Check the binding itself.
+  const hasVoice = () => typeof VEGA !== "undefined" && typeof VEGA.speak === "function";
 
   // rot: probe long axis vs the body's head-feet line, degrees clockwise on screen.
   // tilt: beam angle, positive = beam aimed toward the feet.
@@ -261,9 +264,9 @@
     qEl.textContent = `${Math.round(q * 100)}%`;
     const now = performance.now();
     if (now - lastLive > 2000 || g.kind === "hold") { live.textContent = g.text; lastLive = now; }
-    if (state.voice && window.VEGA && VEGA.speak && g.text !== state.lastSpoken && now - state.lastSpokenAt > 3500) {
+    if (state.voice && hasVoice() && g.text !== state.lastSpoken && now - state.lastSpokenAt > 3500) {
       state.lastSpoken = g.text; state.lastSpokenAt = now;
-      VEGA.speak(g.text, { tone: "calm" });
+      VEGA.speak(g.text, { tone: "calm", cache: true });   // ASTRA voice; repeated phrases replay from cache
     }
   }
 
@@ -281,7 +284,7 @@
     state.captures.unshift({ organ: t.label, q: state.q, at: new Date(), src: scan.toDataURL("image/jpeg", 0.8), status: "saved", auto });
     state.captures = state.captures.slice(0, 8);
     renderCaptures();
-    if (state.voice && window.VEGA) VEGA.speak(`${t.label} image saved.`, { tone: "calm" });
+    if (state.voice && hasVoice()) VEGA.speak(`${t.label} image saved.`, { tone: "calm", cache: true });
   }
 
   function renderCaptures() {
@@ -366,7 +369,7 @@
     state.voice = !state.voice;
     e.currentTarget.setAttribute("aria-pressed", String(state.voice));
     e.currentTarget.textContent = state.voice ? "Voice guidance: on" : "Voice guidance: off";
-    if (state.voice) { state.lastSpoken = ""; state.lastSpokenAt = 0; } else if (window.VEGA && VEGA.stop) VEGA.stop();
+    if (state.voice) { state.lastSpoken = ""; state.lastSpokenAt = 0; if (hasVoice()) VEGA.speak("Voice guidance on.", { tone: "calm", cache: true }); } else if (hasVoice() && VEGA.stop) VEGA.stop();
   });
 
   MedLink.mountPicker($("us-mission"));

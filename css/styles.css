@@ -183,9 +183,25 @@ h3 { font-size: 20px; }
 .orbit.o2::after { background: var(--magenta); box-shadow: 0 0 20px var(--magenta); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.glasses-wrap { position: absolute; inset: 0; display: grid; place-items: center; }
-.glasses-wrap svg { width: 92%; filter: drop-shadow(0 30px 50px rgba(94,242,255,0.18)); animation: float 7s ease-in-out infinite; }
-.glasses-wrap svg.helmet-svg { width: 68%; }
+/* Hero: the live 3D helmet (js/glasses3d.js); the float tags are its callouts */
+.g3d-hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.g3d-hero.dragging canvas { cursor: grabbing; }
+.g3d-hero .float-tag { pointer-events: none; z-index: 1; }
+.g3d-hero .g3d-hint { bottom: -6px; }
+.float-tag[data-target="display"] { --c: var(--ok); }
+.float-tag[data-target="eyes"] { --c: var(--magenta); }
+.float-tag[data-target="voice"] { --c: var(--cyan); }
+.float-tag[data-target="dose"] { --c: var(--warn); }
+.g3d-hero.g3d-fallback { display: block; }
+.g3d-hero { overflow-x: clip; }
+@media (max-width: 640px) {
+  .g3d-hero .float-tag { padding: 6px 9px; font-size: 11px; gap: 6px; }
+  .g3d-hero .float-tag.t1 { top: 2%; left: 0; }
+  .g3d-hero .float-tag.t2 { top: 14%; right: 0; }
+  .g3d-hero .float-tag.t3 { bottom: 13%; left: 0; }
+  .g3d-hero .float-tag.t4 { bottom: 4%; right: 0; }
+  .g3d-hero .g3d-hint { font-size: 10px; }
+}
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
 .float-tag {
@@ -740,11 +756,50 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
 .enroll-form { width: 100%; margin-top: 18px; text-align: left; }
 .enroll-form label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
 .enroll-row { display: flex; gap: 8px; margin-top: 8px; }
-.enroll-row input {
+.enroll-form label + input { display: block; width: 100%; margin: 8px 0 14px; }
+.enroll-form label .dim { text-transform: none; letter-spacing: 0; }
+.enroll-row input, .enroll-form > input {
   flex: 1; min-width: 0; padding: 12px 16px; border-radius: 999px;
   background: rgba(255,255,255,0.04); border: 1px solid var(--border); outline: none;
 }
-.enroll-row input:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px rgba(94,242,255,0.12); }
+/* Crew role dropdown (login.html): no native chrome; cyan chevron, dark popup list, dim placeholder. */
+.role-select {
+  -webkit-appearance: none; appearance: none; color-scheme: dark;
+  width: 100%; min-height: 46px; padding: 12px 46px 12px 16px;
+  font: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+  background-color: rgba(255,255,255,0.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%2300f0ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 18px center; background-size: 12px 8px;
+  border: 1px solid var(--border); outline: none;
+  transition: border-color .2s, background-color .2s, box-shadow .2s;
+}
+.role-select:hover { border-color: var(--border-hi); background-color: rgba(0,240,255,0.05); }
+.role-select:focus-visible { border-color: var(--border-hi); box-shadow: 0 0 0 3px rgba(94,242,255,0.14); }
+.role-select:has(option[value=""]:checked) { color: var(--text-faint); }   /* "Choose your role" placeholder */
+.role-select option { background: var(--surface-solid, #0b1422); color: var(--text); }
+.role-select option[value=""] { color: var(--text-faint); }
+.field .role-select { border-radius: var(--radius-sm); }
+/* Role picker (js/login.js rolePicker): the select is hidden and a grid of role buttons replaces it. */
+.role-select.enhanced { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.role-label { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
+.role-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0 16px; }
+.field .role-chips { margin: 0; }
+.role-chip {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px;
+  text-align: left; font: inherit; font-size: 14px; line-height: 1.25; color: var(--text-dim);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; transition: border-color .15s, background-color .15s, color .15s, box-shadow .15s;
+}
+.role-chip:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.role-chip:hover { color: var(--text); border-color: var(--border-hi); background: rgba(0,240,255,0.05); }
+.role-chip:focus-visible { outline: none; border-color: var(--border-hi); box-shadow: 0 0 0 3px rgba(94,242,255,0.16); }
+.role-chip[aria-checked="true"] { color: var(--text); border-color: var(--cyan); background: rgba(0,240,255,0.1); box-shadow: inset 0 0 0 1px rgba(0,240,255,0.35); }
+.role-dot { flex: none; width: 10px; height: 10px; border: 1.5px solid var(--text-faint); transition: background-color .15s, border-color .15s, box-shadow .15s; }
+.role-chip[aria-checked="true"] .role-dot { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,240,255,0.7); }
+.enroll-go { width: 100%; justify-content: center; padding: 12px 18px; }
+@media (prefers-reduced-motion: reduce) { .role-chip, .role-dot { transition: none; } }
+.enroll-row .role-select { flex: 1; width: auto; min-width: 0; border-radius: 999px; }
+.enroll-row input:focus, .enroll-form > input:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px rgba(94,242,255,0.12); }
 .enroll-row .btn { padding: 12px 18px; }
 .scan-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
 .scan-actions:empty, .scan-actions:not(:has(> :not([hidden]))) { display: none; }
@@ -776,7 +831,7 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
 .seg button { padding: 7px 16px; border-radius: 999px; font-size: 14px; color: var(--text-dim); }
 .seg button[aria-selected="true"] { color: var(--text); background: rgba(94,242,255,0.1); box-shadow: inset 0 0 0 1px rgba(94,242,255,0.3); }
 .pw-form { width: 100%; display: grid; gap: 12px; text-align: left; }
-.field span { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+.field > span { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
 .field input {
   width: 100%; padding: 12px 16px; border-radius: var(--radius-sm);
   background: rgba(255,255,255,0.04); border: 1px solid var(--border); outline: none;
@@ -818,9 +873,9 @@ body.hud-page .vslider input[type="range"]::-moz-range-thumb { background: rgba(
   background: var(--surface-solid); border: 1px solid var(--border-hi); border-radius: var(--radius-sm);
   box-shadow: var(--shadow); pointer-events: none;
 }
-.g3d-callout[data-target="right"] { --c: var(--cyan); }
-.g3d-callout[data-target="knob"] { --c: var(--magenta); }
-.g3d-callout[data-target="left"] { --c: var(--warn); }
+.g3d-callout[data-target="voice"] { --c: var(--cyan); }
+.g3d-callout[data-target="eyes"] { --c: var(--magenta); }
+.g3d-callout[data-target="dose"] { --c: var(--warn); }
 .g3d-callout[data-target="display"] { --c: var(--ok); }
 .g3d-callout { border-color: color-mix(in srgb, var(--c, var(--cyan)) 55%, transparent); box-shadow: var(--shadow), 0 0 18px color-mix(in srgb, var(--c, var(--cyan)) 16%, transparent); }
 .g3d-callout .mono { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c, var(--cyan)); }
@@ -898,3 +953,25 @@ body.ob-open { overflow: hidden; }
 .ob-foot { margin: 0; font-size: 10.5px; color: var(--text-faint); text-align: center; letter-spacing: 0.06em; }
 @media (prefers-reduced-motion: reduce) { .ob-overlay, .ob-mic.on, .ob-dots i { animation: none; } }
 @media (max-width: 520px) { .ob-card { padding: 16px; } .ob-mic span { display: none; } }
+
+/* ---------- live watch (js/watch.js, docs/GARMIN.md) ---------- */
+.icon-btn.on { border-color: var(--ok); color: var(--ok); box-shadow: 0 0 14px -4px var(--ok); }
+.vital.live .vital-name span:not(.dot)::after { content: "LIVE"; margin-left: 6px; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--ok); color: var(--ok); font-family: var(--mono); font-size: 9px; letter-spacing: .1em; vertical-align: 1px; }
+.watch-dlg { margin: auto; max-height: calc(100dvh - 32px); overflow-y: auto; width: min(440px, calc(100vw - 32px)); padding: 20px; border-radius: 14px; border: 1px solid var(--border-hi); background: var(--surface-solid); color: var(--text); }
+.watch-dlg::backdrop { background: rgba(2, 6, 16, .7); }
+.watch-dlg h3 { font-size: 17px; margin-bottom: 6px; }
+.watch-dlg section { margin: 14px 0 0; padding: 12px 0 0; min-height: 0; border-top: 1px solid var(--border); }
+.watch-dlg p { font-size: 13px; color: var(--text-dim); margin: 4px 0 8px; }
+.watch-dlg .wd-status { color: var(--cyan); min-height: 1.3em; }
+.watch-dlg .wd-note { font-size: 11px; color: var(--text-faint); margin-top: 14px; }
+.watch-dlg form { display: flex; gap: 8px; flex-wrap: wrap; }
+.watch-dlg input { flex: 1 1 120px; min-width: 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-hi); background: rgba(255,255,255,0.04); color: var(--text); font-family: var(--mono); font-size: 15px; letter-spacing: .2em; text-transform: uppercase; }
+.watch-dlg button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-hi); background: rgba(94,242,255,0.08); color: var(--text); font-size: 13px; cursor: pointer; }
+.watch-dlg button:hover { border-color: var(--cyan); }
+.watch-dlg .wd-close { margin-top: 6px; float: right; }
+
+.watch-extras { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; padding: 10px 20px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.watch-extras .we-head { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; color: var(--ok); }
+.watch-extras .we-item { display: flex; justify-content: space-between; gap: 8px; min-width: 0; color: var(--text-dim); }
+.watch-extras .we-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-extras .we-item b { font-family: var(--mono); font-weight: 500; color: var(--text); white-space: nowrap; }

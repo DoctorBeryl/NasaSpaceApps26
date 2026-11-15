@@ -135,7 +135,10 @@ const VEGA = (() => {
     u.lang = "en-US";
     const t = TONES[tone] || TONES.calm;
     u.rate = t.rate; u.pitch = t.pitch;
-    speechSynthesis.speak(u);
+    // Chrome silently drops a speak() issued right after cancel(), and can get stuck paused;
+    // a short delay plus resume() makes the browser voice reliable.
+    const id = seq;
+    setTimeout(() => { if (id !== seq) return; speechSynthesis.resume(); speechSynthesis.speak(u); }, 80);
   }
 
   /* ElevenLabs voice via the local server's /api/tts proxy (key lives in .env on the server).
@@ -158,17 +161,27 @@ const VEGA = (() => {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   }
 
-  async function speak(text, { tone = "calm" } = {}) {
+  /* local: true skips ElevenLabs and uses the browser voice.
+     cache: true keeps each phrase's audio in memory for this page, so short prompts that
+     repeat (ultrasound probe guidance) cost ElevenLabs credits only the first time. */
+  const ttsCache = new Map();
+  async function speak(text, { tone = "calm", local = false, cache = false } = {}) {
     if (muted || !text) return;
     tone = toneFor(tone);
     stopAll();
+    if (local) { speakBrowser(text, tone); return; }
     const id = seq;
     const url = await ttsUrl;
     if (url) {
       try {
-        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, tone }) });
-        if (!r.ok) throw new Error(r.status);
-        const blob = await r.blob();
+        const key = tone + "|" + text;
+        let blob = cache ? ttsCache.get(key) : null;
+        if (!blob) {
+          const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, tone }) });
+          if (!r.ok) throw new Error(r.status);
+          blob = await r.blob();
+          if (cache) ttsCache.set(key, blob);
+        }
         if (id !== seq || muted) return;          // something newer was said meanwhile
         audio = new Audio(URL.createObjectURL(blob));
         await audio.play();

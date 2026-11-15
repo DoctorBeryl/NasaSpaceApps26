@@ -1,6 +1,6 @@
 # AstraSight: Health Optics for Space
 
-Concept website for a space health challenge. AstraSight is a pair of smart glasses with an in-lens health diagnostic HUD (a side panel) and **ASTRA**, a voice AI for astronaut health monitoring.
+Concept website for a space health challenge. AstraSight is a spacesuit helmet with a health diagnostic HUD inside the visor (a side panel) and **ASTRA**, a voice AI for astronaut health monitoring.
 
 ## Pages
 

@@ -183,6 +183,8 @@
     .architecture-details summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; }
     .architecture-details summary::-webkit-details-marker { display:none; }
     .architecture-details[open] summary { margin-bottom:12px; }
+    #crewPaPanel[open] summary { margin-bottom:0; }
+    .architecture-details:not([open]) .when-open, .architecture-details[open] .when-closed { display:none; }
     @media (max-width:640px) { .companion{width:min(282px,calc(100vw - 16px))}.sprite-frame{flex-basis:68px;padding:3px}.sprite-stage{height:52px}.companion-sprite{width:54px;height:54px}.metric{min-height:100px}.metric .value{font-size:21px}.toolbar-scenario .sc-icon{flex-basis:32px;height:32px;font-size:18px}.toolbar-scenario .sc-sub{display:none}.toolbar-scenario .sc-name{white-space:normal;line-height:1.3}.manual-drawer{grid-template-columns:repeat(2,minmax(0,1fr))}.slider-row{grid-template-columns:75px 1fr 45px;gap:8px} }
   
     /* ASTRA pixel atmosphere: restrained raster, pixel grid and terminal grain. */
@@ -429,36 +431,6 @@
       <p class="text-[9px] text-slate-500 mt-2">AUTO follows system alerts. CUSTOM lets you choose the palette and expression; switch back to AUTO to restore automatic reactions.</p>
     </section>
 
-    <!-- LOCAL EDGE MESH ARCHITECTURE -->
-    <details class="panel architecture-details rounded-xl p-3 sm:p-3 mb-3 overflow-hidden">
-      <summary>
-        <div class="eyebrow">SHIP-TO-SUIT LOCAL MESH / EDGE ARCHITECTURE</div>
-        <div class="flex items-center gap-2 text-[9px] mono text-emerald-300"><span class="dot bg-emerald-400 text-emerald-400"></span> LOCAL LINK NOMINAL <span class="text-slate-500">· DETAILS +</span></div>
-      </summary>
-      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
-        <div class="rounded-lg border border-cyan/25 bg-cyan/[.045] p-3 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-cyan/10 border border-cyan/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#00F0FF" stroke-width="1.4"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M7 9h3m-3 3h7m3-3h.01"/></svg></div>
-          <div class="min-w-0"><div class="text-white font-bold text-sm">SHIP AI CORE SERVER</div><div class="text-[10px] mono text-slate-400">EDGE NODE / FLIGHT SURGEON CACHE</div><div class="text-[9px] mono text-cyan mt-1">NODE: ARGO-01 · 0.4 ms local hop</div></div>
-        </div>
-        <div class="flex md:flex-col items-center justify-center gap-2 py-1">
-          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
-          <div class="flex items-center gap-2 text-[9px] mono text-cyan"><span class="pulse">◀</span><span class="border border-cyan/30 rounded px-2 py-1 bg-cyan/[.06]">SUB-GHz MESH · 915 MHz</span><span class="pulse">▶</span></div>
-          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-pink via-cyan to-cyan/20"></div>
-          <div class="md:hidden w-full h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
-        </div>
-        <div class="rounded-lg border border-pink/25 bg-pink/[.045] p-3 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-pink/10 border border-pink/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#FF2A85" stroke-width="1.4"><path d="M12 2a8 8 0 0 0-8 8v5a3 3 0 0 0 3 3h2v-7H6a6 6 0 0 1 12 0h-3v7h2a3 3 0 0 0 3-3v-5a8 8 0 0 0-8-8Z"/><path d="M9 21h6"/></svg></div>
-          <div class="min-w-0"><div id="endpointTitle" class="text-white font-bold text-sm">HABITAT CREW DISPLAY</div><div class="text-[10px] mono text-slate-400">ASTRONAUT ENDPOINT / TELEMETRY</div><div id="endpointMode" class="text-[9px] mono text-pink mt-1">MODE: IVA · LOCAL LINK ENCRYPTED</div></div>
-        </div>
-      </div>
-      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[9px] mono text-slate-500"><span>● STORE-AND-FORWARD ENABLED</span><span>● ZERO EARTH-RELAY DEPENDENCY</span><span>● LOCAL DECISION SUPPORT</span><span>● PACKET LOSS <span class="text-emerald-300">0.0%</span></span><span id="modeArchitectureHint">● HABITAT / IVA MONITORING ACTIVE</span></div>
-    </details>
-
-    <!-- SIMULATION SAFETY BANNER -->
-    <div class="rounded-lg border border-amber/25 bg-amber/[.035] px-3 py-1.5 mb-3 flex gap-2 items-center">
-      <span class="text-amber mt-0.5">⚠</span><p class="text-[9px] text-amber-100/80 leading-relaxed"><strong class="tracking-wide">SIMULATION ONLY.</strong> All data and outputs are fictional demonstration values, not validated aerospace or medical guidance.</p>
-    </div>
-
     <!-- COMPACT TOP CONTROL STRIP / SCENARIOS + MANUAL TRIM -->
     <section class="panel rounded-xl p-3 mb-3" id="quickControlPanel">
       <div class="flex flex-wrap items-center gap-2 pb-2 mb-2 border-b border-line/50">
@@ -518,7 +490,7 @@
                 <div id="emergencyOthers" class="text-[9px] mono text-slate-400 mt-1"></div>
               </div>
             </div>
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3" id="metricsGrid">
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3" id="metricsGrid">
               <article class="metric sensor-card rounded-xl p-3" id="card-psi">
                 <div class="status-line"><span class="eyebrow">SUIT PRESSURE</span><span class="text-cyan text-[10px]">◉</span></div>
                 <div class="value text-cyan mt-3"><span id="psiValue">4.30</span><small class="text-sm ml-1 text-slate-400">PSI</small></div>
@@ -581,11 +553,11 @@
         </div>
 
             <!-- EXTENDED CREW / ASSAY / RADIATION / HABITAT SYSTEMS -->
-            <section class="rounded-xl border border-line/75 bg-[#07111d] p-3 mt-3" id="crewSystemsPanel">
-              <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
-                <div><div class="eyebrow">02 / CREW & HABITAT SYSTEMS</div><div class="text-xs text-white font-semibold mt-1">Extended sensor suite</div></div>
-                <span class="text-[8px] mono text-slate-500">SIMULATED MODULES · READ-ONLY STREAM</span>
-              </div>
+            <details class="architecture-details rounded-xl border border-line/75 bg-[#07111d] p-3 mt-3" id="crewSystemsPanel">
+              <summary class="flex-wrap">
+                <div><div class="eyebrow">02 / CREW & HABITAT SYSTEMS</div><div class="text-xs text-white font-semibold mt-1">Extended sensor suite: SpO₂, HRV, sleep, assays, radiation, room</div></div>
+                <span class="text-[8px] mono text-slate-500">SIMULATED <span class="when-closed">· SHOW +</span><span class="when-open">· HIDE −</span></span>
+              </summary>
               <div class="flex flex-wrap gap-1.5 mb-3" role="tablist" aria-label="Sensor system modules">
                 <button class="module-tab active" data-module="vitals" role="tab" aria-selected="true">VITALS</button>
                 <button class="module-tab" data-module="sleep" role="tab" aria-selected="false">SLEEP</button>
@@ -642,7 +614,7 @@
                 </div>
                 <div class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line/55 bg-[#081522] p-2"><span class="soft-label">ROOM CONDITIONS SUMMARY</span><span id="roomSummary" class="text-[9px] mono text-emerald-300">ENVIRONMENTAL STREAM NOMINAL · SIM</span></div>
               </div>
-            </section>
+            </details>
 
 
       </section>
@@ -739,13 +711,13 @@
           </div>
         </div>
 
-        <div class="panel rounded-xl overflow-hidden" id="crewPaPanel">
-          <div class="panel-head p-4 flex justify-between items-center gap-3"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span id="pa-count" class="text-[9px] mono text-slate-500">0 announcements</span></div>
+        <details class="panel architecture-details rounded-xl overflow-hidden" id="crewPaPanel">
+          <summary class="panel-head p-4"><div><div class="eyebrow">05 / CREW PROFILE &amp; SHIP PA</div><h2 class="text-white font-bold mt-1">CREW-WIDE ANNOUNCEMENTS</h2></div><span class="text-[9px] mono text-slate-500"><span id="pa-count">0 announcements</span> <span class="when-closed">· SHOW +</span><span class="when-open">· HIDE −</span></span></summary>
           <div class="p-4 space-y-3">
             <p class="text-[10px] text-slate-400 leading-relaxed">When a reading goes wrong, ASTRA announces it on the ship's speakers so the whole crew knows who needs help. Critical alerts repeat every 45 s until someone presses Acknowledge on ASTRA's card. Turning the PA on reads the current alert again from the start.</p>
             <form id="crew-form" class="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-2" autocomplete="off">
-              <label class="sr-only" for="crew-rank">Rank</label>
-              <select id="crew-rank" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200"><option value="">No rank</option></select>
+              <label class="sr-only" for="crew-rank">Role</label>
+              <input id="crew-rank" type="text" readonly placeholder="No role" title="The role you picked when you enrolled (sign-in page)" class="rounded-lg border border-line bg-[#07111d] p-2 text-[10px] mono text-slate-200 placeholder:text-slate-600 cursor-default focus:outline-none">
               <label class="sr-only" for="crew-name">Astronaut name</label>
               <input id="crew-name" type="text" maxlength="40" readonly placeholder="Guest (sign in to use your name)" title="Comes from your sign-in and onboarding questionnaire" class="rounded-lg border border-line bg-[#07111d] p-2 text-xs text-slate-200 placeholder:text-slate-600 cursor-default focus:outline-none">
             </form>
@@ -756,7 +728,7 @@
             <p id="pa-who" class="text-[10px] mono text-cyan"></p>
             <ol id="pa-log" class="space-y-1.5 max-h-40 overflow-y-auto bus-scroll pr-1 text-[10px] mono" aria-live="polite"><li class="text-slate-600">No announcements yet. Inject a hazard in the Ship display or EVA HUD view to hear one.</li></ol>
           </div>
-        </div>
+        </details>
 
 
       </section>
@@ -801,6 +773,37 @@
         </div>
       </section>
     </main>
+
+    <!-- Moved below the content (Nov 15): reference info, not something crew need first -->
+    <!-- LOCAL EDGE MESH ARCHITECTURE -->
+    <details class="panel architecture-details rounded-xl p-3 sm:p-3 mb-3 mt-6 overflow-hidden">
+      <summary>
+        <div class="eyebrow">SHIP-TO-SUIT LOCAL MESH / EDGE ARCHITECTURE</div>
+        <div class="flex items-center gap-2 text-[9px] mono text-emerald-300"><span class="dot bg-emerald-400 text-emerald-400"></span> LOCAL LINK NOMINAL <span class="text-slate-500">· DETAILS +</span></div>
+      </summary>
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-center">
+        <div class="rounded-lg border border-cyan/25 bg-cyan/[.045] p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-cyan/10 border border-cyan/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#00F0FF" stroke-width="1.4"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4M7 9h3m-3 3h7m3-3h.01"/></svg></div>
+          <div class="min-w-0"><div class="text-white font-bold text-sm">SHIP AI CORE SERVER</div><div class="text-[10px] mono text-slate-400">EDGE NODE / FLIGHT SURGEON CACHE</div><div class="text-[9px] mono text-cyan mt-1">NODE: ARGO-01 · 0.4 ms local hop</div></div>
+        </div>
+        <div class="flex md:flex-col items-center justify-center gap-2 py-1">
+          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
+          <div class="flex items-center gap-2 text-[9px] mono text-cyan"><span class="pulse">◀</span><span class="border border-cyan/30 rounded px-2 py-1 bg-cyan/[.06]">SUB-GHz MESH · 915 MHz</span><span class="pulse">▶</span></div>
+          <div class="hidden md:block w-20 h-px bg-gradient-to-r from-pink via-cyan to-cyan/20"></div>
+          <div class="md:hidden w-full h-px bg-gradient-to-r from-cyan/20 via-cyan to-pink"></div>
+        </div>
+        <div class="rounded-lg border border-pink/25 bg-pink/[.045] p-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-pink/10 border border-pink/30 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="#FF2A85" stroke-width="1.4"><path d="M12 2a8 8 0 0 0-8 8v5a3 3 0 0 0 3 3h2v-7H6a6 6 0 0 1 12 0h-3v7h2a3 3 0 0 0 3-3v-5a8 8 0 0 0-8-8Z"/><path d="M9 21h6"/></svg></div>
+          <div class="min-w-0"><div id="endpointTitle" class="text-white font-bold text-sm">HABITAT CREW DISPLAY</div><div class="text-[10px] mono text-slate-400">ASTRONAUT ENDPOINT / TELEMETRY</div><div id="endpointMode" class="text-[9px] mono text-pink mt-1">MODE: IVA · LOCAL LINK ENCRYPTED</div></div>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[9px] mono text-slate-500"><span>● STORE-AND-FORWARD ENABLED</span><span>● ZERO EARTH-RELAY DEPENDENCY</span><span>● LOCAL DECISION SUPPORT</span><span>● PACKET LOSS <span class="text-emerald-300">0.0%</span></span><span id="modeArchitectureHint">● HABITAT / IVA MONITORING ACTIVE</span></div>
+    </details>
+
+    <!-- SIMULATION SAFETY BANNER -->
+    <div class="rounded-lg border border-amber/25 bg-amber/[.035] px-3 py-1.5 mb-3 flex gap-2 items-center">
+      <span class="text-amber mt-0.5">⚠</span><p class="text-[9px] text-amber-100/80 leading-relaxed"><strong class="tracking-wide">SIMULATION ONLY.</strong> All data and outputs are fictional demonstration values, not validated aerospace or medical guidance.</p>
+    </div>
 
     <footer class="mt-6 py-4 border-t border-line/50 flex flex-col sm:flex-row justify-between gap-2 text-[9px] mono text-slate-600"><span>ASTRA // EVA-MED HUD · EDGE SIMULATION BUILD</span><span>LOCAL MESH · NO EARTH RELAY · DEMO DATA ONLY</span><span id="clock">MISSION ELAPSED 00:00:00</span></footer>
   </div>
@@ -1820,15 +1823,12 @@ const ReportLink = (() => {
   // the answer lands in the record it was asked for, even if the CMO has opened someone else meanwhile.
   const vegaReqs={};
   async function askVega(summary, flag, level){
-    const box=$('vegaNote'), pid=state.patient, rec=currentRec(), v=recVitals(rec);
+    const pid=state.patient, rec=currentRec(), v=recVitals(rec);
     if(vegaReqs[pid]) vegaReqs[pid].abort();
     const req=vegaReqs[pid]=new AbortController();
-    const put=(html)=>{
-      if(state.patient===pid){ box.hidden=false; box.innerHTML=html; }
-      else { const r=crewRecords[pid]; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
-    };
-    const head='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
-    put(head.replace('%M','')+'<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report with MedGemma, its medical model. On the CPU server this usually takes 1–3 minutes (up to 5). Keep this page open…</p>');
+    const put=(html)=>putVega(pid,html);
+    if(typeof TriageWatch!=='undefined') TriageWatch.askPermission();   // still inside the click: browsers only ask then
+    put(VEGA_HEAD.replace('%M','')+VEGA_WAIT);
     try{
       const headers={'Content-Type':'application/json'};
       let profile;
@@ -1849,26 +1849,77 @@ const ReportLink = (() => {
         'Time outside habitat':state.exited?formatClock(state.outsideSeconds):(state.lastOutside?'last EVA '+formatClock(state.lastOutside):'not outside'),
         'Active EVA countdowns':emergencies.size?byUrgency(emergencies.values()).map(e=>`${e.h.label} ${formatDuration(e.remaining)} left to ${e.h.act}`).join('; '):'none'
       };
-      const r=await fetch('/api/ai/triage',{method:'POST',headers,signal:req.signal,body:JSON.stringify({
+      const payload=JSON.stringify({
         report:summary, flag, level,
         vitals:{cardio:Math.round(v.hr),spo2:round(v.spo2,1),thermal:round(v.temp,1),hrv:Math.round(v.hrv)},
         context,profile
-      })});
-      const j=await r.json().catch(()=>({}));
-      if(!r.ok||j.error) throw new Error(j.message||('HTTP '+(j.status||r.status)));
+      });
+      const apiUrl=(p)=>typeof AstraAuth!=='undefined'&&AstraAuth.api?AstraAuth.api(p):p;
+      let j;
+      if(typeof TriageWatch!=='undefined'){
+        // Background job: the review keeps running if you leave this page, and other pages notify you when it's ready.
+        const r=await fetch(apiUrl('/api/ai/triage/jobs'),{method:'POST',headers,signal:req.signal,body:payload});
+        const sj=await r.json().catch(()=>({}));
+        if(!r.ok||!sj.id) throw new Error(sj.message||('HTTP '+r.status));
+        const o=$('triageOutput'), b=$('triageBadge');
+        TriageWatch.add({id:sj.id,pid,who:recName(rec),at:Date.now(),
+          view:rec.live?'view=display':'view=medical&role=cmo',
+          rule:{badgeClass:b.className,badgeText:b.textContent,outClass:o.className,outHTML:o.innerHTML}});
+        req.jobId=sj.id;
+        j=await TriageWatch.wait(sj.id,req.signal);
+        TriageWatch.update(sj.id,{notified:true});   // you saw it here
+      } else {
+        const r=await fetch(apiUrl('/api/ai/triage'),{method:'POST',headers,signal:req.signal,body:payload});
+        j=await r.json().catch(()=>({}));
+        if(!r.ok||j.error) throw new Error(j.message||('HTTP '+(j.status||r.status)));
+      }
+      put(vegaHtml(j));
+    }catch(e){
+      if(e.name==='AbortError') return;
+      if(req.jobId) TriageWatch.update(req.jobId,{notified:true});
+      put(vegaUnavailable(e.message));
+    }
+  }
+  const VEGA_HEAD='<div class="flex items-center justify-between gap-2"><span class="eyebrow">ASTRA MEDICAL AI · ON-DEVICE</span><span class="text-[8px] mono text-slate-500">%M</span></div>';
+  const VEGA_WAIT='<p class="text-[10px] text-slate-400 mt-2 pulse">ASTRA is reviewing the report with MedGemma, its medical model. On the CPU server this usually takes 1–3 minutes (up to 5). You can leave this page: I\'ll notify you when the review is ready.</p>';
+  const vegaUnavailable=(msg)=>VEGA_HEAD.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(msg)+'). The rule-based review above still applies.</p>';
+  function putVega(pid,html){
+    if(state.patient===pid){ $('vegaNote').hidden=false; $('vegaNote').innerHTML=html; }
+    else { const r=crewRecords[pid]; if(!r) return; r.out=r.out||defaultOut(r); r.out.vega=html; r.out.vegaHidden=false; }
+  }
+  /* Back on the report screen: put reviews that ran (or are still running) while you were away into their records. */
+  function restoreTriageJobs(){
+    if(typeof TriageWatch==='undefined') return;
+    for(const job of TriageWatch.list()){
+      const r=crewRecords[job.pid]; if(!r||!job.rule) continue;
+      const when='<p class="text-[8px] mono text-slate-500 mt-1">REVIEW STARTED '+esc(new Date(job.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</p>';
+      const vega=job.status==='done'?vegaHtml(job.result||{})+when
+        :job.status==='error'?vegaUnavailable(job.message||'the review did not finish')
+        :VEGA_HEAD.replace('%M','')+VEGA_WAIT+when;
+      r.out={...(r.out||defaultOut(r)),...job.rule,vega,vegaHidden:false};
+      if(state.patient===job.pid){
+        $('triageBadge').className=job.rule.badgeClass; $('triageBadge').textContent=job.rule.badgeText;
+        $('triageOutput').className=job.rule.outClass; $('triageOutput').innerHTML=job.rule.outHTML;
+        $('vegaNote').innerHTML=vega; $('vegaNote').hidden=false;
+      }
+      if(job.status!=='running'){ TriageWatch.update(job.id,{notified:true}); continue; }
+      const req=vegaReqs[job.pid]=new AbortController(); req.jobId=job.id;
+      TriageWatch.wait(job.id,req.signal)
+        .then((res)=>{ TriageWatch.update(job.id,{notified:true}); putVega(job.pid,vegaHtml(res)+when); })
+        .catch((e)=>{ if(e.name==='AbortError') return; TriageWatch.update(job.id,{notified:true}); putVega(job.pid,vegaUnavailable(e.message)); });
+    }
+  }
+  function vegaHtml(j){
+      const head=VEGA_HEAD;
       const tone={'more likely':'text-amber-200','possible':'text-cyan','less likely':'text-slate-400'};
       const causes=(j.possibleCauses||[]).map(c=>`<li class="text-[10px] text-slate-300 leading-relaxed"><span class="font-bold text-slate-100">${esc(c.name)}</span> <span class="mono text-[8px] ${tone[c.likelihood]||'text-cyan'}">${esc((c.likelihood||'').toUpperCase())}</span><br><span class="text-slate-400">${esc(c.why)}</span>${(c.whatToDo||[]).length?`<div class="mono text-[8px] text-emerald-300 mt-1">WHAT TO DO</div><ul class="mt-0.5 space-y-0.5">${c.whatToDo.map(x=>`<li class="flex gap-1.5 text-[10px] text-slate-300"><span class="text-emerald-300">›</span><span>${esc(x)}</span></li>`).join('')}</ul>`:''}</li>`).join('');
       const checks=(j.checkNext||[]).map((a,i)=>`<li class="flex gap-2 text-[10px] text-slate-300 leading-relaxed"><span class="mono text-cyan">0${i+1}</span><span>${esc(a)}</span></li>`).join('');
-      put(head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
+      return (head.replace('%M',esc(j.model||'')+(j.fallback?' (MedGemma not installed)':''))
         +(j.summary?'<p class="text-[11px] text-slate-200 mt-2 leading-relaxed">'+esc(j.summary)+'</p>':'')
         +(causes?'<div class="eyebrow mt-3 mb-1">POSSIBLE CAUSES TO CONSIDER</div><ul class="space-y-2">'+causes+'</ul>':'')
         +(checks?'<div class="eyebrow mt-3 mb-1">CHECK OR RECORD NEXT</div><ol class="space-y-1">'+checks+'</ol>':'')
         +(j.escalate?'<p class="text-[10px] mono text-rose-300 mt-2">⚠ ESCALATE TO THE FLIGHT SURGEON</p>':'')
         +'<p class="text-[8px] mono text-slate-500 mt-2">AI SUGGESTION · NOT A DIAGNOSIS OR PRESCRIPTION · SIMULATED DATA</p>');
-    }catch(e){
-      if(e.name==='AbortError') return;
-      put(head.replace('%M','')+'<p class="text-[10px] text-slate-500 mt-2">ASTRA\'s AI is unavailable ('+esc(e.message)+'). The rule-based review above still applies.</p>');
-    }
   }
 
   // ---------- Ship triage roles ----------
@@ -1937,6 +1988,8 @@ const ReportLink = (() => {
 
   function renderSnapshot(){
     const r=currentRec(), v=recVitals(r);
+    // On the ship display, panel 01 already shows these live numbers; keep the strip for snapshots and the medical bay
+    $('triageSnapshot').classList.toggle('hidden-view',inOverlay()||(state.view==='dual'&&r.live));
     setText('triageR',String(v.r).padStart(2,'0')); setText('triagePsi',v.psi.toFixed(2)); setText('triageHr',Math.round(v.peakHr)); setText('triageO2',Math.round(v.o2)+'%');
     setText('snapshotTitle',!r.live?`SNAPSHOT AT LAST REPORT · ${r.name.toUpperCase()}`:state.operatingMode==='eva'?'RECORDED EVA SNAPSHOT':'LIVE VITALS · HABITAT');
     setText('snapshotState',r.live?(state.sensorsOn?'STREAM LINKED':'LAST PACKET / HOLD'):'STORED ON SHIP SERVER');
@@ -2135,7 +2188,7 @@ const ReportLink = (() => {
     $('roleAccess').style.color=cmo?'#ff7ab0':'';
     $('symptomColumn').classList.toggle('hidden-view',ov);
     $('crewOverlayPane').classList.toggle('hidden-view',!ov);
-    $('triageSnapshot').classList.toggle('hidden-view',ov);
+    // triageSnapshot is toggled in renderSnapshot(); the crew role bar on the ship display is handled above
     $('triageReviewPanel').classList.toggle('hidden-view',ov||dual);
     $('surgeonBox').classList.toggle('hidden-view',!full);
     setText('bodyMapHint',ov?'NUMBER = HOW MANY CREW REPORT THIS AREA':'SELECT A ZONE');
@@ -2153,7 +2206,7 @@ const ReportLink = (() => {
   function setRole(role,quiet){
     state.role=role==='cmo'?'cmo':'crew';
     try{ localStorage.setItem('astrasight.triageRole',state.role); }catch(e){}
-    const near=state.view==='eva'?'metricsGrid':'triageSnapshot';
+    const near=state.view==='eva'?'metricsGrid':state.view==='dual'?'triagePanel':'triageSnapshot';
     if(state.role==='crew'){
       state.overlay=false; syncTriageContext();
       if(!quiet) companionWarn('Signed in as crew. You see only your own health record, and only you and the CMO can open it.',near,'nominal',true);
@@ -2448,6 +2501,14 @@ const ReportLink = (() => {
   let startRole='crew'; try{ startRole=localStorage.getItem('astrasight.triageRole')||'crew'; }catch(e){}
   const roleParam=new URLSearchParams(location.search).get('role'); if(roleParam==='cmo'||roleParam==='crew') startRole=roleParam;
   setRole(startRole,true);
+  restoreTriageJobs();
+  // A signed-in Crew Medical Officer (role picked at sign-in) opens in the CMO view, unless the URL says otherwise.
+  if(!roleParam && typeof AstraAuth!=='undefined') AstraAuth.ready.then(async(u)=>{
+    if(!u) return;
+    const doc=await AstraAuth.getProfile().catch(()=>null);
+    const r=(doc&&((doc.profile&&doc.profile.role)||doc.role))||u.role;
+    if(r==='medical-officer'&&state.role!=='cmo') setRole('cmo',true);
+  }).catch(()=>{});
   // ?view=display|eva|medical opens a tab directly (handy for the demo).
   const VIEW_PARAM={display:'dual',dual:'dual',eva:'eva',hud:'eva',medical:'ship',medbay:'ship',suits:'suits',suit:'suits'}[new URLSearchParams(location.search).get('view')];
   if(VIEW_PARAM) setView(VIEW_PARAM);
@@ -2463,15 +2524,13 @@ const ReportLink = (() => {
   const $ = (id) => document.getElementById(id);
   if (typeof Crew !== 'undefined' && typeof ShipPA !== 'undefined') {
     const rankSel = $('crew-rank'), nameIn = $('crew-name'), who = $('pa-who');
-    Crew.RANKS.forEach((r) => rankSel.insertAdjacentHTML('beforeend', `<option>${r}</option>`));
     const fill = () => {
       const p = Crew.get();
       nameIn.value = p.name;   // read-only: from sign-in / questionnaire, never typed
-      rankSel.value = p.rank;
+      rankSel.value = p.guest ? '' : ((window.AstraAuth && AstraAuth.ROLE_LABELS[p.role]) || '');   // read-only: role picked at sign-in
       who.textContent = Crew.callSign() ? `Announcing as: ${Crew.callSign()}` : 'Guest: announcements will say "EVA crew member". Sign in to use your name.';
     };
     fill(); Crew.onChange(fill);
-    rankSel.addEventListener('change', () => Crew.set({ rank: rankSel.value }));
     $('crew-form').addEventListener('submit', (e) => { e.preventDefault(); nameIn.blur(); });
 
     const paButton = () => {

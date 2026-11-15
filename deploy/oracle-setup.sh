@@ -2,7 +2,7 @@
 # AstraSight: one-shot setup for any Ubuntu 22.04/24.04 server, x86 or ARM, with 12 GB+ RAM
 # (Google Cloud Compute Engine, Azure, Oracle Always Free, ...).
 # Installs Node, Ollama (Qwen 2.5 3B + MedGemma 1.5 4B), runs server.js as a service, pulls new
-# commits from main every 10 minutes, and connects a Cloudflare Tunnel so no ports need opening.
+# commits from main every minute, and connects a Cloudflare Tunnel so no ports need opening.
 # Safe to run again: each step skips what's already done.
 #
 #   TUNNEL_TOKEN=<token from Cloudflare> bash oracle-setup.sh
@@ -105,10 +105,12 @@ Environment=OLLAMA_TIMEOUT_MS=300000
 WantedBy=multi-user.target
 EOF
 
-say "Auto-update from GitHub every 10 minutes"
+say "Auto-update from GitHub every minute"
 sudo tee /usr/local/bin/astrasight-update >/dev/null <<EOF
 #!/usr/bin/env bash
 set -e
+# Run as the app user even when started with sudo, so .git never ends up owned by root.
+[ "\$(id -u)" = 0 ] && exec sudo -u "$APP_USER" "\$0"
 cd "$APP_DIR"
 git fetch -q origin main
 if [ "\$(git rev-parse HEAD)" != "\$(git rev-parse origin/main)" ]; then
@@ -132,10 +134,10 @@ ExecStart=/usr/local/bin/astrasight-update
 EOF
 sudo tee /etc/systemd/system/astrasight-update.timer >/dev/null <<'EOF'
 [Unit]
-Description=Check GitHub for AstraSight updates every 10 minutes
+Description=Check GitHub for AstraSight updates every minute
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=10min
+OnUnitActiveSec=1min
 [Install]
 WantedBy=timers.target
 EOF

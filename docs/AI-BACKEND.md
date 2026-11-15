@@ -143,6 +143,10 @@ Request: `{ "vitals": {...}, "profile": {...} }`. Response:
 ```
 `readings` is sorted worst first. `status` and `escalate` are always computed in code. This takes 2–10 s on Qwen, so call it when the screen opens or on a refresh button, not on every vitals tick.
 
+### `POST /api/ai/triage/jobs` and `GET /api/ai/triage/jobs/<id>` (background triage)
+
+Same body as `/api/ai/triage` below. Returns `202 { id }` at once and runs the review on the server, so the page can be closed. Poll `GET /api/ai/triage/jobs/<id>` → `{ id, status: "running"|"done"|"error", result?, message? }`; `result` is what `/api/ai/triage` returns. Jobs live in memory for 2 hours (lost on a server restart: 404). `report.html` uses this; `TriageWatch` in `js/common.js` stores pending jobs in `localStorage` (`astrasight.triageJobs`), polls them on every other page, and shows a notification when one is ready (in the page, plus a system notification when the tab is hidden). No notification on `report.html` itself; returning there restores the review into the crew record.
+
 ### `POST /api/ai/triage` (body-map triage on `report.html`)
 
 Uses the medical model `OLLAMA_MED_MODEL` (default `medgemma1.5:4b`, Google's MedGemma 1.5, open weights, trained on medical text and images). Run `ollama pull medgemma1.5:4b` once. If it isn't pulled, the route uses `OLLAMA_MODEL` (Qwen) and returns `"fallback": true`.
@@ -166,7 +170,7 @@ Rules enforced in code, because a 4B model doesn't hold them reliably:
 
 ## Profile fields
 
-`callsign`, `role`, `missionType` (`leo|lunar|mars-transit|mars-surface|analog|other`), `durationDays`, `exerciseLevel` (`low|moderate|high|athlete`), `restingHr`, `sleepHours`, `sleepAids`, `conditions[]`, `medications[]`, `allergies[]`, `history[]`, `copingPrefs[]`, `wantsCheckIns`, `verbosity` (`brief|standard|detailed`), `alertMode` (`voice-and-visual|visual|quiet-on-task`), `focusTools[]`, `answers{}` (raw answers by question id), and `tailoring{}`. The server drops unknown fields and out-of-range values.
+`callsign`, `role` (`commander|pilot|flight-engineer|mission-specialist|payload-specialist|medical-officer|other`; both come from sign-in, so the questionnaire skips them for signed-in crew), `missionType` (`leo|lunar|mars-transit|mars-surface|analog|other`), `durationDays`, `exerciseLevel` (`low|moderate|high|athlete`), `restingHr`, `sleepHours`, `sleepAids`, `conditions[]`, `medications[]`, `allergies[]`, `history[]`, `copingPrefs[]`, `wantsCheckIns`, `verbosity` (`brief|standard|detailed`), `alertMode` (`voice-and-visual|visual|quiet-on-task`), `focusTools[]`, `answers{}` (raw answers by question id), and `tailoring{}`. The server drops unknown fields and out-of-range values.
 
 ## Not done yet (open for other agents)
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AstraSight — Health Optics for Space</title>
+  <title>AstraSight — Helmet health HUD for space</title>
   <meta name="description" content="AstraSight: an astronaut helmet with a health display built into the visor and ASTRA, a voice AI built for astronaut health monitoring." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,7 +23,7 @@
       <div>
         <span class="eyebrow">Space Health Challenge · Mission Concept</span>
         <h1>Your health,<br /><span class="grad-text">in your line of sight.</span></h1>
-        <p class="lead">AstraSight is a health display built into an astronaut's helmet. It runs eight diagnostic tools from sensors in the helmet, shows the results on a small panel inside the visor, and lets the wearer control everything by voice through <strong>ASTRA</strong>, an onboard health AI.</p>
+        <p class="lead">AstraSight is a health display built into an astronaut's helmet. It runs eight diagnostic tools from sensors in the helmet, shows the results on a small panel inside the visor, and lets the wearer control everything by voice through <strong>ASTRA</strong>, an onboard health AI. There are no buttons to press: you talk, or you look.</p>
         <div class="hero-cta">
           <a href="interface.html" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -38,60 +38,18 @@
         </div>
       </div>
 
-      <div class="hero-visual">
+      <div class="hero-visual g3d-hero" id="glasses-stage" data-zoom="0.82">
         <div class="orbit"></div>
         <div class="orbit o2"></div>
-        <div class="glasses-wrap">
-          <svg class="helmet-svg" viewBox="0 0 400 380" fill="none" role="img" aria-label="AstraSight helmet with a small health display inside the visor">
-            <defs>
-              <linearGradient id="frame" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#5ef2ff" /><stop offset=".5" stop-color="#8f7cff" /><stop offset="1" stop-color="#ff6ad5" />
-              </linearGradient>
-              <linearGradient id="lens" x1="0" y1="0" x2="0" y2="1">
-                <stop stop-color="#5ef2ff" stop-opacity=".18" /><stop offset="1" stop-color="#8f7cff" stop-opacity=".05" />
-              </linearGradient>
-            </defs>
-            <!-- neck ring and collar -->
-            <path d="M104 312 Q 200 352 296 312 L 300 346 Q 200 384 100 346 Z" fill="#0a1226" fill-opacity=".8" stroke="url(#frame)" stroke-width="4" />
-            <!-- shell -->
-            <circle cx="200" cy="176" r="148" fill="#0a1226" fill-opacity=".55" stroke="url(#frame)" stroke-width="7" />
-            <!-- ridge over the top -->
-            <path d="M200 30 V 82" stroke="url(#frame)" stroke-width="5" stroke-linecap="round" opacity=".5" />
-            <!-- lamps -->
-            <rect x="92" y="78" width="34" height="18" rx="5" transform="rotate(-38 109 87)" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
-            <rect x="274" y="78" width="34" height="18" rx="5" transform="rotate(38 291 87)" fill="#0a1226" stroke="url(#frame)" stroke-width="3" />
-            <circle cx="109" cy="87" r="4" fill="#ffc65c" /><circle cx="291" cy="87" r="4" fill="#ffc65c" />
-            <!-- ear modules: left and right buttons on top, scroll knob on the wearer's right (viewer's left) -->
-            <rect x="34" y="140" width="26" height="76" rx="12" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
-            <rect x="340" y="140" width="26" height="76" rx="12" fill="#0a1226" stroke="url(#frame)" stroke-width="4" />
-            <rect x="38" y="128" width="18" height="9" rx="4.5" fill="#5ef2ff" />
-            <rect x="344" y="128" width="18" height="9" rx="4.5" fill="#ffc65c" />
-            <circle cx="28" cy="178" r="11" fill="#0a1226" stroke="#ff6ad5" stroke-width="3" /><circle cx="28" cy="178" r="4" fill="#ff6ad5" />
-            <!-- visor -->
-            <path d="M82 150 Q 200 64 318 150 L 310 226 Q 200 290 90 226 Z" fill="url(#lens)" stroke="url(#frame)" stroke-width="6" stroke-linejoin="round" />
-            <!-- mini display inside the visor, on the wearer's right -->
-            <g opacity=".95">
-              <rect x="106" y="140" width="66" height="84" rx="10" fill="#0a1226" fill-opacity=".75" stroke="#5ef2ff" stroke-opacity=".7" />
-              <rect x="115" y="151" width="46" height="6" rx="3" fill="#5ef2ff" opacity=".8" />
-              <rect x="115" y="164" width="32" height="5" rx="2.5" fill="#8f7cff" opacity=".7" />
-              <path d="M115 186 l7 0 4 -8 6 16 5 -10 3 2 h12" stroke="#4dffb0" stroke-width="2" fill="none" />
-              <rect x="115" y="202" width="40" height="5" rx="2.5" fill="#5ef2ff" opacity=".5" />
-              <rect x="115" y="213" width="24" height="5" rx="2.5" fill="#ff6ad5" opacity=".6" />
-            </g>
-            <!-- reticle in the clear centre of view -->
-            <circle cx="236" cy="182" r="20" stroke="#5ef2ff" stroke-opacity=".5" stroke-dasharray="4 6" />
-            <circle cx="236" cy="182" r="3" fill="#5ef2ff" />
-            <!-- sensors -->
-            <circle cx="200" cy="268" r="4" fill="#4dffb0" /><circle cx="186" cy="266" r="3" fill="#4dffb0" /><circle cx="214" cy="266" r="3" fill="#4dffb0" />
-            <!-- glare -->
-            <path d="M232 104 Q 272 112 296 140" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" />
-            <path d="M74 120 Q 96 70 150 46" stroke="#fff" stroke-opacity=".18" stroke-width="5" stroke-linecap="round" />
-          </svg>
-        </div>
-        <div class="float-tag t1"><span class="dot pulse"></span>Heart <b>72 bpm</b></div>
-        <div class="float-tag t2"><span class="dot"></span>SpO₂ <b>97.6%</b></div>
-        <div class="float-tag t3"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span>“ASTRA, run a full scan”</div>
-        <div class="float-tag t4"><span class="dot warn"></span>Dose <b>0.62 mSv</b></div>
+        <canvas aria-label="3D model of the AstraSight helmet: visor display, eye cameras, chin microphones and dosimeter. Drag to turn it." role="img"></canvas>
+        <svg class="g3d-lines" aria-hidden="true">
+          <defs><marker id="g3d-arrow" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" /></marker></defs>
+        </svg>
+        <div class="float-tag t1" data-target="display"><span class="dot pulse"></span>Heart <b>72 bpm</b></div>
+        <div class="float-tag t2" data-target="eyes"><span class="dot"></span>Eye scan <b>clear</b></div>
+        <div class="float-tag t3" data-target="voice"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span>“ASTRA, run a full scan”</div>
+        <div class="float-tag t4" data-target="dose"><span class="dot warn"></span>Dose <b>0.62 mSv</b></div>
+        <p class="g3d-hint mono">Drag to turn · no buttons, gloves can't use them</p>
       </div>
     </div>
   </header>
@@ -132,44 +90,6 @@
           </div>
           <div class="mini-voice"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="dim">“Move panel left”</span></div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- THE HELMET: 3D helmet with visor display and control callouts (js/glasses3d.js) -->
-  <section>
-    <div class="container">
-      <div class="section-head center reveal">
-        <span class="eyebrow">The helmet</span>
-        <h2>Three controls. <span class="grad-text">No screen to tap.</span></h2>
-        <p class="lead">Voice does most of the work, but gloves, noise and comm blackouts happen. Two buttons and a scroll knob on the helmet's ear modules do the same job by touch, and the health display sits inside the visor, off to one side. Drag the model to turn it.</p>
-      </div>
-      <div class="g3d-stage reveal" id="glasses-stage">
-        <canvas aria-label="3D model of the AstraSight helmet, showing the visor display, left button, right button and scroll knob" role="img"></canvas>
-        <svg class="g3d-lines" aria-hidden="true">
-          <defs><marker id="g3d-arrow" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" /></marker></defs>
-        </svg>
-        <div class="g3d-callout pos-tl" data-target="right">
-          <span class="mono">01 · Right button</span>
-          <b>Acknowledge and next step</b>
-          <p>Press to acknowledge an alert, then again to page through its steps.</p>
-        </div>
-        <div class="g3d-callout pos-bl" data-target="knob">
-          <span class="mono">02 · Scroll knob</span>
-          <b>Scroll the side panel</b>
-          <p>Turn to move through readings or alert steps. Press it in to open the selected tool.</p>
-        </div>
-        <div class="g3d-callout pos-tr" data-target="left">
-          <span class="mono">03 · Left button</span>
-          <b>Talk to ASTRA</b>
-          <p>Press it together with the right button, or just say “Hey ASTRA”. Same as pressing V on the live interface.</p>
-        </div>
-        <div class="g3d-callout pos-br" data-target="display">
-          <span class="mono">04 · Visor display</span>
-          <b>Health panel in the visor</b>
-          <p>Vitals sit at the edge of your view. The centre stays clear for the task.</p>
-        </div>
-        <p class="g3d-hint mono">Drag to rotate · left and right are the wearer's</p>
       </div>
     </div>
   </section>

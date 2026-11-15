@@ -257,6 +257,8 @@
       <p class="vb-tip"><span>Tip</span> ${esc(TIPS[tipIdx++ % TIPS.length])}</p>`;
   }
   function explain() {
+    // Same ASTRA guide as the nav "?" (AstraHelp in common.js). The bubble text below is only a fallback.
+    if (typeof AstraHelp !== "undefined") { AstraHelp.toggle(); return; }
     show({ html: helpHtml(), link: onTools ? { href: "report.html", text: "Open report screen →" } : { href: "interface.html", text: "Launch the interface →" } });
   }
   // Kept for callers of the old pop-up: greeting now opens the explanation.
@@ -298,7 +300,7 @@
     clearTimeout(clickTimer);
     if (e.detail > 1) return;
     const run = () => {
-      if (root.classList.contains("minimized") || mode === "alert") explain();
+      if (root.classList.contains("minimized") || mode === "alert" || typeof AstraHelp !== "undefined") explain();
       else close();
     };
     if (e.detail === 0) run();   // keyboard (Enter / Space): no double-click to wait for

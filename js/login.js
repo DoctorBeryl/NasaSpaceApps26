@@ -8,7 +8,7 @@
      keeps them on this machine. The camera starts only after the
      user picks face scan and has seen the demo-only notice.
        sign-in: 3 frontal samples + 1 slight head turn -> /verify
-       enroll:  name + 4 frontal + 2 per side          -> /enroll
+       enroll:  name + role + 4 frontal + 2 per side   -> /enroll
    - Email and password: Firebase Email/Password (js/auth.js).
    ========================================================== */
 (function () {
@@ -22,7 +22,7 @@
   const $ = (id) => document.getElementById(id);
   const video = $("cam"), overlay = $("overlay"), frame = $("scan-frame");
   const statusEl = $("status"), detailEl = $("detail");
-  const form = $("enroll-form"), nameInput = $("crew-name");
+  const form = $("enroll-form"), nameInput = $("crew-name"), roleInput = $("crew-role");
   const btnRetry = $("btn-retry"), btnNew = $("btn-new"), btnBack = $("btn-back");
   const ringArc = $("ring-arc");
   const RING_LEN = 2 * Math.PI * 48;
@@ -37,7 +37,7 @@
 
   /* ---------------- views ---------------- */
   function showView(name) {
-    for (const v of ["choose", "face", "password", "signed"]) $(`view-${v}`).hidden = v !== name;
+    for (const v of ["choose", "face", "password", "signed", "role"]) $(`view-${v}`).hidden = v !== name;
     if (name !== "face") { run++; stopCamera(); }   // leaving the scan: cancel it and release the camera
   }
 
@@ -47,6 +47,101 @@
     const n = params.get("next");
     if (n && /^[\w-]+\.html(\?[^#<>"']*)?$/.test(n) && !/^login\.html/.test(n)) return n;
     return isNew ? "interface.html?welcome=1" : "interface.html";
+  }
+
+  /* ---------------- role picker ----------------
+     The native <select> popup is drawn by the OS (a plain black or white list we can't style), so each
+     .role-select becomes a grid of role buttons (a radio group). The select stays in the DOM, hidden,
+     as the value the rest of this file reads; focus() on it moves to the picker. */
+  function rolePicker(select) {
+    const group = document.createElement("div");
+    group.className = "role-chips";
+    group.setAttribute("role", "radiogroup");
+    const label = select.getAttribute("aria-labelledby");
+    if (label) group.setAttribute("aria-labelledby", label);
+    const chips = [...select.options].filter((o) => o.value).map((o) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "role-chip";
+      b.setAttribute("role", "radio");
+      b.dataset.value = o.value;
+      b.innerHTML = `<span class="role-dot" aria-hidden="true"></span><span></span>`;
+      b.lastChild.textContent = o.textContent;
+      return b;
+    });
+    const sync = () => chips.forEach((b, i) => {
+      const on = b.dataset.value === select.value;
+      b.setAttribute("aria-checked", String(on));
+      b.tabIndex = on || (!select.value && i === 0) ? 0 : -1;   // roving tabindex: one tab stop
+    });
+    const pick = (b) => {
+      select.value = b.dataset.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      sync();
+      b.focus();
+    };
+    chips.forEach((b, i) => {
+      b.addEventListener("click", () => pick(b));
+      b.addEventListener("keydown", (e) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        pick(chips[(i + step + chips.length) % chips.length]);
+      });
+      group.appendChild(b);
+    });
+    select.classList.add("enhanced");
+    select.required = false;   // checked in JS; a hidden required control blocks submit with an invisible bubble
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+    select.after(group);
+    select.focus = () => (chips.find((b) => b.tabIndex === 0) || chips[0]).focus();
+    sync();
+  }
+  document.querySelectorAll("select.role-select").forEach(rolePicker);
+  // Picking a role clears the "choose your role" warning next to it.
+  $("crew-role").addEventListener("change", () => { detailEl.textContent = ""; });
+  $("pw-role").addEventListener("change", () => { if ($("pw-msg").dataset.tone === "fail") { $("pw-msg").textContent = ""; $("pw-msg").dataset.tone = ""; } });
+  const ROLE_MSG = $("role-msg").textContent;
+  $("role-pick").addEventListener("change", () => { $("role-msg").textContent = ROLE_MSG; $("role-msg").dataset.tone = ""; });
+
+  /* ---------------- crew role ----------------
+     New crew pick it while enrolling. Crew enrolled before the dropdown existed (and email
+     accounts without one) pick it once here, after signing in, before going on. */
+  async function knownRole(sessionRole) {
+    if (sessionRole) return sessionRole;
+    const doc = await AstraAuth.getProfile().catch(() => null);
+    return (doc && (doc.role || (doc.profile && doc.profile.role))) || null;
+  }
+  async function saveRole(role) {
+    const doc = (await AstraAuth.getProfile().catch(() => null)) || {};
+    await AstraAuth.saveProfile({ role, profile: { ...(doc.profile || {}), role } });
+    const u = AstraAuth.user;
+    if (!u) return;
+    try {   // also on the face record, so another browser knows it (404 for email accounts: fine)
+      const t = await AstraAuth.getIdToken().catch(() => null);
+      await fetch(AstraAuth.api("/api/auth/face/role"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(t && { Authorization: `Bearer ${t}` }) },
+        body: JSON.stringify({ uid: u.uid, role }),
+      });
+    } catch { /* saved in the profile anyway */ }
+  }
+  /** Go to `url`, asking for the role first if this crew member has none. */
+  async function continueTo(url, sessionRole) {
+    if (await knownRole(sessionRole)) return location.assign(url);
+    const u = AstraAuth.user;
+    $("role-title").textContent = u ? `One more thing, ${u.name}` : "One more thing";
+    showView("role");
+    const pick = $("role-pick");
+    setTimeout(() => pick.focus(), 50);
+    $("role-form").onsubmit = async (ev) => {
+      ev.preventDefault();
+      if (!pick.value) { $("role-msg").textContent = "Choose your role on the crew."; $("role-msg").dataset.tone = "fail"; return pick.focus(); }
+      $("role-form").querySelector("button").disabled = true;
+      await saveRole(pick.value);
+      location.assign(url);
+    };
   }
 
   /* ---------------- face: UI helpers ---------------- */
@@ -95,7 +190,7 @@
     ]);
     detectorOpts = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
     // The first pass compiles the GPU shaders (1–3 s on a laptop, longer without a GPU). Do it before prompting.
-    say("Calibrating the lens…", "Only the first time you open this page.", "busy");
+    say("Calibrating the camera…", "Only the first time you open this page.", "busy");
     await api.detectSingleFace(video, detectorOpts).withFaceLandmarks().withFaceDescriptor();
     faceapi = api;
   }
@@ -173,7 +268,7 @@
   const FRAME_HINT = {
     none: "I can't see a face. Move into the frame.",
     many: "I can see more than one face. One person at a time.",
-    far: "Move a little closer to the lens.",
+    far: "Move a little closer to the camera.",
   };
 
   /**
@@ -222,11 +317,11 @@
 
   const facing = (yaw) => Math.abs(yaw) < CENTER;
   const LOGIN_STEPS = [
-    { key: "face", need: 3, prompt: "Look straight into the lens.", test: facing },
+    { key: "face", need: 3, prompt: "Look straight into the camera.", test: facing },
     { key: "turn", need: 1, turn: true, prompt: "Now turn your head slightly to either side.", test: (y) => Math.abs(y) > TURN },
   ];
   const ENROLL_STEPS = [
-    { key: "face", need: 4, prompt: "Look straight into the lens and hold still.", test: facing },
+    { key: "face", need: 4, prompt: "Look straight into the camera and hold still.", test: facing },
     { key: "side1", need: 2, turn: true, prompt: "Turn your head slightly to one side.", test: (y) => Math.abs(y) > TURN },
     { key: "side2", need: 2, turn: true, prompt: "Now turn slightly to the other side.", test: (y, c) => Math.abs(y) > TURN && c.side && Math.sign(y) !== c.side },
   ];
@@ -247,7 +342,7 @@
     if (!cfg || cfg.mode === "unavailable") {
       throw Object.assign(new Error("Face sign-in needs the AstraSight server, and it isn't running. Start it with  npm run dev  (or node server.js), then try again."), { code: "noserver" });
     }
-    say("Starting the lens camera…", "", "busy");
+    say("Starting the camera…", "", "busy");
     await startCamera();
     if (flow !== run) throw cancelled();
     if (!faceapi) {
@@ -261,8 +356,8 @@
   function startFace() {
     remember.set("face");
     showView("face");
-    if (params.has("enroll")) return askName("New crew member? Tell me your name or call sign.");
-    if (AstraAuth.config?.enrolled === 0) return askName("No crew are enrolled on this device yet. Tell me your name to enroll.");
+    if (params.has("enroll")) return askName("New crew member? Tell me your name and your role.");
+    if (AstraAuth.config?.enrolled === 0) return askName("No crew are enrolled on this device yet. Tell me your name and role to enroll.");
     signIn();
   }
 
@@ -279,7 +374,7 @@
       if (res.ok) return finishFace(res.data);
       if (res.status === 401) {
         stepState("match", "fail");
-        return askName("I don't recognize you. If you're new, tell me your name.");
+        return askName("I don't recognize you. If you're new, tell me your name and role.");
       }
       throw new Error(res.data.message || "Sign-in failed.");
     } catch (e) {
@@ -296,7 +391,7 @@
     setTimeout(() => nameInput.focus(), 50);
   }
 
-  async function enroll(name) {
+  async function enroll(name, role) {
     const flow = ++run;
     controls({ back: true });
     setSteps([["face", "Face"], ["side1", "Side"], ["side2", "Other side"]]);
@@ -304,7 +399,7 @@
       await prepare(flow);
       const descriptors = await capture(ENROLL_STEPS, flow);
       say("Saving your face template on this device…", "", "busy");
-      let res = await post("/api/auth/face/enroll", { name, descriptors });
+      let res = await post("/api/auth/face/enroll", { name, role, descriptors });
       if (res.status === 409) {
         say(`You're already enrolled as ${res.data.name}. Signing you in.`, "", "busy");
         res = await post("/api/auth/face/verify", { descriptors: descriptors.slice(0, 4) });
@@ -325,9 +420,9 @@
       return fail(new Error(`Face matched, but Firebase sign-in failed: ${e.message}`));
     }
     say(session.isNew ? `Welcome aboard, ${session.name}.` : `Welcome back, ${session.name}.`,
-      session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your lens…", "ok");
+      session.isNew ? "Next: a short tour and a few questions so ASTRA knows your baseline." : "Opening your helmet display…", "ok");
     controls();
-    setTimeout(() => location.assign(nextUrl(session.isNew)), session.isNew ? 1800 : 1200);
+    setTimeout(() => continueTo(nextUrl(session.isNew), session.role), session.isNew ? 1800 : 1200);
   }
 
   function fail(e) {
@@ -344,17 +439,18 @@
   let noServer = false;
   btnRetry.onclick = () => (noServer ? location.reload() : signIn());
   btnBack.onclick = () => signIn();
-  btnNew.onclick = () => askName("New crew member? Tell me your name or call sign.");
+  btnNew.onclick = () => askName("New crew member? Tell me your name and your role.");
   form.onsubmit = (ev) => {
     ev.preventDefault();
-    const name = nameInput.value.trim();
+    const name = nameInput.value.trim(), role = roleInput.value;
     if (!name) return nameInput.focus();
-    enroll(name);
+    if (!role) { detailEl.textContent = "Pick your role on the crew, then scan."; return roleInput.focus(); }
+    enroll(name, role);
   };
 
   /* ---------------- email and password ---------------- */
   const pwForm = $("pw-form"), pwMsg = $("pw-msg"), pwSubmit = $("pw-submit");
-  const pwName = $("pw-name"), pwEmail = $("pw-email"), pwPass = $("pw-pass");
+  const pwName = $("pw-name"), pwRole = $("pw-role"), pwEmail = $("pw-email"), pwPass = $("pw-pass");
   let pwMode = "signin";
 
   const PW_ERRORS = {
@@ -396,17 +492,18 @@
     ev.preventDefault();
     const name = pwName.value.trim(), email = pwEmail.value.trim(), pass = pwPass.value;
     if (pwMode === "create" && !name) return pwSay("Enter a name or call sign.", "fail"), pwName.focus();
+    if (pwMode === "create" && !pwRole.value) return pwSay("Choose your role on the crew.", "fail"), pwRole.focus();
     if (!email) return pwSay("Enter your email.", "fail"), pwEmail.focus();
     if (!pass) return pwSay("Enter your password.", "fail"), pwPass.focus();
     pwSubmit.disabled = true;
     pwSay(pwMode === "create" ? "Creating your account…" : "Signing in…");
     try {
       const u = pwMode === "create"
-        ? await AstraAuth.createAccount(name, email, pass)
+        ? await AstraAuth.createAccount(name, email, pass, pwRole.value)
         : await AstraAuth.signInWithPassword(email, pass);
       const isNew = pwMode === "create";
       pwSay(isNew ? `Welcome aboard, ${u.name}.` : `Welcome back, ${u.name}.`, "ok");
-      setTimeout(() => location.assign(nextUrl(isNew)), isNew ? 1500 : 900);
+      setTimeout(() => continueTo(nextUrl(isNew), isNew ? pwRole.value : null), isNew ? 1500 : 900);
     } catch (e) {
       pwSay(PW_ERRORS[e.code] || e.message, "fail");
       pwSubmit.disabled = false;
@@ -435,15 +532,18 @@
   $("face-to-choose").onclick = toChoose;
   $("pw-to-choose").onclick = toChoose;
 
-  AstraAuth.ready.then((u) => {
-    const passwordOk = AstraAuth.config?.mode === "firebase";
+  AstraAuth.ready.then(async (u) => {
+    const passwordOk = !!AstraAuth.config?.firebase;   // email and password need only the web config
     $("pick-password").disabled = !passwordOk;
     $("password-off").hidden = passwordOk;
     $("to-password").hidden = !passwordOk;
 
     if (u) {
+      // Signed in from an earlier visit but no role yet (or sent here by the questionnaire): ask for it now.
+      if (!(await knownRole(u.role))) return continueTo(nextUrl(false));
       $("signed-text").textContent = `You're signed in as ${u.name}.`;
       $("btn-continue").href = nextUrl(false);
+      $("btn-continue").onclick = (ev) => { ev.preventDefault(); continueTo(nextUrl(false)); };
       $("btn-switch").onclick = async () => { await AstraAuth.signOut(); showView("choose"); };
       return showView("signed");
     }

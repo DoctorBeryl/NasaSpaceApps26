@@ -222,7 +222,7 @@
   }
 
   $("imca-read").addEventListener("click", () => {
-    const j = state.result; if (!j || !window.VEGA) return;
+    const j = state.result; if (!j || typeof VEGA === "undefined") return;   // `const VEGA` isn't on window
     const top = (j.possibleCauses || [])[0];
     const text = [j.escalate || level() === "critical" ? "Contact the flight surgeon now." : "",
       j.summary, top ? `Most likely to consider: ${top.name}. ${(top.whatToDo || []).join(" ")}` : ""].filter(Boolean).join(" ");

@@ -13,9 +13,13 @@
 
    GET  /api/auth/config         { mode, firebase, faceModels, threshold, enrolled }
    POST /api/auth/face/verify    { descriptors: number[128][] }          -> session | 401
-   POST /api/auth/face/enroll    { name, descriptors: number[128][] }    -> session | 409
+   POST /api/auth/face/enroll    { name, role, descriptors: number[128][] } -> session | 409
 
-   session = { uid, name, isNew, mode, token, distance }
+   POST /api/auth/face/role      { uid, role }  set the role of crew enrolled before roles existed
+                                 (Firebase mode: needs a Bearer ID token for that uid)
+
+   session = { uid, name, role, isNew, mode, token, distance }
+   role is one of ROLES in server/onboarding.js (null for crew enrolled before roles existed).
 
    Templates live in server/data/faces.json (gitignored, never
    served). CLI:  node server/auth.js list | remove <uid> | reset
@@ -24,6 +28,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { ROLES, cleanRole } = require("./onboarding");   // crew roles, shared with the questionnaire
 
 const ROOT = path.join(__dirname, "..");
 const DATA_DIR = path.join(__dirname, "data");
@@ -64,15 +69,22 @@ function loadServiceAccount() {
 }
 
 const SA = loadServiceAccount();
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || SA?.projectId || "";
-/* The web config is public by design (it ships to every browser), but we keep
-   it in .env so each teammate can point at their own Firebase project. */
-const WEB_CONFIG = process.env.FIREBASE_API_KEY && PROJECT_ID ? {
-  apiKey: process.env.FIREBASE_API_KEY,
+/* The web config is public by design (it ships to every browser; the same values are in
+   .env.example). It defaults to the team's project, so email and password sign-in works on
+   every clone and on the live server. Set FIREBASE_* in .env to use your own project, or
+   FIREBASE_API_KEY=off to turn Firebase off. */
+const TEAM_WEB = { apiKey: "AIzaSyCbfssOIZ20erZ3lKAUGEfl9OMYuFT0g64", projectId: "nasa-space-app-challange", appId: "1:75019919525:web:b8319531e9afb7a7316d4c" };
+const ownProject = !!process.env.FIREBASE_API_KEY;
+const API_KEY = ownProject ? process.env.FIREBASE_API_KEY : TEAM_WEB.apiKey;
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || SA?.projectId || (ownProject ? "" : TEAM_WEB.projectId);
+const WEB_CONFIG = API_KEY && API_KEY !== "off" && PROJECT_ID ? {
+  apiKey: API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${PROJECT_ID}.firebaseapp.com`,
   projectId: PROJECT_ID,
-  appId: process.env.FIREBASE_APP_ID || undefined,
+  appId: process.env.FIREBASE_APP_ID || (ownProject ? undefined : TEAM_WEB.appId),
 } : null;
+/* "firebase" = face sign-in mints Firebase tokens (needs the service account too).
+   Email and password only need WEB_CONFIG, so they work in "local" mode as well. */
 const MODE = WEB_CONFIG && SA ? "firebase" : "local";
 
 const b64url = (buf) => Buffer.from(buf).toString("base64url");
@@ -200,15 +212,28 @@ function cleanName(name) {
   return n;
 }
 
-/* Simple per-IP limiter so nobody can brute-force descriptors. */
-const hits = new Map();
-function rateLimit(req) {
+/* The caller's IP. Behind the Cloudflare Tunnel every request reaches us from loopback, so
+   only then is Cloudflare's CF-Connecting-IP trusted; a direct caller can't spoof it. */
+function clientIp(req) {
   const ip = req.socket.remoteAddress || "?";
+  const cf = req.headers["cf-connecting-ip"];
+  return cf && /^(127\.|::1$|::ffff:127\.)/.test(ip) ? String(cf).slice(0, 64) : ip;
+}
+
+/** Sliding-window limiter: returns false once `key` has made more than `max` calls in `windowMs`. */
+const buckets = new Map();
+function allow(key, max, windowMs = 60_000) {
   const now = Date.now();
-  const recent = (hits.get(ip) || []).filter((t) => now - t < 60_000);
+  const recent = (buckets.get(key) || []).filter((t) => now - t < windowMs);
   recent.push(now);
-  hits.set(ip, recent);
-  if (recent.length > 30) throw bad("Too many attempts. Wait a minute and try again.", 429, "rate_limited");
+  buckets.set(key, recent);
+  if (buckets.size > 5000) for (const [k, v] of buckets) if (!v.length || now - v[v.length - 1] > windowMs) buckets.delete(k);
+  return recent.length <= max;
+}
+
+/* Per-IP limit so nobody can brute-force descriptors. */
+function rateLimit(req) {
+  if (!allow(`face:${clientIp(req)}`, 30)) throw bad("Too many attempts. Wait a minute and try again.", 429, "rate_limited");
 }
 
 /* ---------------- sessions ---------------- */
@@ -222,12 +247,12 @@ function session(user, isNew, dist) {
       throw bad("Sign-in service is misconfigured. Check FIREBASE_* in .env.", 500, "token_failed");
     }
   }
-  return { uid: user.uid, name: user.name, isNew, mode: MODE, token, distance: dist == null ? null : Math.round(dist * 1000) / 1000 };
+  return { uid: user.uid, name: user.name, role: user.role || null, isNew, mode: MODE, token, distance: dist == null ? null : Math.round(dist * 1000) / 1000 };
 }
 
 /* ---------------- handlers ---------------- */
 function config() {
-  return { mode: MODE, firebase: MODE === "firebase" ? WEB_CONFIG : null, faceModels: FACE_MODELS, threshold: THRESHOLD, enrolled: load().users.length };
+  return { mode: MODE, firebase: WEB_CONFIG, faceModels: FACE_MODELS, threshold: THRESHOLD, enrolled: load().users.length, roles: ROLES };
 }
 
 function verify(body) {
@@ -251,17 +276,36 @@ function verify(body) {
 
 function enroll(body) {
   const name = cleanName(body.name);
+  const role = cleanRole(body.role);
+  if (!role) throw bad("Choose your role on the crew.");
   const descriptors = cleanDescriptors(body.descriptors, 3, 12);
   const m = bestMatch(descriptors);
   if (m && m.distance < THRESHOLD) {
     throw Object.assign(bad(`This face is already enrolled as ${m.user.name}.`, 409, "already_enrolled"), { extra: { name: m.user.name } });
   }
   const now = new Date().toISOString();
-  const user = { uid: `crew_${crypto.randomBytes(9).toString("base64url")}`, name, createdAt: now, lastLoginAt: now, enrolledCount: descriptors.length, descriptors };
+  const user = { uid: `crew_${crypto.randomBytes(9).toString("base64url")}`, name, role, createdAt: now, lastLoginAt: now, enrolledCount: descriptors.length, descriptors };
   load().users.push(user);
   save();
   console.log(`[auth] Enrolled ${name} (${user.uid}) with ${descriptors.length} templates`);
   return session(user, true, null);
+}
+
+/* Crew enrolled before the role dropdown existed pick it once after sign-in (login.html).
+   Local mode has no tokens; the uid is random and only that crew member's browser holds it. */
+async function setRole(req, body) {
+  const role = cleanRole(body.role);
+  if (!role) throw bad("Choose your role on the crew.");
+  const uid = String(body.uid || "");
+  if (MODE === "firebase") {
+    const who = await userFromRequest(req);
+    if (!who || who.uid !== uid) throw bad("Sign in first.", 401, "unauthorized");
+  }
+  const u = load().users.find((x) => x.uid === uid);
+  if (!u) throw bad("No face record for this account.", 404, "not_found");   // e.g. an email account: the profile holds the role
+  u.role = role;
+  save();
+  return { uid, role };
 }
 
 /* ---------------- routing ---------------- */
@@ -283,6 +327,7 @@ const ROUTES = {
   "GET /api/auth/config": async () => config(),
   "POST /api/auth/face/verify": async (req) => { rateLimit(req); return verify(await readJson(req)); },
   "POST /api/auth/face/enroll": async (req) => { rateLimit(req); return enroll(await readJson(req)); },
+  "POST /api/auth/face/role": async (req) => { rateLimit(req); return setRole(req, await readJson(req)); },
 };
 
 /** Returns true if the request was an /api/auth route (handled here). */
@@ -310,7 +355,7 @@ function describe() {
     : `Face sign-in: local mode (no Firebase settings in .env), ${load().users.length} crew enrolled`;
 }
 
-module.exports = { handle, describe, userFromRequest, verifyIdToken, mode: MODE };
+module.exports = { handle, describe, userFromRequest, verifyIdToken, mode: MODE, clientIp, allow };
 
 /* ---------------- CLI: node server/auth.js list | remove <uid> | reset ---------------- */
 if (require.main === module) {
@@ -318,7 +363,7 @@ if (require.main === module) {
   const d = load();
   if (cmd === "list") {
     if (!d.users.length) console.log("No crew enrolled.");
-    for (const u of d.users) console.log(`${u.uid}  ${u.name.padEnd(20)}  ${u.descriptors.length} templates  last sign-in ${u.lastLoginAt}`);
+    for (const u of d.users) console.log(`${u.uid}  ${u.name.padEnd(20)}  ${(u.role || "-").padEnd(18)}  ${u.descriptors.length} templates  last sign-in ${u.lastLoginAt}`);
   } else if (cmd === "remove" && arg) {
     const before = d.users.length;
     d.users = d.users.filter((u) => u.uid !== arg && u.name !== arg);

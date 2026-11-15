@@ -5,7 +5,8 @@
    crew profile, for any page or feature that needs them.
 
    await AstraAuth.ready                 -> user | null
-   AstraAuth.user                        { uid, name, mode }  (mode: "firebase" | "local")
+   AstraAuth.user                        { uid, name, role, mode }  (mode: "firebase" | "local")
+   AstraAuth.ROLE_LABELS                 { commander: "Commander", ... } (server/onboarding.js ROLES)
    AstraAuth.requireAuth()               redirect to login.html if signed out
    AstraAuth.onChange(fn)                fn(user) on sign-in / sign-out
    await AstraAuth.getProfile()          { name, createdAt, lastLoginAt, onboarded, profile, ... }
@@ -14,7 +15,12 @@
    await AstraAuth.getIdToken()          Firebase ID token (null in local mode)
    await AstraAuth.signOut()
    (login.js only) signInWithSession(s), signInWithPassword(email, pw),
-   createAccount(name, email, pw), resetPassword(email)
+   createAccount(name, email, pw, role), resetPassword(email)
+
+   The role is picked on login.html when a new crew member enrolls. It is
+   stored on the profile doc (role) and seeded into the questionnaire profile
+   (profile.callsign = sign-in name, profile.role), so the questionnaire
+   doesn't ask for either again.
 
    Firebase mode stores the profile in Firestore at users/{uid}
    (rules: firestore.rules). Local mode, or Firestore being
@@ -82,22 +88,30 @@
     });
     a.onAuthStateChanged(fb.auth, (u) => {
       if ((u && u.uid) === (user && user.uid)) return;
+      if (!u && user && user.mode === "local") return;   // a face (local) session isn't Firebase's to end
       setUser(u ? fromFirebase(u) : null);
     });
     return first ? fromFirebase(first) : null;
   }
 
   function fromFirebase(u) {
-    return { uid: u.uid, name: u.displayName || (store.get(LOCAL_SESSION) || {}).name || "Crew", mode: "firebase" };
+    const cached = store.get(LOCAL_SESSION) || {};
+    const mine = cached.uid === u.uid ? cached : {};
+    return { uid: u.uid, name: u.displayName || mine.name || "Crew", role: mine.role || null, mode: "firebase" };
   }
 
   async function init() {
     cfg = await loadConfig();
     let u = null;
-    if (cfg.mode === "firebase") {
-      try { u = await initFirebase(); } catch (e) { console.warn("[auth] Firebase failed to load; using local session.", e); cfg.mode = "local"; }
+    // Firebase loads whenever the server sends a web config: email and password need it even when
+    // face sign-in runs in local mode (no service account). Then both kinds of session can exist.
+    if (cfg.firebase) {
+      try { u = await initFirebase(); } catch (e) { console.warn("[auth] Firebase failed to load; using local session.", e); cfg.mode = "local"; cfg.firebase = null; }
     }
-    if (!u && cfg.mode !== "firebase") u = store.get(LOCAL_SESSION);
+    if (!u && cfg.mode !== "firebase") {
+      const s = store.get(LOCAL_SESSION);
+      if (s && s.mode !== "firebase") u = s;   // a firebase entry is only a name cache
+    }
     setUser(u && u.uid ? u : null);
     return user;
   }
@@ -135,23 +149,28 @@
     return merged;
   }
 
+  /* First profile doc for new crew: the questionnaire profile starts with what sign-in already knows. */
+  function newCrewDoc(name, role, now) {
+    return { name, role: role || null, createdAt: now, lastLoginAt: now, onboarded: false, profile: { callsign: name, ...(role && { role }) } };
+  }
+
   /* ---------- sign-in from a server session (called by login.js) ---------- */
   async function signInWithSession(s) {
     const now = new Date().toISOString();
     if (s.mode === "firebase") {
       if (!fb) throw new Error("Firebase isn't loaded");
       // Name cache only (Firebase holds the session). Set first: onAuthStateChanged may fire before displayName is.
-      store.set(LOCAL_SESSION, { uid: s.uid, name: s.name, mode: "firebase" });
+      store.set(LOCAL_SESSION, { uid: s.uid, name: s.name, role: s.role || null, mode: "firebase" });
       const cred = await fb.a.signInWithCustomToken(fb.auth, s.token);
       if (cred.user.displayName !== s.name) await fb.a.updateProfile(cred.user, { displayName: s.name });
-      setUser({ uid: s.uid, name: s.name, mode: "firebase" });
+      setUser({ uid: s.uid, name: s.name, role: s.role || null, mode: "firebase" });
     } else {
-      store.set(LOCAL_SESSION, { uid: s.uid, name: s.name, mode: "local" });
-      setUser({ uid: s.uid, name: s.name, mode: "local" });
+      store.set(LOCAL_SESSION, { uid: s.uid, name: s.name, role: s.role || null, mode: "local" });
+      setUser({ uid: s.uid, name: s.name, role: s.role || null, mode: "local" });
     }
     await saveProfile(s.isNew
-      ? { name: s.name, createdAt: now, lastLoginAt: now, onboarded: false }
-      : { name: s.name, lastLoginAt: now });
+      ? newCrewDoc(s.name, s.role, now)
+      : { name: s.name, ...(s.role && { role: s.role }), lastLoginAt: now });
     return user;
   }
 
@@ -170,15 +189,14 @@
     return user;
   }
 
-  async function createAccount(name, email, password) {
+  async function createAccount(name, email, password, role) {
     needFirebase();
     store.set(LOCAL_SESSION, { name, mode: "firebase" });   // so the auth listener shows the name before displayName is set
     const cred = await fb.a.createUserWithEmailAndPassword(fb.auth, email, password);
     await fb.a.updateProfile(cred.user, { displayName: name });
-    store.set(LOCAL_SESSION, { uid: cred.user.uid, name, mode: "firebase" });
-    setUser({ uid: cred.user.uid, name, mode: "firebase" });
-    const now = new Date().toISOString();
-    await saveProfile({ name, createdAt: now, lastLoginAt: now, onboarded: false });
+    store.set(LOCAL_SESSION, { uid: cred.user.uid, name, role: role || null, mode: "firebase" });
+    setUser({ uid: cred.user.uid, name, role: role || null, mode: "firebase" });
+    await saveProfile(newCrewDoc(name, role, new Date().toISOString()));
     return user;
   }
 
@@ -220,6 +238,7 @@
 
   window.AstraAuth = {
     ready,
+    ROLE_LABELS: { commander: "Commander", pilot: "Pilot", "flight-engineer": "Flight engineer", "mission-specialist": "Mission specialist", "payload-specialist": "Payload specialist", "medical-officer": "Crew medical officer", other: "Other" },
     get user() { return user; },
     get config() { return cfg; },
     /** Absolute or same-origin URL for an API path, e.g. AstraAuth.api("/api/ai/chat"). Valid after `ready`. */
